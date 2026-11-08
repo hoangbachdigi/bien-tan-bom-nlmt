@@ -174,8 +174,8 @@
         try {
             let res = await fetch(API_URL);
             let data = await res.json();
-            // Cấu hình cứng tên tài khoản Admin là hoangbachdigi bảo mật
-            dbUsers = [{ username: 'hoangbachdigi', role: 'admin', status: 'approved' }, ...data.map(u => ({...u, role: 'user'}))];
+            // Cấu hình cứng tên tài khoản Admin là nguyenhoangbach bảo mật
+            dbUsers = [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }, ...data.map(u => ({...u, role: 'user'}))];
             updateAuthUI();
             if(currentUser && currentUser.role === 'admin') renderAdminUserTable();
         } catch(e) {
