@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trợ Lý Chọn Bơm, Biến Tần & Hệ Thống Solar</title>
-    <!-- Nhúng thư viện Chart.js để vẽ biểu đồ -->
     <script src="https://jsdelivr.net"></script>
     <style>
         :root {
@@ -27,18 +26,17 @@
         .btn-logout { background-color: var(--danger-color); }
         h1 { text-align: center; color: var(--primary-color); margin-bottom: 25px; font-size: 26px; }
         .nav-tabs { display: flex; border-bottom: 2px solid #dee2e6; margin-bottom: 25px; gap: 5px; flex-wrap: wrap; }
-        .tab-btn { padding: 12px 20px; cursor: pointer; background: #e9ecef; border: 1px solid #dee2e6; border-bottom: none; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 15px; color: #495057; transition: all 0.3s ease; }
-        .tab-btn:hover { background: #dbe2e8; }
+        .tab-btn { padding: 12px 20px; cursor: pointer; background: #e9ecef; border: 1px solid #dee2e6; border-bottom: none; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 15px; color: #495057; }
         .tab-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
         .panel { background: var(--light-color); padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; height: fit-content; }
-        .panel-title { font-size: 16px; font-weight: bold; color: var(--primary-color); margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; }
+        .panel-title { font-size: 16px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
-        input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; }
         .result-box { margin-top: 25px; padding: 20px; border-radius: 8px; background-color: #e8f5e9; border-left: 5px solid var(--secondary-color); display: none; }
         .result-box h2 { margin-top: 0; color: var(--secondary-color); font-size: 20px; }
         .highlight { font-weight: bold; color: #d9534f; font-size: 18px; }
@@ -119,8 +117,8 @@
             </div>
             <div class="panel" style="background: #e2e3e5; border-color: #d6d8db;">
                 <div class="panel-title" style="color: #383d41;">🛠️ Quy Chuẩn Thiết Kế Hệ Thống</div>
-                <p>- <strong>Biến tần thực tế:</strong> Làm tròn vượt 2 cấp theo các dòng máy phân phối [7.5kW, 11kW, 15kW, 22kW, 30kW] để chịu dòng khởi động lớn trong nước.</p>
-                <p>- <strong>Phân chia chuỗi (String):</strong> Gom nối tiếp từ 11-17 tấm/chuỗi. Hệ thống tốiưu chuỗi 17 tấm và kiểm tra điện áp hở mạch Voc nghiêm ngặt dưới 900V để đảm bảo an toàn.</p>
+                <p>- <strong>Biến tần thực tế:</strong> Làm tròn vượt 2 cấp theo các dòng máy phân phối [7.5kW, 11kW, 15kW, 22kW, 30kW] để bảo vệ dòng khởi động lớn trong nước.</p>
+                <p>- <strong>Phân chia chuỗi (String):</strong> Gom nối tiếp từ 11-17 tấm/chuỗi. Hệ thống ưu tiên chuỗi 17 tấm và kiểm tra điện áp hở mạch Voc nghiêm ngặt dưới 900V để đảm bảo an toàn.</p>
             </div>
         </div>
     </div>
@@ -164,7 +162,7 @@
     };
 
     // Đường link API Web App kết nối trực tiếp với Google Sheet của bạn
-    const API_URL = "https://script.google.com/macros/s/AKfycbwD75OXfOd4BQrEL5vN2PuzfufpMsz1bqJYURlaV6fXp-01e_p0JE-s-2yBjTh8dhJuGA/exec";
+    const API_URL = "https://google.com";
 
     let dbUsers = [];
     let guestCount = parseInt(localStorage.getItem('guest_visits_count')) || 0;
@@ -207,7 +205,7 @@
     async function handleRegister() {
         const username = document.getElementById('zaloInput').value.trim();
         if(!username) return alert('Nhập tên Zalo!');
-        if(username === 'hoangbachdigi') return alert('Tên đăng nhập hệ thống bị hạn chế!');
+        if(username === 'nguyenhoangbach') return alert('Tên này bị hạn chế!');
         document.getElementById('authStatus').innerText = "⏳ Đang ghi vào Google Sheet...";
         try {
             let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', username: username }) });
@@ -215,9 +213,8 @@
             if(result.status === 'exists') alert('Tên Zalo này đã tồn tại!');
             else { alert('Đăng ký thành công! Hãy báo Zalo Quang Nguyen duyệt tài khoản.'); document.getElementById('zaloInput').value = ''; }
             loadUsersFromSheet();
-        } catch(e) { alert('Lỗi đường truyền!'); loadUsersFromSheet(); }
+        } catch(e) { alert('Lỗi mạng!'); loadUsersFromSheet(); }
     }
-
     function handleLogin() {
         const username = document.getElementById('zaloInput').value.trim();
         let user = dbUsers.find(u => u.username === username);
@@ -233,9 +230,10 @@
 
     function checkLimitAndExecute(callback) {
         if(currentUser && currentUser.status === 'approved') { callback(); return; }
-        if(guestCount >= 3) return alert('Hết 3 lần thử! Vui lòng đăng ký Zalo ở trên để mở khóa.');
+        if(guestCount >= 3) return alert('Hết 3 lần thử! Vui lòng đăng ký Zalo ở trên.');
         guestCount++; localStorage.setItem('guest_visits_count', guestCount); updateAuthUI(); callback();
     }
+
     function renderAdminUserTable() {
         const tbody = document.getElementById('adminUserList'); tbody.innerHTML = '';
         dbUsers.forEach(user => {
@@ -245,7 +243,7 @@
     }
 
     async function approveUser(username) { document.getElementById('authStatus').innerText = "⏳ Đang duyệt..."; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'approve', username: username }) }); loadUsersFromSheet(); }
-    async function deleteUser(username) { if(!confirm(`Xóa vĩnh viễn ${username} khỏi Google Sheet?`)) return; document.getElementById('authStatus').innerText = "⏳ Đang xóa..."; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', username: username }) }); loadUsersFromSheet(); }
+    async function deleteUser(username) { if(!confirm(`Xóa vĩnh viễn ${username}?`)) return; document.getElementById('authStatus').innerText = "⏳ Đang xóa..."; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', username: username }) }); loadUsersFromSheet(); }
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -273,7 +271,7 @@
         else if(computedPumpHP > 15 && computedPumpHP < 20) computedPumpHP = 20;
 
         document.getElementById('resultTitle').innerText = "KẾT QUẢ";
-        document.getElementById('resultDetails').innerHTML = `<p>- Lưu lượng thiết kế (Q): <span class="highlight">${flowRate.toFixed(1)}</span> m³/giờ</p><p>- Cột áp tổng cộng đẩy dốc (H tổng): <span class="highlight">${totalHead.toFixed(1)}</span> mét</p><p>- 🔋 **Công suất bơm chọn lựa:** <span class="highlight">${computedPumpHP.toFixed(1)}</span> HP (~<span>${(computedPumpHP*0.7457).toFixed(2)}</span> kW)</p>`;
+        document.getElementById('resultDetails').innerHTML = `<p>- Lưu lượng thiết kế (Q): <span class="highlight">${flowRate.toFixed(1)}</span> m³/giờ</p><p>- Cột áp tổng cộng đẩy dốc (H tổng): <span class="highlight">${totalHead.toFixed(1)}</span> mét</p><p>- 🔋 **Công suất bơm chọn:** <span class="highlight">${computedPumpHP.toFixed(1)}</span> HP (~<span>${(computedPumpHP*0.7457).toFixed(2)}</span> kW)</p>`;
         document.getElementById('systemAdvice').innerHTML = `Khuyến nghị dùng bơm ly tâm đa tầng cánh trục đứng hoặc hỏa tiễn đa tầng cánh chịu lực nén dốc cao.`;
         document.getElementById('resultBox').style.display = 'block';
     }
@@ -304,7 +302,7 @@
         let vocWarningHtml = totalVoc > 900 ? `<br><span style="color:var(--danger-color); font-weight:bold;">⚠️ CẢNH BÁO: Điện áp chuỗi vượt 900V!</span>` : "";
 
         document.getElementById('resultTitle').innerText = "CẤU HÌNH ĐỀ XUẤT";
-        document.getElementById('resultDetails').innerHTML = `<p>- Công suất motor: <span class="sub-highlight">${pumpHP.toFixed(1)} HP</span> (~${pumpKW.toFixed(2)} kW)</p><p>- ⚙️ **Công suất Biến tần:** <span class="highlight">${finalInvKW} kW</span> *(Vượt 2 cấp)*</p><p>- ☀️ **Tổng công suất giàn pin thực tế:** <span class="solar-highlight">${actualSolarKW.toFixed(2)} kWp</span></p><p>- 📦 **Số lượng tấm pin:** <span class="solar-highlight">${totalPanels} tấm</span> mã hiệu <b>${selectedPanel.name}</b></p><p>- 🧩 **Phân chia chuỗi (String):** Chia thành <span class="sub-highlight">${stringCount} chuỗi</span> độc lập.</p><p>- 📐 **Cấu hình chuỗi:** Mỗi chuỗi gồm <span class="highlight">${panelsPerString} tấm</span> nối tiếp. *(Ưu tiên tối ưu chuỗi 17 tấm)*</p><p>- ⚡ **Điện áp hở mạch chuỗi (Voc tổng):** <span>${totalVoc.toFixed(2)} V</span> *(An toàn &lt; 900V)* ${vocWarningHtml}`;
+        document.getElementById('resultDetails').innerHTML = `<p>- Công suất motor: <span class="sub-highlight">${pumpHP.toFixed(1)} HP</span> (~${pumpKW.toFixed(2)} kW)</p><p>- ⚙️ **Biến tần:** <span class="highlight">${finalInvKW} kW</span> *(Vượt 2 cấp)*</p><p>- ☀️ **Tổng công suất giàn pin thực tế:** <span class="solar-highlight">${actualSolarKW.toFixed(2)} kWp</span></p><p>- 📦 **Số lượng tấm pin:** <span class="solar-highlight">${totalPanels} tấm</span> mã hiệu <b>${selectedPanel.name}</b></p><p>- 🧩 **Phân chia chuỗi (String):** Chia thành <span class="sub-highlight">${stringCount} chuỗi</span> độc lập.</p><p>- 📐 **Cấu hình chuỗi:** Mỗi chuỗi gồm <span class="highlight">${panelsPerString} tấm</span> nối tiếp. *(Khuyến nghị chuỗi 17 tấm)*</p><p>- ⚡ **Điện áp hở mạch chuỗi (Voc tổng):** <span>${totalVoc.toFixed(2)} V</span> *(An toàn &lt; 900V)* ${vocWarningHtml}`;
         document.getElementById('systemAdvice').innerHTML = `Hệ thống nước dốc tự dừng rất nhanh, **hoàn toàn không cần mua thêm điện trở hãm lắp ngoài**. Hãy cài đặt chế độ dừng tự do (Coast to Stop) trên biến tần <b>${finalInvKW} kW</b> để tối ưu chi phí tủ điện.`;
         document.getElementById('resultBox').style.display = 'block';
     }
