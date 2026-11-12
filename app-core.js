@@ -173,7 +173,11 @@ function processLogout() {
     updateTopUserBar();
     closeUserModal();
 }
-function renderAdminDashboard(container) {
+
+async function renderAdminDashboard(container) {
+    container.innerHTML = `<p style="text-align:center; padding:30px;">⏳ Đang tải dữ liệu thống kê mới nhất từ Google Sheet...</p>`;
+    await syncDataFromGoogleSheet();
+
     const currentBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
     let userRows = appData.users.filter(u => u.role !== 'admin').map(u => `
         <tr>
@@ -216,11 +220,117 @@ function renderAdminDashboard(container) {
                 <button class="btn btn-primary" style="width:auto; padding:5px 10px; font-size:12px;" onclick="drawLogChart('month')">Theo Tháng</button>
                 <button class="btn btn-success" style="width:auto; padding:5px 10px; font-size:12px;" onclick="filterLogByUser(null)">Xem Tất Cả</button>
             </div>
-            <div style="height:220px; position:relative;"><canvas id="realAdminChart"></canvas></div>
+            <div style="height:240px; width:100%; position:relative;"><canvas id="realAdminChart"></canvas></div>
         </div>
     `;
-    setTimeout(() => drawLogChart('day'), 100);
+    drawLogChart('day');
 }
+
+async function saveBannerUrl() {
+    const url = document.getElementById('adminBannerUrl').value.trim();
+    alert("Đang cập nhật Banner lên hệ thống...");
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'update_banner', bannerUrl: url }) });
+    await syncDataFromGoogleSheet();
+    alert("Cập nhật Banner thành công!");
+}
+
+async function adminAction(act, username) {
+    if (act === 'delete' && !confirm(`Xóa vĩnh viễn tài khoản ${username}?`)) return;
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username: username }) });
+    renderAdminDashboard(document.getElementById('modalContentArea'));
+}
+
+let selectedFilterUser = null;
+function filterLogByUser(username) {
+    selectedFilterUser = username;
+    document.getElementById('chartFilterTitle').innerText = username ? `📊 Lịch Sử Đăng Nhập Của: ${username}` : `📊 Thống Kê Lượt Đăng Nhập (Tất cả User)`;
+    drawLogChart('day');
+}
+
+function drawLogChart(period) {
+    const ctx = document.getElementById('realAdminChart');
+    if (!ctx) return;
+
+    if (typeof Chart === 'undefined') {
+        ctx.parentElement.innerHTML = `<p style="color:red; text-align:center; padding-top:40px;">⚠️ Thư viện vẽ biểu đồ chưa tải xong, vui lòng F5 lại trang!</p>`;
+        return;
+    }
+
+    let filteredLogs = selectedFilterUser ? appData.logs.filter(l => l.username === selectedFilterUser) : appData.logs;
+    let labels = [];
+    let counts = [];
+    const now = new Date();
+
+    if (period === 'day') {
+        labels = ['Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)'];
+        let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+        filteredLogs.forEach(l => {
+            let d = new Date(Number(l.time));
+            if (d.toDateString() === now.toDateString()) {
+                let h = d.getHours();
+                if (h < 6) c0++;
+                else if (h < 12) c1++;
+                else if (h < 18) c2++;
+                else c3++;
+            }
+        });
+        counts = [c0, c1, c2, c3];
+    } else if (period === 'week') {
+        labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+        let w1 = 0, w2 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0, w7 = 0;
+        filteredLogs.forEach(l => {
+            let day = new Date(Number(l.time)).getDay();
+            if (day === 1) w1++;
+            else if (day === 2) w2++;
+            else if (day === 3) w3++;
+            else if (day === 4) w4++;
+            else if (day === 5) w5++;
+            else if (day === 6) w6++;
+            else w7++;
+        });
+        counts = [w1, w2, w3, w4, w5, w6, w7];
+    } else if (period === 'month') {
+        labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'];
+        let m1 = 0, m2 = 0, m3 = 0, m4 = 0;
+        filteredLogs.forEach(l => {
+            let d = new Date(Number(l.time));
+            if (d.getMonth() === now.getMonth()) {
+                let date = d.getDate();
+                if (date <= 7) m1++;
+                else if (date <= 14) m2++;
+                else if (date <= 21) m3++;
+                else m4++;
+            }
+        });
+        counts = [m1, m2, m3, m4];
+    }
+
+    if (adminChartInstance) adminChartInstance.destroy();
+    adminChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { 
+            labels: labels, 
+            datasets: [{ 
+                label: 'Số lần đăng nhập', 
+                data: counts, 
+                backgroundColor: '#007bff',
+                borderRadius: 4
+            }] 
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+}
+
+
 async function saveBannerUrl() {
     const url = document.getElementById('adminBannerUrl').value.trim();
     alert("Đang cập nhật Banner lên hệ thống...");
