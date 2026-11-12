@@ -327,7 +327,7 @@ function renderDynamicList(typeCode, targetElementId) {
     if (!container) return;
     const items = appData.configs.filter(c => c.code === typeCode);
     if (items.length === 0) {
-        container.innerHTML = `<p style="color:#6c757d; text-align:center;">Chưa có bài viết nào trong mục này. Hãy thêm dòng có mã <b>${typeCode}</b> vào Tab <b>Cai_Dat</b> trên Google Sheet.</p>`;
+        container.innerHTML = `<p style="color:#6c757d; text-align:center;">Chưa có bài viết nào trong mục này.</p>`;
         return;
     }
     container.innerHTML = items.map(item => `
