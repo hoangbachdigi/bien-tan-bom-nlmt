@@ -248,34 +248,42 @@ function drawLogChart(period) {
     if (!ctx) return;
 
     let filteredLogs = selectedFilterUser ? appData.logs.filter(l => l.username === selectedFilterUser) : appData.logs;
-    let labels = [], counts = [];
+    let labels = [];
+    let counts = [];
     const now = new Date();
 
     if (period === 'day') {
         labels = ['Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)'];
-        counts =;
+        counts = new Array(4).fill(0);
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
             if (d.toDateString() === now.toDateString()) {
                 let h = d.getHours();
-                if (h < 6) counts[0]++; else if (h < 12) counts[1]++; else if (h < 18) counts[2]++; else counts[3]++;
+                if (h < 6) counts[0]++;
+                else if (h < 12) counts[1]++;
+                else if (h < 18) counts[2]++;
+                else counts[3]++;
             }
         });
     } else if (period === 'week') {
         labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-        counts =;
+        counts = new Array(7).fill(0);
         filteredLogs.forEach(l => {
             let day = new Date(Number(l.time)).getDay();
-            counts[day === 0 ? 6 : day - 1]++;
+            let idx = (day === 0) ? 6 : (day - 1);
+            counts[idx]++;
         });
     } else if (period === 'month') {
         labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'];
-        counts =;
+        counts = new Array(4).fill(0);
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
             if (d.getMonth() === now.getMonth()) {
                 let date = d.getDate();
-                if (date <= 7) counts[0]++; else if (date <= 14) counts[1]++; else if (date <= 21) counts[2]++; else counts[3]++;
+                if (date <= 7) counts[0]++;
+                else if (date <= 14) counts[1]++;
+                else if (date <= 21) counts[2]++;
+                else counts[3]++;
             }
         });
     }
@@ -287,6 +295,7 @@ function drawLogChart(period) {
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
+
 function renderDynamicList(typeCode, targetElementId) {
     const container = document.getElementById(targetElementId);
     if (!container) return;
