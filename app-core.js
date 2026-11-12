@@ -248,12 +248,12 @@ function drawLogChart(period) {
     if (!ctx) return;
 
     let filteredLogs = selectedFilterUser ? appData.logs.filter(l => l.username === selectedFilterUser) : appData.logs;
-    let labels = [];
-    let counts = [];
+    let labels = new Array();
+    let counts = new Array();
     const now = new Date();
 
     if (period === 'day') {
-        labels = ['Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)'];
+        labels.push('Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)');
         let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
@@ -265,23 +265,23 @@ function drawLogChart(period) {
                 else c3++;
             }
         });
-        counts = [c0, c1, c2, c3];
+        counts.push(c0, c1, c2, c3);
     } else if (period === 'week') {
-        labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-        let w =;
+        labels.push('T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN');
+        let w1 = 0, w2 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0, w7 = 0;
         filteredLogs.forEach(l => {
             let day = new Date(Number(l.time)).getDay();
-            if (day === 1) w.splice(0, 1, w.at(0) + 1);
-            else if (day === 2) w.splice(1, 1, w.at(1) + 1);
-            else if (day === 3) w.splice(2, 1, w.at(2) + 1);
-            else if (day === 4) w.splice(3, 1, w.at(3) + 1);
-            else if (day === 5) w.splice(4, 1, w.at(4) + 1);
-            else if (day === 6) w.splice(5, 1, w.at(5) + 1);
-            else w.splice(6, 1, w.at(6) + 1);
+            if (day === 1) w1++;
+            else if (day === 2) w2++;
+            else if (day === 3) w3++;
+            else if (day === 4) w4++;
+            else if (day === 5) w5++;
+            else if (day === 6) w6++;
+            else w7++;
         });
-        counts = w;
+        counts.push(w1, w2, w3, w4, w5, w6, w7);
     } else if (period === 'month') {
-        labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'];
+        labels.push('Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4');
         let m1 = 0, m2 = 0, m3 = 0, m4 = 0;
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
@@ -293,7 +293,7 @@ function drawLogChart(period) {
                 else m4++;
             }
         });
-        counts = [m1, m2, m3, m4];
+        counts.push(m1, m2, m3, m4);
     }
 
     if (adminChartInstance) adminChartInstance.destroy();
@@ -301,12 +301,12 @@ function drawLogChart(period) {
         type: 'bar',
         data: { 
             labels: labels, 
-            datasets: [{ 
+            datasets: new Array({ 
                 label: 'Số lần đăng nhập', 
                 data: counts, 
                 backgroundColor: '#007bff',
                 borderRadius: 4
-            }] 
+            }) 
         },
         options: { 
             responsive: true, 
@@ -320,7 +320,6 @@ function drawLogChart(period) {
         }
     });
 }
-
 
 
 function renderDynamicList(typeCode, targetElementId) {
