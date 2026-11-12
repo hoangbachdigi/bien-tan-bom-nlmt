@@ -254,7 +254,7 @@ function drawLogChart(period) {
 
     if (period === 'day') {
         labels = ['Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)'];
-        counts = new Array(4).fill(0);
+        counts =;
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
             if (d.toDateString() === now.toDateString()) {
@@ -267,7 +267,7 @@ function drawLogChart(period) {
         });
     } else if (period === 'week') {
         labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-        counts = new Array(7).fill(0);
+        counts =;
         filteredLogs.forEach(l => {
             let day = new Date(Number(l.time)).getDay();
             let idx = (day === 0) ? 6 : (day - 1);
@@ -275,7 +275,7 @@ function drawLogChart(period) {
         });
     } else if (period === 'month') {
         labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'];
-        counts = new Array(4).fill(0);
+        counts =;
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
             if (d.getMonth() === now.getMonth()) {
@@ -291,10 +291,28 @@ function drawLogChart(period) {
     if (adminChartInstance) adminChartInstance.destroy();
     adminChartInstance = new Chart(ctx, {
         type: 'bar',
-        data: { labels: labels, datasets: [{ label: 'Số lần đăng nhập', data: counts, backgroundColor: '#007bff' }] },
-        options: { responsive: true, maintainAspectRatio: false }
+        data: { 
+            labels: labels, 
+            datasets: [{ 
+                label: 'Số lần đăng nhập', 
+                data: counts, 
+                backgroundColor: '#007bff',
+                borderRadius: 4
+            }] 
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
     });
 }
+
 
 function renderDynamicList(typeCode, targetElementId) {
     const container = document.getElementById(targetElementId);
