@@ -138,7 +138,7 @@ function closeUserModal() {
 async function processRegister() {
     const name = document.getElementById('modalZaloInput').value.trim();
     if (!name) return alert("Vui lòng nhập tên Zalo!");
-    if (name === 'nguyenhoangbach') return alert("Tên này thuộc quyền quản trị!");
+    if (name === 'nguyenhoangbach') return alert("Tài khoản này bị khóa!");
 
     alert("Đang gửi yêu cầu đăng ký lên hệ thống...");
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', username: name }) });
