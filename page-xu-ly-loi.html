@@ -1,1 +1,26 @@
+<h2 style="margin-top: 0; color: var(--primary); border-bottom: 2px solid #dee2e6; padding-bottom: 10px;">
+    🔧 Cẩm Nang Xử Lý Lỗi Biến Tần Bơm Thường Gặp
+</h2>
+<div class="grid-2">
+    <div class="card">
+        <h3 class="card-title" style="color: var(--danger);">1. Lỗi Quá Dòng (Over Current - OC)</h3>
+        <p><b>Nguyên nhân:</b> Bơm bị kẹt rác/cát, dây cáp quá dài gây sụt áp, hoặc chọn công suất biến tần bằng khít công suất bơm (không chọn vượt cấp).</p>
+        <p><b>Cách xử lý:</b> Kiểm tra kẹt cơ khí cánh bơm, tăng thời gian tăng tốc (Acceleration time) lên 10–15 giây và kiểm tra dòng định mức motor.</p>
+    </div>
+    <div class="card">
+        <h3 class="card-title" style="color: var(--danger);">2. Lỗi Quá Áp (Over Voltage - OV)</h3>
+        <p><b>Nguyên nhân:</b> Điện áp giàn pin năng lượng mặt trời mắc nối tiếp quá nhiều tấm khiến Voc vượt ngưỡng chịu đựng của biến tần (thường &gt; 850V–900V).</p>
+        <p><b>Cách xử lý:</b> Giảm bớt số tấm pin trên mỗi chuỗi (khuyến nghị tối đa 17 tấm/chuỗi) và cài đặt chế độ dừng tự do (Coast to Stop).</p>
+    </div>
+    <div class="card">
+        <h3 class="card-title" style="color: var(--orange);">3. Lỗi Thấp Áp / Yếu Nắng (Under Voltage - UV)</h3>
+        <p><b>Nguyên nhân:</b> Trời nhiều mây, bức xạ mặt trời yếu khiến điện áp DC từ giàn pin tụt xuống dưới ngưỡng hoạt động của MPPT.</p>
+        <p><b>Cách xử lý:</b> Đây là trạng thái bảo vệ bình thường của biến tần bơm solar. Máy sẽ tự động ngủ (Sleep) và tự khởi động lại khi nắng lên đủ áp.</p>
+    </div>
+    <div class="card">
+        <h3 class="card-title" style="color: var(--orange);">4. Lỗi Chạy Khô / Cạn Nước (Dry Run)</h3>
+        <p><b>Nguyên nhân:</b> Giếng khoan hoặc bể hút bị hết nước nhưng bơm vẫn quay không tải gây nóng motor.</p>
+        <p><b>Cách xử lý:</b> Cài đặt ngưỡng bảo vệ dòng không tải (Underload) trên biến tần hoặc lắp thêm cảm biến phao điện báo cạn.</p>
+    </div>
+</div>
 
