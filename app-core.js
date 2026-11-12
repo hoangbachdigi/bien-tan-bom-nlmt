@@ -254,38 +254,46 @@ function drawLogChart(period) {
 
     if (period === 'day') {
         labels = ['Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)'];
-        counts =;
+        let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
             if (d.toDateString() === now.toDateString()) {
                 let h = d.getHours();
-                if (h < 6) counts[0]++;
-                else if (h < 12) counts[1]++;
-                else if (h < 18) counts[2]++;
-                else counts[3]++;
+                if (h < 6) c0++;
+                else if (h < 12) c1++;
+                else if (h < 18) c2++;
+                else c3++;
             }
         });
+        counts = [c0, c1, c2, c3];
     } else if (period === 'week') {
         labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-        counts =;
+        let w =;
         filteredLogs.forEach(l => {
             let day = new Date(Number(l.time)).getDay();
-            let idx = (day === 0) ? 6 : (day - 1);
-            counts[idx]++;
+            if (day === 1) w.splice(0, 1, w.at(0) + 1);
+            else if (day === 2) w.splice(1, 1, w.at(1) + 1);
+            else if (day === 3) w.splice(2, 1, w.at(2) + 1);
+            else if (day === 4) w.splice(3, 1, w.at(3) + 1);
+            else if (day === 5) w.splice(4, 1, w.at(4) + 1);
+            else if (day === 6) w.splice(5, 1, w.at(5) + 1);
+            else w.splice(6, 1, w.at(6) + 1);
         });
+        counts = w;
     } else if (period === 'month') {
         labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'];
-        counts =;
+        let m1 = 0, m2 = 0, m3 = 0, m4 = 0;
         filteredLogs.forEach(l => {
             let d = new Date(Number(l.time));
             if (d.getMonth() === now.getMonth()) {
                 let date = d.getDate();
-                if (date <= 7) counts[0]++;
-                else if (date <= 14) counts[1]++;
-                else if (date <= 21) counts[2]++;
-                else counts[3]++;
+                if (date <= 7) m1++;
+                else if (date <= 14) m2++;
+                else if (date <= 21) m3++;
+                else m4++;
             }
         });
+        counts = [m1, m2, m3, m4];
     }
 
     if (adminChartInstance) adminChartInstance.destroy();
@@ -312,6 +320,7 @@ function drawLogChart(period) {
         }
     });
 }
+
 
 
 function renderDynamicList(typeCode, targetElementId) {
