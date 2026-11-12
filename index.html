@@ -3,311 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trợ Lý Chọn Bơm, Biến Tần & Hệ Thống Solar</title>
+    <!-- TỐI ƯU SEO TỪ KHÓA CHÍNH -->
+    <title>Biến Tần Bơm & Điện Năng Lượng Mặt Trời - Công Cụ Tính Toán Tự Động</title>
+    <meta name="description" content="Phần mềm tính toán công suất máy bơm, chọn biến tần bơm vượt cấp an toàn và thiết kế hệ thống điện năng lượng mặt trời (Solar) phân chuỗi chuẩn xác nhất.">
+    <meta name="keywords" content="biến tần bơm, điện năng lượng mặt trời, tính công suất bơm, biến tần bơm năng lượng mặt trời, chia chuỗi tấm pin">
+    <meta name="robots" content="index, follow">
+    
+    <!-- DỮ LIỆU CẤU TRÚC SCHEMA CHO GOOGLE -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Công Cụ Tính Toán Biến Tần Bơm & Điện Năng Lượng Mặt Trời",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web",
+      "description": "Hệ thống tính toán chọn biến tần bơm nước và thiết kế giàn pin điện năng lượng mặt trời tự động."
+    }
+    </script>
+
     <script src="https://jsdelivr.net"></script>
     <style>
         :root {
-            --primary-color: #007bff;
-            --secondary-color: #28a745;
-            --dark-color: #343a40;
-            --light-color: #f8f9fa;
-            --orange-color: #fd7e14;
-            --solar-color: #e65100;
-            --danger-color: #dc3545;
+            --primary: #007bff;
+            --secondary: #28a745;
+            --dark: #343a40;
+            --gray-menu: #495057;
+            --light: #f8f9fa;
+            --orange: #fd7e14;
+            --danger: #dc3545;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; background-color: #eef2f5; color: var(--dark-color); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .auth-bar { display: flex; justify-content: space-between; align-items: center; background: #e9ecef; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; flex-wrap: wrap; gap: 10px; }
-        .auth-inputs { display: flex; gap: 10px; align-items: center; }
-        .auth-inputs input { padding: 6px 12px; border: 1px solid #ced4da; border-radius: 4px; }
-        .btn-auth { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
-        .btn-login { background-color: var(--primary-color); }
-        .btn-register { background-color: #6c757d; }
-        .btn-logout { background-color: var(--danger-color); }
-        h1 { text-align: center; color: var(--primary-color); margin-bottom: 25px; font-size: 26px; }
-        .nav-tabs { display: flex; border-bottom: 2px solid #dee2e6; margin-bottom: 25px; gap: 5px; flex-wrap: wrap; }
-        .tab-btn { padding: 12px 20px; cursor: pointer; background: #e9ecef; border: 1px solid #dee2e6; border-bottom: none; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 15px; color: #495057; }
-        .tab-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
-        .panel { background: var(--light-color); padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; height: fit-content; }
-        .panel-title { font-size: 16px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; color: var(--dark); margin: 0; padding: 15px; line-height: 1.6; }
+        .wrapper { max-width: 1050px; margin: 0 auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); overflow: hidden; }
+        
+        /* TẦNG 1: THANH THÔNG TIN USER */
+        .top-user-bar { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 10px 20px; border-bottom: 1px solid #dee2e6; font-size: 14px; }
+        .user-status-center { flex: 1; text-align: center; font-weight: 500; }
+        .user-icon-btn { background: #fff; border: 1px solid #ced4da; border-radius: 20px; padding: 5px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: bold; color: var(--dark); transition: 0.2s; }
+        .user-icon-btn:hover { background: #e9ecef; }
+
+        /* TẦNG 2: BANNER QUẢNG CÁO */
+        .banner-area { width: 100%; background: linear-gradient(135deg, #0056b3, #00a8ff); color: white; text-align: center; position: relative; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .banner-area img { width: 100%; max-height: 260px; object-fit: cover; display: block; }
+        .seo-main-title { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
+        .seo-sub-title { margin: 5px 0 0; font-size: 14px; opacity: 0.95; }
+
+        /* TẦNG 3: THANH MENU CHÍNH MÀU XÁM ĐẬM (5 MỤC) */
+        .main-nav { display: flex; background-color: var(--gray-menu); overflow-x: auto; }
+        .nav-item { flex: 1; text-align: center; padding: 14px 10px; color: #fff; font-weight: bold; font-size: 13.5px; cursor: pointer; border-right: 1px solid #6c757d; transition: 0.2s; white-space: nowrap; }
+        .nav-item:last-child { border-right: none; }
+        .nav-item:hover { background-color: #343a40; }
+        .nav-item.active { background-color: #ffffff; color: var(--primary); border-top: 3px solid var(--primary); }
+
+        /* TẦNG 4: VÙNG HIỂN THỊ PAGE IN PAGE */
+        .page-container { padding: 25px; min-height: 400px; }
+
+        /* POPUP ĐĂNG NHẬP & BẢNG ADMIN */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 15px; }
+        .modal-box { background: #fff; padding: 25px; border-radius: 10px; max-width: 750px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 5px 25px rgba(0,0,0,0.2); }
+        .close-modal { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; font-weight: bold; color: #6c757d; }
+        
+        /* CÁC THÀNH PHẦN DÙNG CHUNG CHO TRANG CON */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+        .card { background: var(--light); padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .card-title { font-size: 16px; font-weight: bold; color: var(--primary); margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #dee2e6; padding-bottom: 6px; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
-        input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; }
-        .result-box { margin-top: 25px; padding: 20px; border-radius: 8px; background-color: #e8f5e9; border-left: 5px solid var(--secondary-color); display: none; }
-        .result-box h2 { margin-top: 0; color: var(--secondary-color); font-size: 20px; }
-        .highlight { font-weight: bold; color: #d9534f; font-size: 18px; }
-        .sub-highlight { font-weight: bold; color: var(--primary-color); }
-        .solar-highlight { font-weight: bold; color: var(--solar-color); }
-        .recommendation { background: #fff; padding: 15px; border: 1px solid #dee2e6; border-radius: 6px; margin-top: 15px; }
-        .faq-item { margin-bottom: 12px; border: 1px solid #dee2e6; border-radius: 6px; overflow: hidden; background: #fff; }
-        .faq-question { padding: 15px; background: var(--light-color); font-weight: bold; font-size: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-        .faq-answer { padding: 15px; border-top: 1px solid #dee2e6; display: none; font-size: 14.5px; background: #ffffff; color: #495057; }
-        .faq-item.active .faq-answer { display: block; }
-        .admin-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-        .admin-table th, .admin-table td { border: 1px solid #dee2e6; padding: 10px; text-align: left; }
-        .admin-table th { background-color: #e9ecef; }
-        .btn-action { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 12px; margin-right: 5px; }
-        .btn-approve { background-color: var(--secondary-color); }
-        .btn-delete { background-color: var(--danger-color); }
-        footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #dee2e6; font-size: 13px; color: #6c757d; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+        input[type="number"], input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14.5px; }
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: #fff; font-size: 14.5px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); width: 100%; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-orange { background: var(--orange); width: 100%; }
+        .btn-success { background: var(--secondary); }
+        .btn-danger { background: var(--danger); }
+        
+        .result-box { margin-top: 20px; padding: 20px; background: #e8f5e9; border-left: 5px solid var(--secondary); border-radius: 6px; display: none; }
+        .highlight { font-weight: bold; color: #d9534f; font-size: 17px; }
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13.5px; }
+        .admin-table th, .admin-table td { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+        .admin-table th { background: #e9ecef; }
+
+        footer { background: #f1f3f5; text-align: center; padding: 15px; border-top: 1px solid #dee2e6; font-size: 13.5px; color: #495057; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="auth-bar" id="authBar">
-        <div id="authStatus">🔄 Đang đồng bộ tài khoản dữ liệu từ đám mây Google...</div>
-        <div class="auth-inputs" id="authForm">
-            <input type="text" id="zaloInput" placeholder="Nhập Tên Zalo của bạn...">
-            <button class="btn-auth btn-login" onclick="handleLogin()">Đăng nhập</button>
-            <button class="btn-auth btn-register" onclick="handleRegister()">Đăng ký</button>
-        </div>
+
+<div class="wrapper">
+    <!-- TẦNG 1: THANH THÔNG TIN USER -->
+    <div class="top-user-bar">
+        <div style="font-weight: bold; color: var(--primary);">⚡ SOLAR & PUMP</div>
+        <div class="user-status-center" id="userStatusText">🔮 Chế độ: Khách vãng lai (Còn <b style="color:red">3</b> lần tính miễn phí)</div>
+        <button class="user-icon-btn" onclick="openUserModal()">
+            <span>👤</span> <span id="userBtnLabel">Tài khoản</span>
+        </button>
     </div>
-    <h1>Hệ Thống Tính Toán Chọn Bơm, Biến Tần & Solar</h1>
-    <div class="nav-tabs">
-        <div class="tab-btn active" id="btnTab1" onclick="switchTab('tab1')">📋 CHỨC NĂNG TÍNH CÔNG SUẤT BƠM</div>
-        <div class="tab-btn" id="btnTab2" onclick="switchTab('tab2')">☀️ CHỌN BIẾN TẦN & CÔNG SUẤT GIÀN PIN</div>
-        <div class="tab-btn" id="btnTab3" onclick="switchTab('tab3')">❓ CÂU HỎI THƯỜNG GẶP</div>
-        <div class="tab-btn" id="adminTabBtn" onclick="switchTab('tab4')" style="display: none; background: #ffeeba; color: #856404;">⚙️ BẢNG ĐIỀU KHIỂN ADMIN</div>
-    </div>
-    <div id="tab1" class="tab-content active">
-        <div class="grid-layout">
-            <div class="panel">
-                <div class="panel-title">💧 Thông Số Khảo Sát Địa Hình</div>
-                <div class="form-group">
-                    <label for="sourceType">Nguồn nước đầu vào:</label>
-                    <select id="sourceType">
-                        <option value="giengkhoan">Giếng khoan sâu (Cần bơm hỏa tiễn)</option>
-                        <option value="aohothuong" selected>Ao, hồ, sông, suối (Bơm trục đứng / đặt cạn)</option>
-                        <option value="bechua">Bể chứa chìm / Nước sạch</option>
-                    </select>
-                </div>
-                <div class="grid-layout" style="gap: 10px; grid-template-columns: 1fr 1fr;">
-                    <div class="form-group"><label for="height">Độ cao đứng (m):</label><input type="number" id="height" value="120" min="0"></div>
-                    <div class="form-group"><label for="length">Chiều dài ống ngang (m):</label><input type="number" id="length" value="300" min="0"></div>
-                </div>
-                <div class="form-group"><label for="flowRate">Lưu lượng mong muốn (m³/giờ):</label><input type="number" id="flowRate" value="10" min="0"></div>
-                <button class="btn-calc" id="btnCalcPump" onclick="checkLimitAndExecute(calculatePumpOnly)">TÍNH CÔNG SUẤT BƠM</button>
-            </div>
-            <div class="panel" style="background: #fff3cd; border-color: #ffeeba;">
-                <div class="panel-title" style="color: #856404;">💡 Hướng Dẫn Tính Nhanh</div>
-                <p>- Khách vãng lai được tính thử tối đa 3 lần miễn phí ở mỗi chức năng.</p>
-                <p>- Để mở khóa vô hạn, vui lòng đăng ký bằng tên tài khoản Zalo của bạn và liên hệ quản trị viên.</p>
-            </div>
-        </div>
-    </div>
-    <div id="tab2" class="tab-content">
-        <div class="grid-layout">
-            <div class="panel">
-                <div class="panel-title">⚡ Chọn Thiết Bị Điện & Loại Tấm Pin</div>
-                <div class="form-group"><label for="pumpHPInput">Nhập công suất Máy Bơm đã có (HP):</label><input type="number" id="pumpHPInput" placeholder="Ví dụ: 10" step="0.1" min="0"></div>
-                <div class="form-group">
-                    <label for="panelType">Tùy chọn tấm pin năng lượng mặt trời:</label>
-                    <select id="panelType">
-                        <option value="jinko580">Jinko 580W (Voc: 52.50V)</option>
-                        <option value="astro595">ASTRONERGY 595W (Voc: 52.83V)</option>
-                        <option value="jinko625">Jinko 625W (Voc: 49.26V)</option>
-                        <option value="jinko630">Jinko 630W (Voc: 49.48V)</option>
-                    </select>
-                </div>
-                <button class="btn-calc" style="background-color: var(--orange-color);" onclick="checkLimitAndExecute(calculateInverterSolarOnly)">TÍNH BIẾN TẦN & SOLAR</button>
-            </div>
-            <div class="panel" style="background: #e2e3e5; border-color: #d6d8db;">
-                <div class="panel-title" style="color: #383d41;">🛠️ Quy Chuẩn Thiết Kế Hệ Thống</div>
-                <p>- <strong>Biến tần thực tế:</strong> Làm tròn vượt 2 cấp theo các dòng máy phân phối [7.5kW, 11kW, 15kW, 22kW, 30kW] để bảo vệ dòng khởi động lớn trong nước.</p>
-                <p>- <strong>Phân chia chuỗi (String):</strong> Gom nối tiếp từ 11-17 tấm/chuỗi. Hệ thống ưu tiên chuỗi 17 tấm và kiểm tra điện áp hở mạch Voc nghiêm ngặt dưới 900V để đảm bảo an toàn.</p>
-            </div>
-        </div>
-    </div>
-    <div id="tab3" class="tab-content">
-        <div class="panel">
-            <div class="panel-title" style="font-size: 18px;">❓ Câu Hỏi Thường Gặp Về Biến Tần & Điện Trở Hãm</div>
-            <div class="faq-item">
-                <div class="faq-question" onclick="toggleFaq(this)"><span>1. Điện trở hãm ngoài là gì?</span><span>▼</span></div>
-                <div class="faq-answer">Là thiết bị điện trở công suất lớn gắn ngoài biến tần để tiêu tán năng lượng dư thừa dưới dạng nhiệt khi động cơ giảm tốc phanh gấp. Nó bảo vệ tụ điện DC Bus không bị lỗi quá áp (Over Voltage).</div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question" onclick="toggleFaq(this)"><span>2. Hệ thống bơm nước đồi dốc có cần lắp điện trở hãm không?</span><span>▼</span></div>
-                <div class="faq-answer"><strong>Không cần thiết.</strong> Hệ thống dốc cao dốc đồi có áp lực ngược của nước lớn làm motor tự hãm dừng nhanh tự nhiên, hoàn toàn không sinh dòng điện xả ngược đẩy về làm lỗi biến tần. Do đó bạn tiết kiệm được tiền mua điện trở hãm.</div>
-            </div>
-        </div>
-    </div>
-    <div id="tab4" class="tab-content">
-        <div class="panel">
-            <div class="panel-title">👥 Quản Lý Thành Viên THẬT (Dữ liệu đám mây Google Sheet)</div>
-            <table class="admin-table">
-                <thead><tr><th>Tên Tài Khoản Zalo</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead>
-                <tbody id="adminUserList"></tbody>
-            </table>
-        </div>
-    </div>
-    <div id="resultBox" class="result-box">
-        <h2 id="resultTitle">KẾT QUẢ</h2>
-        <div id="resultDetails"></div>
-        <div class="recommendation"><h3>💡 Khuyến Nghị Kỹ Thuật Chi Tiết:</h3><div id="systemAdvice"></div></div>
+
+    <!-- TẦNG 2: BANNER QUẢNG CÁO CHUẨN SEO -->
+    <header class="banner-area" id="bannerContainer">
+        <h1 class="seo-main-title">Giải Pháp Biến Tần Bơm & Điện Năng Lượng Mặt Trời</h1>
+        <p class="seo-sub-title">Công cụ tính toán công suất bơm tưới tiêu, chọn biến tần và phân chuỗi tấm pin chuẩn kỹ thuật</p>
+    </header>
+
+    <!-- TẦNG 3: THANH MENU CHÍNH MÀU XÁM ĐẬM -->
+    <nav class="main-nav">
+        <div class="nav-item active" onclick="loadSubPage('page-tinh-toan.html', this)">CÔNG CỤ TÍNH TOÁN</div>
+        <div class="nav-item" onclick="loadSubPage('page-san-pham.html', this)">THÔNG TIN SẢN PHẨM</div>
+        <div class="nav-item" onclick="loadSubPage('page-xu-ly-loi.html', this)">XỬ LÝ LỖI BIẾN TẦN</div>
+        <div class="nav-item" onclick="loadSubPage('page-kien-thuc.html', this)">KIẾN THỨC</div>
+        <div class="nav-item" onclick="loadSubPage('page-dich-vu.html', this)">DỊCH VỤ KHÁC</div>
+    </nav>
+
+    <!-- TẦNG 4: VÙNG HIỂN THỊ NỘI DUNG PAGE IN PAGE -->
+    <main class="page-container" id="mainPageContent">
+        <p style="text-align: center; color: #6c757d;">Đang tải công cụ tính toán...</p>
+    </main>
+
+    <footer>
+        <p style="margin:0;">Hệ thống tư vấn kỹ thuật <strong>Biến Tần Bơm</strong> & <strong>Điện Năng Lượng Mặt Trời</strong> | Liên hệ Admin: <strong>Zalo Quang Nguyen</strong></p>
+    </footer>
+</div>
+
+<!-- POPUP ĐĂNG NHẬP & QUẢN TRỊ ADMIN (nguyenhoangbach) -->
+<div class="modal-overlay" id="userModal">
+    <div class="modal-box">
+        <span class="close-modal" onclick="closeUserModal()">✖</span>
+        <div id="modalContentArea"></div>
     </div>
 </div>
-<footer>Thông tin liên hệ hệ thống: <b>Zalo Quang Nguyen</b></footer>
-<script>
-    let computedPumpHP = 0;
-    const myInverterList = [7.5, 11, 15, 22, 30];
-    const panelDb = {
-        jinko580: { name: "Jinko 580W", power: 580, voc: 52.50 },
-        astro595: { name: "ASTRONERGY 595W", power: 595, voc: 52.83 },
-        jinko625: { name: "Jinko 625W", power: 625, voc: 49.26 },
-        jinko630: { name: "Jinko 630W", power: 630, voc: 49.48 }
-    };
 
-    // Đường link API Web App kết nối trực tiếp với Google Sheet của bạn
-    const API_URL = "https://script.google.com/macros/s/AKfycbwXhaoIyrMIJNitAvvlIc9f3dHMc2R4YHU74Tk1KxeJ2iQf2YJiYa2BmYRt87ELQuFSYA/exec";
-
-    let dbUsers = [];
-    let guestCount = parseInt(localStorage.getItem('guest_visits_count')) || 0;
-    let currentUser = JSON.parse(sessionStorage.getItem('current_user')) || null;
-
-    async function loadUsersFromSheet() {
-        try {
-            let res = await fetch(API_URL);
-            let data = await res.json();
-            // Cấu hình cứng tên tài khoản Admin là nguyenhoangbach bảo mật
-            dbUsers = [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }, ...data.map(u => ({...u, role: 'user'}))];
-            updateAuthUI();
-            if(currentUser && currentUser.role === 'admin') renderAdminUserTable();
-        } catch(e) {
-            document.getElementById('authStatus').innerText = "⚠️ Lỗi đồng bộ đám mây với Google Sheet!";
-        }
-    }
-
-    function updateAuthUI() {
-        const authStatus = document.getElementById('authStatus');
-        const authForm = document.getElementById('authForm');
-        const adminTabBtn = document.getElementById('adminTabBtn');
-        if(currentUser) {
-            if(currentUser.role === 'admin') {
-                authStatus.innerHTML = `😎 Quản trị viên: <strong>${currentUser.username} (Admin)</strong>`;
-                adminTabBtn.style.display = 'block';
-            } else {
-                authStatus.innerHTML = `👤 Thành viên Zalo: <strong>${currentUser.username}</strong> | Trạng thái: ${currentUser.status==='approved'?'<b style="color:green">Đã Duyệt</b>':'<b style="color:orange">Chờ Duyệt</b>'}`;
-                adminTabBtn.style.display = 'none';
-            }
-            authForm.innerHTML = `<button class="btn-auth btn-logout" onclick="handleLogout()">Đăng xuất</button>`;
-        } else {
-            let left = 3 - guestCount;
-            authStatus.innerHTML = `🔮 Chế độ: <strong>Khách vãng lai</strong> (Còn <span style="color:red; font-weight:bold;">${left < 0 ? 0 : left}</span> lần tính)`;
-            adminTabBtn.style.display = 'none';
-            authForm.innerHTML = `<input type="text" id="zaloInput" placeholder="Nhập Tên Zalo..."><button class="btn-auth btn-login" onclick="handleLogin()">Đăng nhập</button><button class="btn-auth btn-register" onclick="handleRegister()">Đăng ký</button>`;
-        }
-    }
-
-    async function handleRegister() {
-        const username = document.getElementById('zaloInput').value.trim();
-        if(!username) return alert('Nhập tên Zalo!');
-        if(username === 'nguyenhoangbach') return alert('Tên này bị hạn chế!');
-        document.getElementById('authStatus').innerText = "⏳ Đang ghi vào Google Sheet...";
-        try {
-            let res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', username: username }) });
-            let result = await res.json();
-            if(result.status === 'exists') alert('Tên Zalo này đã tồn tại!');
-            else { alert('Đăng ký thành công! Hãy báo Zalo Quang Nguyen duyệt tài khoản.'); document.getElementById('zaloInput').value = ''; }
-            loadUsersFromSheet();
-        } catch(e) { alert('Lỗi mạng!'); loadUsersFromSheet(); }
-    }
-    function handleLogin() {
-        const username = document.getElementById('zaloInput').value.trim();
-        let user = dbUsers.find(u => u.username === username);
-        if(!user) return alert('Tên Zalo chưa đăng ký!');
-        if(user.status === 'pending') return alert('Tài khoản Zalo đang chờ duyệt! Vui lòng hệ Zalo Quang Nguyen.');
-        currentUser = user;
-        sessionStorage.setItem('current_user', JSON.stringify(currentUser));
-        alert('Đăng nhập thành công!'); updateAuthUI();
-        if(currentUser.role === 'admin') switchTab('tab4');
-    }
-
-    function handleLogout() { currentUser = null; sessionStorage.removeItem('current_user'); updateAuthUI(); switchTab('tab1'); }
-
-    function checkLimitAndExecute(callback) {
-        if(currentUser && currentUser.status === 'approved') { callback(); return; }
-        if(guestCount >= 3) return alert('Hết 3 lần thử! Vui lòng đăng ký Zalo ở trên.');
-        guestCount++; localStorage.setItem('guest_visits_count', guestCount); updateAuthUI(); callback();
-    }
-
-    function renderAdminUserTable() {
-        const tbody = document.getElementById('adminUserList'); tbody.innerHTML = '';
-        dbUsers.forEach(user => {
-            if(user.role === 'admin') return;
-            tbody.innerHTML += `<tr><td><strong>${user.username}</strong></td><td style="color:${user.status==='approved'?'green':'orange'}">${user.status==='approved'?'Hoạt động':'Chờ duyệt'}</td><td>${user.status==='pending' ? `<button class="btn-action btn-approve" onclick="approveUser('${user.username}')">Duyệt Thật</button>` : ''}<button class="btn-action btn-delete" onclick="deleteUser('${user.username}')">Xóa Thật</button></td></tr>`;
-        });
-    }
-
-    async function approveUser(username) { document.getElementById('authStatus').innerText = "⏳ Đang duyệt..."; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'approve', username: username }) }); loadUsersFromSheet(); }
-    async function deleteUser(username) { if(!confirm(`Xóa vĩnh viễn ${username}?`)) return; document.getElementById('authStatus').innerText = "⏳ Đang xóa..."; await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', username: username }) }); loadUsersFromSheet(); }
-
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        if(tabId === 'tab4') document.getElementById('adminTabBtn').classList.add('active');
-        else document.getElementById('btn' + tabId.charAt(0).toUpperCase() + tabId.slice(1))?.classList.add('active');
-        document.getElementById(tabId).classList.add('active');
-        if(tabId === 'tab2' && computedPumpHP > 0) document.getElementById('pumpHPInput').value = computedPumpHP.toFixed(1);
-        document.getElementById('resultBox').style.display = 'none';
-    }
-
-    function toggleFaq(el) { el.parentElement.classList.toggle('active'); }
-
-    function calculatePumpOnly() {
-        const height = parseFloat(document.getElementById('height').value) || 0;
-        const length = parseFloat(document.getElementById('length').value) || 0;
-        const flowRate = parseFloat(document.getElementById('flowRate').value) || 0;
-        const totalHead = height + (length * 0.1);
-        let estHP = (flowRate * totalHead) / 150; if (estHP < 0.5) estHP = 0.5;
-        computedPumpHP = Math.ceil(estHP * 2) / 2;
-        if(computedPumpHP > 3 && computedPumpHP < 5.5) computedPumpHP = 5.5;
-        else if(computedPumpHP > 5.5 && computedPumpHP < 7.5) computedPumpHP = 7.5;
-        else if(computedPumpHP > 7.5 && computedPumpHP < 10) computedPumpHP = 10;
-        else if(computedPumpHP > 10 && computedPumpHP < 15) computedPumpHP = 15;
-        else if(computedPumpHP > 15 && computedPumpHP < 20) computedPumpHP = 20;
-
-        document.getElementById('resultTitle').innerText = "KẾT QUẢ";
-        document.getElementById('resultDetails').innerHTML = `<p>- Lưu lượng thiết kế (Q): <span class="highlight">${flowRate.toFixed(1)}</span> m³/giờ</p><p>- Cột áp tổng cộng đẩy dốc (H tổng): <span class="highlight">${totalHead.toFixed(1)}</span> mét</p><p>- 🔋 **Công suất bơm chọn:** <span class="highlight">${computedPumpHP.toFixed(1)}</span> HP (~<span>${(computedPumpHP*0.7457).toFixed(2)}</span> kW)</p>`;
-        document.getElementById('systemAdvice').innerHTML = `Khuyến nghị dùng bơm ly tâm đa tầng cánh trục đứng hoặc hỏa tiễn đa tầng cánh chịu lực nén dốc cao.`;
-        document.getElementById('resultBox').style.display = 'block';
-    }
-
-    function calculateInverterSolarOnly() {
-        const pumpHP = parseFloat(document.getElementById('pumpHPInput').value) || 0;
-        const panelKey = document.getElementById('panelType').value;
-        const selectedPanel = panelDb[panelKey];
-        if(pumpHP === 0) return alert('Điền công suất máy bơm!');
-        const pumpKW = pumpHP * 0.7457;
-
-        let finalInvKW = 0; let matchedIndex = -1;
-        for(let i = 0; i < myInverterList.length; i++) { if(myInverterList[i] > pumpKW) { matchedIndex = i; break; } }
-        if(matchedIndex !== -1) {
-            let finalIndex = matchedIndex + 1;
-            if(finalIndex >= myInverterList.length) finalIndex = myInverterList.length - 1;
-            finalInvKW = myInverterList[finalIndex];
-        } else { finalInvKW = 30; }
-
-        const requiredSolarKW = finalInvKW * 1.3;
-        let totalPanels = Math.ceil((requiredSolarKW * 1000) / selectedPanel.power);
-        let stringCount = Math.ceil(totalPanels / 17);
-        let panelsPerString = Math.ceil(totalPanels / stringCount);
-        if(panelsPerString < 11) { panelsPerString = 11; totalPanels = panelsPerString * stringCount; }
-
-        const actualSolarKW = (totalPanels * selectedPanel.power) / 1000;
-        const totalVoc = panelsPerString * selectedPanel.voc;
-        let vocWarningHtml = totalVoc > 900 ? `<br><span style="color:var(--danger-color); font-weight:bold;">⚠️ CẢNH BÁO: Điện áp chuỗi vượt 900V!</span>` : "";
-
-        document.getElementById('resultTitle').innerText = "CẤU HÌNH ĐỀ XUẤT";
-        document.getElementById('resultDetails').innerHTML = `<p>- Công suất motor: <span class="sub-highlight">${pumpHP.toFixed(1)} HP</span> (~${pumpKW.toFixed(2)} kW)</p><p>- ⚙️ **Biến tần:** <span class="highlight">${finalInvKW} kW</span> *(Vượt 2 cấp)*</p><p>- ☀️ **Tổng công suất giàn pin thực tế:** <span class="solar-highlight">${actualSolarKW.toFixed(2)} kWp</span></p><p>- 📦 **Số lượng tấm pin:** <span class="solar-highlight">${totalPanels} tấm</span> mã hiệu <b>${selectedPanel.name}</b></p><p>- 🧩 **Phân chia chuỗi (String):** Chia thành <span class="sub-highlight">${stringCount} chuỗi</span> độc lập.</p><p>- 📐 **Cấu hình chuỗi:** Mỗi chuỗi gồm <span class="highlight">${panelsPerString} tấm</span> nối tiếp. *(Khuyến nghị chuỗi 17 tấm)*</p><p>- ⚡ **Điện áp hở mạch chuỗi (Voc tổng):** <span>${totalVoc.toFixed(2)} V</span> *(An toàn &lt; 900V)* ${vocWarningHtml}`;
-        document.getElementById('systemAdvice').innerHTML = `Hệ thống nước dốc tự dừng rất nhanh, **hoàn toàn không cần mua thêm điện trở hãm lắp ngoài**. Hãy cài đặt chế độ dừng tự do (Coast to Stop) trên biến tần <b>${finalInvKW} kW</b> để tối ưu chi phí tủ điện.`;
-        document.getElementById('resultBox').style.display = 'block';
-    }
-
-    loadUsersFromSheet();
-</script>
+<!-- NHÚNG FILE LÕI XỬ LÝ -->
+<script src="app-core.js"></script>
 </body>
 </html>
