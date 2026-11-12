@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwXhaoIyrMIJNitAvvlIc9f3dHMc2R4YHU74Tk1KxeJ2iQf2YJiYa2BmYRt87ELQuFSYA/exec";
+const API_URL = "https://google.com";
 
 let appData = {
     users: [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }],
@@ -15,13 +15,13 @@ document.addEventListener("DOMContentLoaded", () => {
     loadSubPage('page-tinh-toan.html', document.querySelector('.nav-item.active'));
     syncDataFromGoogleSheet(); 
 });
-
 async function loadSubPage(pageFile, navElement) {
     if (navElement) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         navElement.classList.add('active');
     }
     const container = document.getElementById('mainPageContent');
+    container.innerHTML = `<p style="text-align: center; color: #6c757d;">⏳ Đang tải nội dung...</p>`;
     try {
         const response = await fetch(pageFile);
         if (!response.ok) throw new Error("Không tìm thấy file");
@@ -35,10 +35,9 @@ async function loadSubPage(pageFile, navElement) {
         if (pageFile === 'page-san-pham.html') renderDynamicList('SAN_PHAM', 'productListArea');
         if (pageFile === 'page-kien-thuc.html') renderDynamicList('KIEN_THUC', 'blogListArea');
     } catch (error) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:#6c757d;">⏳ Đang chờ tải lên file chức năng <b>${pageFile}</b>...</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:#dc3545;">⚠️ Chưa tìm thấy file <b>${pageFile}</b> trên GitHub. Bạn hãy kiểm tra xem đã tạo file này chưa nhé!</div>`;
     }
 }
-
 async function syncDataFromGoogleSheet() {
     try {
         const res = await fetch(API_URL);
@@ -102,7 +101,6 @@ function checkLimitAndRun(callbackFn) {
     updateTopUserBar();
     callbackFn();
 }
-
 function openUserModal() {
     const modal = document.getElementById('userModal');
     const area = document.getElementById('modalContentArea');
@@ -223,7 +221,6 @@ function renderAdminDashboard(container) {
     `;
     setTimeout(() => drawLogChart('day'), 100);
 }
-
 async function saveBannerUrl() {
     const url = document.getElementById('adminBannerUrl').value.trim();
     alert("Đang cập nhật Banner lên hệ thống...");
@@ -352,7 +349,6 @@ function runPumpCalc() {
         </p>
     `;
 }
-
 function runSolarInverterCalc() {
     const pumpHP = parseFloat(document.getElementById('pumpHPInput').value) || 0;
     if (pumpHP === 0) return alert("Vui lòng nhập công suất máy bơm (HP)!");
@@ -406,4 +402,3 @@ function runSolarInverterCalc() {
         </p>
     `;
 }
-
