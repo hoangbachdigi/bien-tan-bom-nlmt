@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadSubPage('page-tinh-toan.html', document.querySelector('.nav-item.active'));
     syncDataFromGoogleSheet(); 
 });
+
 async function loadSubPage(pageFile, navElement) {
     if (navElement) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -35,9 +36,10 @@ async function loadSubPage(pageFile, navElement) {
         if (pageFile === 'page-san-pham.html') renderDynamicList('SAN_PHAM', 'productListArea');
         if (pageFile === 'page-kien-thuc.html') renderDynamicList('KIEN_THUC', 'blogListArea');
     } catch (error) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:#dc3545;">⚠️ Chưa tìm thấy file <b>${pageFile}</b> trên GitHub. Bạn hãy kiểm tra xem đã tạo file này chưa nhé!</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:#dc3545;">⚠️ Chưa tìm thấy file <b>${pageFile}</b> trên GitHub.</div>`;
     }
 }
+
 async function syncDataFromGoogleSheet() {
     try {
         const res = await fetch(API_URL);
@@ -67,6 +69,7 @@ async function syncDataFromGoogleSheet() {
         console.log("Đang đồng bộ dữ liệu nền...");
     }
 }
+
 function updateTopUserBar() {
     const statusText = document.getElementById('userStatusText');
     const btnLabel = document.getElementById('userBtnLabel');
@@ -92,7 +95,7 @@ function checkLimitAndRun(callbackFn) {
         return;
     }
     if (guestCount >= 3) {
-        alert("Bạn đã dùng hết 3 lần tính miễn phí! Vui lòng bấm nút 'Đăng nhập / ĐK' ở góc trên bên phải, nhập Tên Zalo để đăng ký và liên hệ Zalo Quang Nguyen duyệt mở khóa vô hạn.");
+        alert("Bạn đã dùng hết 3 lần tính miễn phí! Vui lòng bấm nút 'Đăng nhập / ĐK' ở góc trên bên phải để đăng ký mở khóa vô hạn.");
         openUserModal();
         return;
     }
@@ -138,7 +141,7 @@ function closeUserModal() {
 async function processRegister() {
     const name = document.getElementById('modalZaloInput').value.trim();
     if (!name) return alert("Vui lòng nhập tên Zalo!");
-    if (name === 'nguyenhoangbach') return alert("Tài khoản này bị khóa!");
+    if (name === 'nguyenhoangbach') return alert("Tên này thuộc quyền quản trị!");
 
     alert("Đang gửi yêu cầu đăng ký lên hệ thống...");
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', username: name }) });
@@ -173,7 +176,6 @@ function processLogout() {
     updateTopUserBar();
     closeUserModal();
 }
-
 async function renderAdminDashboard(container) {
     container.innerHTML = `<p style="text-align:center; padding:30px;">⏳ Đang tải dữ liệu thống kê mới nhất từ Google Sheet...</p>`;
     await syncDataFromGoogleSheet();
@@ -262,107 +264,6 @@ function drawLogChart(period) {
     const now = new Date();
 
     if (period === 'day') {
-        labels = ['Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)'];
-        let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
-        filteredLogs.forEach(l => {
-            let d = new Date(Number(l.time));
-            if (d.toDateString() === now.toDateString()) {
-                let h = d.getHours();
-                if (h < 6) c0++;
-                else if (h < 12) c1++;
-                else if (h < 18) c2++;
-                else c3++;
-            }
-        });
-        counts = [c0, c1, c2, c3];
-    } else if (period === 'week') {
-        labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-        let w1 = 0, w2 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0, w7 = 0;
-        filteredLogs.forEach(l => {
-            let day = new Date(Number(l.time)).getDay();
-            if (day === 1) w1++;
-            else if (day === 2) w2++;
-            else if (day === 3) w3++;
-            else if (day === 4) w4++;
-            else if (day === 5) w5++;
-            else if (day === 6) w6++;
-            else w7++;
-        });
-        counts = [w1, w2, w3, w4, w5, w6, w7];
-    } else if (period === 'month') {
-        labels = ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'];
-        let m1 = 0, m2 = 0, m3 = 0, m4 = 0;
-        filteredLogs.forEach(l => {
-            let d = new Date(Number(l.time));
-            if (d.getMonth() === now.getMonth()) {
-                let date = d.getDate();
-                if (date <= 7) m1++;
-                else if (date <= 14) m2++;
-                else if (date <= 21) m3++;
-                else m4++;
-            }
-        });
-        counts = [m1, m2, m3, m4];
-    }
-
-    if (adminChartInstance) adminChartInstance.destroy();
-    adminChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { 
-            labels: labels, 
-            datasets: [{ 
-                label: 'Số lần đăng nhập', 
-                data: counts, 
-                backgroundColor: '#007bff',
-                borderRadius: 4
-            }] 
-        },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
-    });
-}
-
-
-async function saveBannerUrl() {
-    const url = document.getElementById('adminBannerUrl').value.trim();
-    alert("Đang cập nhật Banner lên hệ thống...");
-    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'update_banner', bannerUrl: url }) });
-    await syncDataFromGoogleSheet();
-    alert("Cập nhật Banner thành công!");
-}
-
-async function adminAction(act, username) {
-    if (act === 'delete' && !confirm(`Xóa vĩnh viễn tài khoản ${username}?`)) return;
-    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username: username }) });
-    await syncDataFromGoogleSheet();
-    renderAdminDashboard(document.getElementById('modalContentArea'));
-}
-
-let selectedFilterUser = null;
-function filterLogByUser(username) {
-    selectedFilterUser = username;
-    document.getElementById('chartFilterTitle').innerText = username ? `📊 Lịch Sử Đăng Nhập Của: ${username}` : `📊 Thống Kê Lượt Đăng Nhập (Tất cả User)`;
-    drawLogChart('day');
-}
-
-function drawLogChart(period) {
-    const ctx = document.getElementById('realAdminChart');
-    if (!ctx) return;
-
-    let filteredLogs = selectedFilterUser ? appData.logs.filter(l => l.username === selectedFilterUser) : appData.logs;
-    let labels = new Array();
-    let counts = new Array();
-    const now = new Date();
-
-    if (period === 'day') {
         labels.push('Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)');
         let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
         filteredLogs.forEach(l => {
@@ -411,12 +312,12 @@ function drawLogChart(period) {
         type: 'bar',
         data: { 
             labels: labels, 
-            datasets: new Array({ 
+            datasets: [{ 
                 label: 'Số lần đăng nhập', 
                 data: counts, 
                 backgroundColor: '#007bff',
                 borderRadius: 4
-            }) 
+            }] 
         },
         options: { 
             responsive: true, 
@@ -430,14 +331,12 @@ function drawLogChart(period) {
         }
     });
 }
-
-
 function renderDynamicList(typeCode, targetElementId) {
     const container = document.getElementById(targetElementId);
     if (!container) return;
     const items = appData.configs.filter(c => c.code === typeCode);
     if (items.length === 0) {
-        container.innerHTML = `<p style="color:#6c757d; text-align:center;">Chưa có bài viết nào trong mục này.</p>`;
+        container.innerHTML = `<p style="color:#6c757d; text-align:center;">Chưa có bài viết nào trong mục này. Hãy thêm dòng có mã <b>${typeCode}</b> vào Tab <b>Cai_Dat</b> trên Google Sheet.</p>`;
         return;
     }
     container.innerHTML = items.map(item => `
@@ -494,6 +393,7 @@ function runPumpCalc() {
         </p>
     `;
 }
+
 function runSolarInverterCalc() {
     const pumpHP = parseFloat(document.getElementById('pumpHPInput').value) || 0;
     if (pumpHP === 0) return alert("Vui lòng nhập công suất máy bơm (HP)!");
