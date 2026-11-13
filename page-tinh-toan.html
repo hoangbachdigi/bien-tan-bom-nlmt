@@ -10,31 +10,61 @@
     </div>
 </div>
 
-<!-- TAB CON 1: TÍNH CÔNG SUẤT BƠM -->
+<!-- TAB CON 1: TÍNH CÔNG SUẤT BƠM CHUẨN THỦY LỰC -->
 <div id="subPump" class="sub-calc-content">
     <div class="grid-2">
         <div class="card">
-            <h2 class="card-title">💧 Thông Số Khảo Sát Địa Hình</h2>
-            <div class="form-group">
-                <label>Nguồn nước đầu vào:</label>
-                <select id="calcSource">
-                    <option value="gieng">Giếng khoan sâu (Cần bơm hỏa tiễn)</option>
-                    <option value="ho" selected>Ao, hồ, sông, suối (Bơm trục đứng / đặt cạn)</option>
-                    <option value="be">Bể chứa chìm / Nước sạch</option>
-                </select>
+            <h2 class="card-title">💧 Thông Số Khảo Sát Địa Hình & Đường Ống</h2>
+            <div class="grid-2" style="gap: 10px;">
+                <div class="form-group">
+                    <label>Loại bơm / Nguồn nước:</label>
+                    <select id="calcSource">
+                        <option value="gieng">Giếng khoan sâu (Bơm hỏa tiễn)</option>
+                        <option value="ho" selected>Ao, hồ, sông, suối (Bơm đặt cạn / trục đứng)</option>
+                        <option value="be">Bể chứa chìm / Nước sạch</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cỡ ống dẫn chính (Phi):</label>
+                    <select id="calcPipeDia">
+                        <option value="32">Ống Phi 34 (DN25)</option>
+                        <option value="40">Ống Phi 42 (DN32)</option>
+                        <option value="50">Ống Phi 49 (DN40)</option>
+                        <option value="63" selected>Ống Phi 60 (DN50)</option>
+                        <option value="75">Ống Phi 76 (DN65)</option>
+                        <option value="90">Ống Phi 90 (DN80)</option>
+                        <option value="110">Ống Phi 114 (DN100)</option>
+                        <option value="140">Ống Phi 140 (DN125)</option>
+                    </select>
+                </div>
             </div>
             <div class="grid-2" style="gap: 10px;">
-                <div class="form-group"><label>Độ cao đứng (m):</label><input type="number" id="calcHeight" value="120" min="0"></div>
-                <div class="form-group"><label>Chiều dài ống ngang (m):</label><input type="number" id="calcLength" value="300" min="0"></div>
+                <div class="form-group">
+                    <label>Độ cao đẩy đứng (m):</label>
+                    <input type="number" id="calcHeight" value="50" min="0" placeholder="Từ mặt nước tới đỉnh">
+                </div>
+                <div class="form-group">
+                    <label>Tổng chiều dài ống (m):</label>
+                    <input type="number" id="calcLength" value="200" min="0" placeholder="Chiều dài đường ống">
+                </div>
             </div>
-            <div class="form-group"><label>Lưu lượng mong muốn (m³/giờ):</label><input type="number" id="calcFlow" value="10" min="0"></div>
+            <div class="grid-2" style="gap: 10px;">
+                <div class="form-group">
+                    <label>Lưu lượng cần bơm (m³/giờ):</label>
+                    <input type="number" id="calcFlow" value="15" min="0.1" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Áp lực đầu ra / Béc tưới (m):</label>
+                    <input type="number" id="calcOutletHead" value="15" min="0" placeholder="0 nếu xả bồn, 15-25 nếu béc">
+                </div>
+            </div>
             <button class="btn btn-primary" onclick="checkLimitAndRun(runPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
         </div>
         <div class="card" style="background: #fff3cd; border-color: #ffeeba;">
-            <h3 class="card-title" style="color: #856404;">💡 Hướng Dẫn Tính Nhanh</h3>
-            <p>- <b>Độ cao đứng:</b> Chênh lệch chiều cao từ mặt nước đến đỉnh bể chứa.</p>
-            <p>- <b>Chiều dài ống:</b> Tổng chiều dài đường ống dẫn nước (tự động bù 10% tổn thất ma sát).</p>
-            <p>- Hệ thống hỗ trợ tư vấn chọn công suất cho giải pháp <b>biến tần bơm</b> và <b>điện năng lượng mặt trời</b> tối ưu nhất.</p>
+            <h3 class="card-title" style="color: #856404;">💡 Hướng Dẫn Nhập Thông Số Chuẩn</h3>
+            <p>- <b>Độ cao đẩy đứng:</b> Tính từ mặt nước động (mực nước khi đang bơm) lên đến điểm cao nhất của vườn.</p>
+            <p>- <b>Áp lực đầu ra:</b> Nhập <b>0</b> nếu bơm xả tự do vào hồ chứa. Nhập <b>15 – 25</b> (tương đương 1.5 – 2.5 bar) nếu đẩy trực tiếp qua hệ thống béc tưới phun mưa.</p>
+            <p>- <b>Cỡ ống dẫn:</b> Hệ thống tự động tính tổn thất ma sát theo đường kính ống để cảnh báo nếu ống quá nhỏ gây ép tải bơm.</p>
         </div>
     </div>
 </div>
