@@ -345,31 +345,83 @@ function switchSubCalcTab(subTabId, el) {
 }
 
 function runPumpCalc() {
+    const source = document.getElementById('calcSource').value;
+    const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
     const height = parseFloat(document.getElementById('calcHeight').value) || 0;
     const length = parseFloat(document.getElementById('calcLength').value) || 0;
-    const flow = parseFloat(document.getElementById('calcFlow').value) || 0;
-    if (height === 0 && length === 0 && flow === 0) return alert("Vui lòng nhập thông số địa hình!");
+    const flowM3h = parseFloat(document.getElementById('calcFlow').value) || 0;
+    const outletHead = parseFloat(document.getElementById('calcOutletHead').value) || 0;
 
-    const totalHead = height + (length * 0.1);
-    let estHP = (flow * totalHead) / 150;
+    if (flowM3h <= 0) return alert("Vui lòng nhập lưu lượng nước cần bơm!");
+
+    // 1. Tính tổn thất ma sát đường ống theo công thức Hazen-Williams (Ống nhựa HDPE/uPVC, C = 140)
+    // Đường kính trong ước tính theo ống nhựa thông dụng (m)
+    const innerDiaMap = {
+        32: 0.028,
+        40: 0.036,
+        50: 0.044,
+        63: 0.055,
+        75: 0.066,
+        90: 0.080,
+        110: 0.098,
+        140: 0.125
+    };
+    const dMeter = innerDiaMap[pipeDiaMm] || (pipeDiaMm * 0.88 / 1000);
+    const qM3s = flowM3h / 3600;
+    const C = 140;
+
+    // Tổn thất dọc đường (m) + 10% tổn thất cục bộ qua co, cút, van
+    const headLossPerMeter = 10.67 * Math.pow(qM3s, 1.852) / (Math.pow(C, 1.852) * Math.pow(dMeter, 4.87));
+    const frictionLoss = headLossPerMeter * length * 1.1;
+
+    // 2. Tổng cột áp thực tế (H tổng = Cao độ đứng + Tổn thất ma sát + Áp lực đầu ra)
+    const totalHead = height + frictionLoss + outletHead;
+
+    // 3. Hiệu suất tổ hợp bơm + động cơ theo từng dòng bơm thực tế
+    let efficiency = 0.58; // Bơm đặt cạn / trục đứng
+    let pumpTypeName = "Bơm ly tâm đặt cạn / trục đứng đa tầng cánh";
+    if (source === 'gieng') {
+        efficiency = 0.52; // Bơm hỏa tiễn thả giếng sâu
+        pumpTypeName = "Bơm hỏa tiễn đa tầng cánh chuyên dụng giếng khoan";
+    } else if (source === 'be') {
+        efficiency = 0.62;
+        pumpTypeName = "Bơm ly tâm trục ngang / bơm chìm nước sạch";
+    }
+
+    // Công suất thủy lực (kW) = (Q(m3/s) * H(m) * 9.81) / Hiệu suất
+    const requiredKW = (qM3s * totalHead * 9.81) / efficiency;
+    let estHP = requiredKW / 0.7457;
     if (estHP < 0.5) estHP = 0.5;
 
-    computedPumpHP = Math.ceil(estHP * 2) / 2;
-    if (computedPumpHP > 3 && computedPumpHP < 5.5) computedPumpHP = 5.5;
-    else if (computedPumpHP > 5.5 && computedPumpHP < 7.5) computedPumpHP = 7.5;
-    else if (computedPumpHP > 7.5 && computedPumpHP < 10) computedPumpHP = 10;
-    else if (computedPumpHP > 10 && computedPumpHP < 15) computedPumpHP = 15;
-    else if (computedPumpHP > 15 && computedPumpHP < 20) computedPumpHP = 20;
+    // Làm tròn theo dải công suất motor thực tế ngoài thị trường
+    const standardHPs = [0.5, 1, 1.5, 2, 3, 4, 5.5, 7.5, 10, 12.5, 15, 20, 25, 30, 40, 50];
+    computedPumpHP = standardHPs.find(hp => hp >= estHP) || Math.ceil(estHP);
+
+    // Kiểm tra vận tốc nước trong ống để cảnh báo nếu chọn ống quá nhỏ
+    const area = Math.PI * Math.pow(dMeter / 2, 2);
+    const velocity = qM3s / area;
+    let pipeWarning = "";
+    if (velocity > 2.2) {
+        pipeWarning = `<p style="color:#d9534f; font-weight:bold; margin:6px 0;">⚠️ Cảnh báo đường ống: Vận tốc nước đạt ${velocity.toFixed(2)} m/s gây tổn thất ma sát rất lớn (${frictionLoss.toFixed(1)}m). Bạn nên tăng lên cỡ ống lớn hơn để giảm công suất bơm!</p>`;
+    } else {
+        pipeWarning = `<p style="color:green; margin:6px 0;">✅ Cỡ ống phù hợp (Vận tốc dòng chảy: ${velocity.toFixed(2)} m/s, tổn thất ma sát thấp).</p>`;
+    }
+
+    // Tự động điền công suất HP sang tab Chọn Biến Tần
+    const hpInput = document.getElementById('pumpHPInput');
+    if (hpInput) hpInput.value = computedPumpHP;
 
     const resBox = document.getElementById('calcResultArea');
     resBox.style.display = 'block';
     resBox.innerHTML = `
-        <h3 style="margin-top:0; color:var(--secondary); font-size:15.5px;">KẾT QUẢ TÍNH CÔNG SUẤT BƠM</h3>
-        <p>- Lưu lượng (Q): <span class="highlight">${flow.toFixed(1)}</span> m³/giờ</p>
-        <p>- Cột áp tổng (H tổng): <span class="highlight">${totalHead.toFixed(1)}</span> mét (Đã tính ma sát)</p>
-        <p>- 🔋 <b>Công suất bơm đề xuất:</b> <span class="highlight">${computedPumpHP.toFixed(1)} HP</span> (~${(computedPumpHP * 0.7457).toFixed(2)} kW)</p>
+        <h3 style="margin-top:0; color:var(--secondary); font-size:15.5px;">KẾT QUẢ TÍNH THỦY LỰC & CÔNG SUẤT BƠM</h3>
+        <p>- Lưu lượng yêu cầu (Q): <b>${flowM3h.toFixed(1)} m³/giờ</b></p>
+        <p>- Phân tích cột áp: Đẩy cao <b>${height}m</b> + Ma sát ống <b>${frictionLoss.toFixed(1)}m</b> + Áp đầu ra <b>${outletHead}m</b></p>
+        <p>- 🎯 <b>Tổng cột áp cần thiết (H tổng):</b> <span class="highlight">${totalHead.toFixed(1)} mét</span></p>
+        <p>- 🔋 <b>Công suất máy bơm chọn lựa:</b> <span class="highlight">${computedPumpHP} HP</span> (~${(computedPumpHP * 0.7457).toFixed(2)} kW)</p>
+        ${pipeWarning}
         <p style="background:#fff; padding:8px; border-radius:4px; border:1px solid #dee2e6; margin-bottom:0; font-size:13px;">
-            💡 <b>Khuyến nghị:</b> Cột áp ${totalHead.toFixed(1)}m nên dùng bơm ly tâm trục đứng đa tầng cánh hoặc bơm hỏa tiễn. Chuyển sang tab bên cạnh để tính biến tần & giàn pin!
+            💡 <b>Đề xuất thiết bị:</b> Sử dụng <b>${pumpTypeName}</b> đạt cột áp làm việc tối ưu quanh mức <b>${totalHead.toFixed(0)}m</b>. Bạn có thể chuyển sang tab bên cạnh để chọn biến tần và giàn pin NLMT cho bơm <b>${computedPumpHP} HP</b> này!
         </p>
     `;
 }
