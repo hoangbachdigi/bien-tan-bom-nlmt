@@ -310,12 +310,13 @@ async function adminAction(act, username) {
     await syncDataFromGoogleSheet();
     renderStatsTableOnly();
 }
+
 function renderDynamicList(typeCode, targetElementId) {
     const container = document.getElementById(targetElementId);
     if (!container) return;
     const items = appData.configs.filter(c => c.code === typeCode);
     if (items.length === 0) {
-        container.innerHTML = `<p style="color:#6c757d; text-align:center;">Chưa có nội dung trong mục này.</p>`;
+        container.innerHTML = `<p style="color:#6c757d; text-align:center; padding: 20px 0;">Nội dung mục này đang được cập nhật. Vui lòng quay lại sau!</p>`;
         return;
     }
     container.innerHTML = items.map(item => `
@@ -323,7 +324,7 @@ function renderDynamicList(typeCode, targetElementId) {
             <h3 style="margin-top:0; color:var(--primary); font-size:15.5px;">${item.title}</h3>
             <p style="margin-bottom:8px;">${item.content}</p>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                ${item.media ? `<a href="${item.media}" target="_blank" class="btn btn-danger" style="text-decoration:none; font-size:12.5px;">▶ Xem Video YouTube</a>` : ''}
+                ${item.media ? `<a href="${item.media}" target="_blank" class="btn btn-danger" style="text-decoration:none; font-size:12.5px;">▶ Xem Video Hướng Dẫn</a>` : ''}
                 ${item.affiliate ? `<a href="${item.affiliate}" target="_blank" class="btn btn-success" style="text-decoration:none; font-size:12.5px;">🛒 Xem Giá & Đặt Mua</a>` : ''}
             </div>
         </article>
@@ -411,6 +412,10 @@ function runSolarInverterCalc() {
         ? `<span style="color:red; font-weight:bold;">⚠️ Vượt 900V! Cần giảm số tấm/chuỗi.</span>` 
         : `<span style="color:green; font-weight:bold;">✅ An toàn (&lt; 900V)</span>`;
 
+    // Tự động điền sẵn số lượng tấm pin sang tab Tính Phụ Kiện
+    const accInput = document.getElementById('accTotalPanels');
+    if (accInput) accInput.value = totalPanels;
+
     const resBox = document.getElementById('calcResultArea');
     resBox.style.display = 'block';
     resBox.innerHTML = `
@@ -422,7 +427,35 @@ function runSolarInverterCalc() {
         <p>- 🧩 <b>Chia chuỗi (String):</b> <b>${stringCount} chuỗi</b>, mỗi chuỗi <span class="highlight">${panelsPerString} tấm</span> nối tiếp</p>
         <p>- ⚡ <b>Điện áp hở mạch (Voc):</b> <b>${totalVoc.toFixed(2)} V</b> — ${vocAlert}</p>
         <p style="background:#fff; padding:8px; border-radius:4px; border:1px solid #dee2e6; margin-bottom:0; font-size:13px;">
-            💡 <b>Lưu ý:</b> Bơm nước dốc tự dừng nhanh, <b>không cần lắp thêm điện trở hãm ngoài</b>. Cài chế độ dừng tự do (Coast to Stop).
+            💡 <b>Lưu ý:</b> Bơm nước dốc tự dừng nhanh, <b>không cần lắp thêm điện trở hãm ngoài</b>. Bạn có thể chuyển sang tab <b>"TÍNH PHỤ KIỆN"</b> để lên đơn vật tư cho <b>${totalPanels} tấm pin</b> này!
         </p>
     `;
 }
+
+function runAccessoryCalc() {
+    const totalPanels = parseFloat(document.getElementById('accTotalPanels').value) || 0;
+    const rows = parseFloat(document.getElementById('accRows').value) || 0;
+    const legType = parseInt(document.getElementById('accLegType').value) || 2;
+
+    if (totalPanels <= 0 || rows <= 0) return alert("Vui lòng nhập đầy đủ số lượng tấm pin và số dãy pin!");
+    if (rows > totalPanels) return alert("Số dãy pin không thể lớn hơn tổng số tấm pin!");
+
+    const panelsPerRow = totalPanels / rows;
+    const legCount = (totalPanels + rows) * legType;
+    const endClampCount = rows * 2 * legType;
+    const midClampCount = (totalPanels - rows) * legType;
+
+    const resBox = document.getElementById('calcResultArea');
+    resBox.style.display = 'block';
+    resBox.innerHTML = `
+        <h3 style="margin-top:0; color:var(--secondary); font-size:15.5px;">BẢNG THỐNG KÊ VẬT TƯ PHỤ KIỆN LẮP ĐẶT (${legType} CHÂN ĐẾ)</h3>
+        <p>- 📐 <b>Số tấm trên mỗi dãy:</b> <span class="highlight">${Number.isInteger(panelsPerRow) ? panelsPerRow : panelsPerRow.toFixed(1)}</span> tấm / dãy</p>
+        <p>- 🔩 <b>Số lượng chân đế (Pad L / Chân chữ Z):</b> <span class="highlight">${legCount}</span> cái</p>
+        <p>- 📎 <b>Số lượng kẹp biên:</b> <span class="highlight">${endClampCount}</span> cái</p>
+        <p>- 🔗 <b>Số lượng kẹp giữa:</b> <span class="highlight">${midClampCount}</span> cái</p>
+        <p style="background:#fff; padding:8px; border-radius:4px; border:1px solid #dee2e6; margin-bottom:0; font-size:13px;">
+            💡 <b>Ghi chú kỹ thuật:</b> Định mức trên được tính theo tiêu chuẩn <b>${legType} thanh ray nhôm / dãy</b> cho tổng cộng <b>${totalPanels} tấm pin</b> chia làm <b>${rows} dãy</b>.
+        </p>
+    `;
+}
+
