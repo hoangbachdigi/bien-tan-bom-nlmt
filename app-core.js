@@ -1,19 +1,21 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwXhaoIyrMIJNitAvvlIc9f3dHMc2R4YHU74Tk1KxeJ2iQf2YJiYa2BmYRt87ELQuFSYA/exec";
 
-let appData = {
+let cachedData = JSON.parse(localStorage.getItem('solar_app_cache')) || null;
+let appData = cachedData || {
     users: [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }],
     configs: [],
     logs: []
 };
 let guestCount = parseInt(localStorage.getItem('guest_visits_count')) || 0;
 let currentUser = JSON.parse(sessionStorage.getItem('current_user')) || null;
-let computedPumpHP = 0; 
-let adminChartInstance = null;
+let computedPumpHP = 0;
+let currentSortBy = 'day';
 
 document.addEventListener("DOMContentLoaded", () => {
+    applyBannerFromConfig();
     updateTopUserBar();
     loadSubPage('page-tinh-toan.html', document.querySelector('.nav-item.active'));
-    syncDataFromGoogleSheet(); 
+    syncDataFromGoogleSheet();
 });
 
 async function loadSubPage(pageFile, navElement) {
@@ -22,12 +24,10 @@ async function loadSubPage(pageFile, navElement) {
         navElement.classList.add('active');
     }
     const container = document.getElementById('mainPageContent');
-    container.innerHTML = `<p style="text-align: center; color: #6c757d;">⏳ Đang tải nội dung...</p>`;
     try {
         const response = await fetch(pageFile);
-        if (!response.ok) throw new Error("Không tìm thấy file");
-        const html = await response.text();
-        container.innerHTML = html;
+        if (!response.ok) throw new Error("Not found");
+        container.innerHTML = await response.text();
         
         if (pageFile === 'page-tinh-toan.html' && computedPumpHP > 0) {
             const hpInput = document.getElementById('pumpHPInput');
@@ -36,13 +36,24 @@ async function loadSubPage(pageFile, navElement) {
         if (pageFile === 'page-san-pham.html') renderDynamicList('SAN_PHAM', 'productListArea');
         if (pageFile === 'page-kien-thuc.html') renderDynamicList('KIEN_THUC', 'blogListArea');
     } catch (error) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:#dc3545;">⚠️ Chưa tìm thấy file <b>${pageFile}</b> trên GitHub.</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:20px; color:#dc3545;">Chưa tìm thấy file <b>${pageFile}</b>.</div>`;
+    }
+}
+
+function applyBannerFromConfig() {
+    const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
+    if (bannerCfg && bannerCfg.media) {
+        document.getElementById('bannerContainer').innerHTML = `<img src="${bannerCfg.media}" alt="Banner Biến Tần Bơm và Điện Năng Lượng Mặt Trời">`;
+        document.getElementById('bannerContainer').style.padding = "0";
     }
 }
 
 async function syncDataFromGoogleSheet() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-        const res = await fetch(API_URL);
+        const res = await fetch(API_URL, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json();
         appData.users = [
             { username: 'nguyenhoangbach', role: 'admin', status: 'approved' },
@@ -50,13 +61,9 @@ async function syncDataFromGoogleSheet() {
         ];
         appData.configs = data.configs || [];
         appData.logs = data.logs || [];
+        localStorage.setItem('solar_app_cache', JSON.stringify(appData));
 
-        const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
-        if (bannerCfg && bannerCfg.media) {
-            document.getElementById('bannerContainer').innerHTML = `<img src="${bannerCfg.media}" alt="Banner Biến Tần Bơm và Điện Năng Lượng Mặt Trời">`;
-            document.getElementById('bannerContainer').style.padding = "0";
-        }
-
+        applyBannerFromConfig();
         if (currentUser) {
             const freshUser = appData.users.find(u => u.username === currentUser.username);
             if (freshUser) {
@@ -66,7 +73,7 @@ async function syncDataFromGoogleSheet() {
         }
         updateTopUserBar();
     } catch (e) {
-        console.log("Đang đồng bộ dữ liệu nền...");
+        console.log("Dùng dữ liệu bộ nhớ đệm để đảm bảo tốc độ.");
     }
 }
 
@@ -76,16 +83,16 @@ function updateTopUserBar() {
 
     if (currentUser) {
         if (currentUser.role === 'admin') {
-            statusText.innerHTML = `😎 Xin chào Quản trị viên: <b style="color:var(--primary)">${currentUser.username}</b>`;
-            btnLabel.innerText = "Bảng Admin";
+            statusText.innerHTML = `😎 Admin: <b style="color:var(--primary)">${currentUser.username}</b>`;
+            btnLabel.innerText = "Quản trị";
         } else {
-            statusText.innerHTML = `👤 Thành viên Zalo: <b>${currentUser.username}</b> (${currentUser.status === 'approved' ? '<span style="color:green">Đã duyệt - Vô hạn</span>' : '<span style="color:orange">Chờ duyệt</span>'})`;
+            statusText.innerHTML = `👤 Zalo: <b>${currentUser.username}</b> (${currentUser.status === 'approved' ? '<span style="color:green">Vô hạn</span>' : '<span style="color:orange">Chờ duyệt</span>'})`;
             btnLabel.innerText = "Tài khoản";
         }
     } else {
         let left = Math.max(0, 3 - guestCount);
-        statusText.innerHTML = `🔮 Chế độ: Khách vãng lai (Còn <b style="color:red">${left}</b> lần tính miễn phí)`;
-        btnLabel.innerText = "Đăng nhập / ĐK";
+        statusText.innerHTML = `🔮 Khách vãng lai (Còn <b style="color:red">${left}</b> lượt miễn phí)`;
+        btnLabel.innerText = "Đăng nhập";
     }
 }
 
@@ -95,7 +102,7 @@ function checkLimitAndRun(callbackFn) {
         return;
     }
     if (guestCount >= 3) {
-        alert("Bạn đã dùng hết 3 lần tính miễn phí! Vui lòng bấm nút 'Đăng nhập / ĐK' ở góc trên bên phải để đăng ký mở khóa vô hạn.");
+        alert("Bạn đã dùng hết 3 lượt tính miễn phí! Vui lòng đăng ký bằng Tên Zalo và liên hệ Zalo Quang Nguyen để mở khóa vô hạn.");
         openUserModal();
         return;
     }
@@ -104,6 +111,7 @@ function checkLimitAndRun(callbackFn) {
     updateTopUserBar();
     callbackFn();
 }
+
 function openUserModal() {
     const modal = document.getElementById('userModal');
     const area = document.getElementById('modalContentArea');
@@ -111,13 +119,13 @@ function openUserModal() {
 
     if (!currentUser) {
         area.innerHTML = `
-            <h3 style="margin-top:0; color:var(--primary);">👤 Đăng Nhập / Đăng Ký Thành Viên Zalo</h3>
-            <p style="font-size:13.5px; color:#555;">Đăng ký bằng Tên Zalo của bạn để mở khóa tính toán không giới hạn sau khi Admin phê duyệt.</p>
+            <h3 style="margin-top:0; color:var(--primary); font-size:16px;">👤 Đăng Nhập / Đăng Ký Thành Viên Zalo</h3>
+            <p style="font-size:13px; color:#555;">Đăng ký bằng Tên Zalo của bạn để mở khóa tính toán không giới hạn.</p>
             <div class="form-group">
                 <label>Nhập chính xác Tên tài khoản Zalo:</label>
                 <input type="text" id="modalZaloInput" placeholder="Ví dụ: Nguyen Van A">
             </div>
-            <div style="display:flex; gap:10px;">
+            <div style="display:flex; gap:8px;">
                 <button class="btn btn-primary" onclick="processLogin()">Đăng Nhập</button>
                 <button class="btn btn-success" style="width:100%;" onclick="processRegister()">Đăng Ký Mới</button>
             </div>
@@ -126,7 +134,7 @@ function openUserModal() {
         renderAdminDashboard(area);
     } else {
         area.innerHTML = `
-            <h3 style="margin-top:0;">👤 Thông Tin Tài Khoản</h3>
+            <h3 style="margin-top:0; font-size:16px;">👤 Thông Tin Tài Khoản</h3>
             <p>- Tên Zalo: <b>${currentUser.username}</b></p>
             <p>- Trạng thái: <b>${currentUser.status === 'approved' ? 'Đã kích hoạt vô hạn' : 'Đang chờ Admin Quang Nguyen duyệt'}</b></p>
             <button class="btn btn-danger" style="width:100%;" onclick="processLogout()">Đăng Xuất</button>
@@ -143,7 +151,7 @@ async function processRegister() {
     if (!name) return alert("Vui lòng nhập tên Zalo!");
     if (name === 'nguyenhoangbach') return alert("Tên này thuộc quyền quản trị!");
 
-    alert("Đang gửi yêu cầu đăng ký lên hệ thống...");
+    alert("Đang gửi yêu cầu đăng ký...");
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', username: name }) });
     alert("Đăng ký thành công! Vui lòng liên hệ Zalo Quang Nguyen để được duyệt.");
     closeUserModal();
@@ -155,7 +163,7 @@ async function processLogin() {
     if (!name) return alert("Vui lòng nhập tên Zalo!");
 
     const user = appData.users.find(u => u.username === name);
-    if (!user) return alert("Tên Zalo này chưa đăng ký hoặc hệ thống đang đồng bộ, vui lòng thử lại sau 3 giây!");
+    if (!user) return alert("Tên Zalo này chưa đăng ký!");
     if (user.status === 'pending') return alert("Tài khoản của bạn đang chờ duyệt. Liên hệ Zalo Quang Nguyen!");
 
     currentUser = user;
@@ -166,7 +174,7 @@ async function processLogin() {
     if (user.role !== 'admin') {
         fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_login', username: name }) });
     } else {
-        openUserModal(); 
+        openUserModal();
     }
 }
 
@@ -176,176 +184,147 @@ function processLogout() {
     updateTopUserBar();
     closeUserModal();
 }
-async function renderAdminDashboard(container) {
-    container.innerHTML = `<p style="text-align:center; padding:30px;">⏳ Đang tải dữ liệu thống kê mới nhất từ Google Sheet...</p>`;
-    await syncDataFromGoogleSheet();
 
-    const currentBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
-    let userRows = appData.users.filter(u => u.role !== 'admin').map(u => `
+function calculateUserStats() {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const dayOfWeek = now.getDay();
+    const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+    startOfWeek.setDate(now.getDate() + diffToMon);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const statsMap = {};
+    appData.users.filter(u => u.role !== 'admin').forEach(u => {
+        statsMap[u.username] = { username: u.username, status: u.status, day: 0, week: 0, month: 0, year: 0 };
+    });
+
+    appData.logs.forEach(l => {
+        const uName = l.username;
+        if (!statsMap[uName]) return;
+        const d = new Date(Number(l.time));
+        if (isNaN(d.getTime())) return;
+
+        if (d.toDateString() === now.toDateString()) statsMap[uName].day++;
+        if (d >= startOfWeek && d <= now) statsMap[uName].week++;
+        if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) statsMap[uName].month++;
+        if (d.getFullYear() === now.getFullYear()) statsMap[uName].year++;
+    });
+
+    const list = Object.values(statsMap);
+    list.sort((a, b) => b[currentSortBy] - a[currentSortBy]);
+    return list;
+}
+
+function sortStatsTable(criteria) {
+    currentSortBy = criteria;
+    renderStatsTableOnly();
+}
+
+function renderStatsTableOnly() {
+    const tbody = document.getElementById('statsTableBody');
+    if (!tbody) return;
+
+    document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active-sort'));
+    const activeBtn = document.getElementById('sort_' + currentSortBy);
+    if (activeBtn) activeBtn.classList.add('active-sort');
+
+    const sortedUsers = calculateUserStats();
+    if (sortedUsers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Chưa có dữ liệu thành viên</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = sortedUsers.map((u, idx) => `
         <tr>
-            <td><a href="javascript:void(0)" onclick="filterLogByUser('${u.username}')" style="font-weight:bold; color:var(--primary); text-decoration:underline;">${u.username}</a></td>
-            <td style="color:${u.status==='approved'?'green':'orange'}">${u.status==='approved'?'Đã duyệt':'Chờ duyệt'}</td>
+            <td><b>#${idx + 1} ${u.username}</b></td>
+            <td style="text-align:center; font-weight:bold; color:var(--primary);">${u.day}</td>
+            <td style="text-align:center; font-weight:bold;">${u.week}</td>
+            <td style="text-align:center; font-weight:bold;">${u.month}</td>
+            <td style="text-align:center; font-weight:bold; color:var(--secondary);">${u.year}</td>
             <td>
-                ${u.status==='pending' ? `<button class="btn btn-success" style="padding:4px 8px; font-size:12px;" onclick="adminAction('approve', '${u.username}')">Duyệt</button>` : ''}
-                <button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="adminAction('delete', '${u.username}')">Xóa</button>
+                ${u.status === 'pending' ? `<button class="btn btn-success" style="padding:3px 6px; font-size:11px;" onclick="adminAction('approve', '${u.username}')">Duyệt</button>` : ''}
+                <button class="btn btn-danger" style="padding:3px 6px; font-size:11px;" onclick="adminAction('delete', '${u.username}')">Xóa</button>
             </td>
         </tr>
     `).join('');
+}
 
+async function renderAdminDashboard(container) {
+    const currentBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
     container.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #eee; padding-bottom:10px; margin-bottom:15px;">
-            <h3 style="margin:0; color:var(--primary);">⚙️ Bảng Điều Khiển Admin (nguyenhoangbach)</h3>
-            <button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="processLogout()">Đăng xuất</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
+            <h3 style="margin:0; color:var(--primary); font-size:15.5px;">⚙️ Quản Trị Hệ Thống (nguyenhoangbach)</h3>
+            <button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="processLogout()">Đăng xuất</button>
         </div>
 
-        <div class="card" style="margin-bottom:15px;">
-            <div class="card-title">🖼️ Cập Nhật Banner Quảng Cáo (Link Google Photos)</div>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="adminBannerUrl" value="${currentBanner}" placeholder="Dán địa chỉ hình ảnh (Copy image address) từ Google Photos...">
-                <button class="btn btn-success" style="white-space:nowrap;" onclick="saveBannerUrl()">Lưu Banner</button>
+        <div class="card" style="margin-bottom:12px;">
+            <div class="card-title">🖼️ Cập Nhật Banner Quảng Cáo (Google Photos)</div>
+            <div style="display:flex; gap:6px;">
+                <input type="text" id="adminBannerUrl" value="${currentBanner}" placeholder="Dán link ảnh từ Google Photos...">
+                <button class="btn btn-success" style="white-space:nowrap;" onclick="saveBannerUrl()">Lưu</button>
             </div>
-        </div>
-
-        <div class="card" style="margin-bottom:15px;">
-            <div class="card-title">👥 Danh Sách Thành Viên (Bấm vào tên để xem biểu đồ riêng)</div>
-            <table class="admin-table">
-                <thead><tr><th>Tên Zalo</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-                <tbody>${userRows || '<tr><td colspan="3">Chưa có thành viên đăng ký</td></tr>'}</tbody>
-            </table>
         </div>
 
         <div class="card">
-            <div class="card-title" id="chartFilterTitle">📊 Thống Kê Lượt Đăng Nhập (Tất cả User)</div>
-            <div style="margin-bottom:10px; display:flex; gap:5px; flex-wrap:wrap;">
-                <button class="btn btn-primary" style="width:auto; padding:5px 10px; font-size:12px;" onclick="drawLogChart('day')">Theo Ngày</button>
-                <button class="btn btn-primary" style="width:auto; padding:5px 10px; font-size:12px;" onclick="drawLogChart('week')">Theo Tuần</button>
-                <button class="btn btn-primary" style="width:auto; padding:5px 10px; font-size:12px;" onclick="drawLogChart('month')">Theo Tháng</button>
-                <button class="btn btn-success" style="width:auto; padding:5px 10px; font-size:12px;" onclick="filterLogByUser(null)">Xem Tất Cả</button>
+            <div class="card-title">📊 Bảng Thống Kê & Xếp Hạng Đăng Nhập User</div>
+            <div style="margin-bottom:8px; display:flex; gap:5px; flex-wrap:wrap; align-items:center; font-size:12.5px;">
+                <span>Sắp xếp nhiều nhất:</span>
+                <button id="sort_day" class="btn btn-outline sort-btn active-sort" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('day')">Hôm nay</button>
+                <button id="sort_week" class="btn btn-outline sort-btn" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('week')">Tuần này</button>
+                <button id="sort_month" class="btn btn-outline sort-btn" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('month')">Tháng này</button>
+                <button id="sort_year" class="btn btn-outline sort-btn" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('year')">Năm nay</button>
             </div>
-            <div style="height:240px; width:100%; position:relative;"><canvas id="realAdminChart"></canvas></div>
+            <div class="table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Hạng & Tên Zalo</th>
+                            <th style="text-align:center;">Ngày</th>
+                            <th style="text-align:center;">Tuần</th>
+                            <th style="text-align:center;">Tháng</th>
+                            <th style="text-align:center;">Năm</th>
+                            <th>Quản lý</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statsTableBody"></tbody>
+                </table>
+            </div>
         </div>
     `;
-    drawLogChart('day');
+    renderStatsTableOnly();
+    await syncDataFromGoogleSheet();
+    renderStatsTableOnly();
 }
 
 async function saveBannerUrl() {
     const url = document.getElementById('adminBannerUrl').value.trim();
-    alert("Đang cập nhật Banner lên hệ thống...");
+    alert("Đang lưu Banner...");
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'update_banner', bannerUrl: url }) });
     await syncDataFromGoogleSheet();
-    alert("Cập nhật Banner thành công!");
+    alert("Đã cập nhật Banner!");
 }
 
 async function adminAction(act, username) {
     if (act === 'delete' && !confirm(`Xóa vĩnh viễn tài khoản ${username}?`)) return;
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username: username }) });
-    renderAdminDashboard(document.getElementById('modalContentArea'));
-}
-
-let selectedFilterUser = null;
-function filterLogByUser(username) {
-    selectedFilterUser = username;
-    document.getElementById('chartFilterTitle').innerText = username ? `📊 Lịch Sử Đăng Nhập Của: ${username}` : `📊 Thống Kê Lượt Đăng Nhập (Tất cả User)`;
-    drawLogChart('day');
-}
-
-function drawLogChart(period) {
-    const ctx = document.getElementById('realAdminChart');
-    if (!ctx) return;
-
-    if (typeof Chart === 'undefined') {
-        ctx.parentElement.innerHTML = `<p style="color:red; text-align:center; padding-top:40px;">⚠️ Thư viện vẽ biểu đồ chưa tải xong, vui lòng F5 lại trang!</p>`;
-        return;
-    }
-
-    let filteredLogs = selectedFilterUser ? appData.logs.filter(l => l.username === selectedFilterUser) : appData.logs;
-    let labels = [];
-    let counts = [];
-    const now = new Date();
-
-    if (period === 'day') {
-        labels.push('Đêm (0-6h)', 'Sáng (6-12h)', 'Chiều (12-18h)', 'Tối (18-24h)');
-        let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
-        filteredLogs.forEach(l => {
-            let d = new Date(Number(l.time));
-            if (d.toDateString() === now.toDateString()) {
-                let h = d.getHours();
-                if (h < 6) c0++;
-                else if (h < 12) c1++;
-                else if (h < 18) c2++;
-                else c3++;
-            }
-        });
-        counts.push(c0, c1, c2, c3);
-    } else if (period === 'week') {
-        labels.push('T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN');
-        let w1 = 0, w2 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0, w7 = 0;
-        filteredLogs.forEach(l => {
-            let day = new Date(Number(l.time)).getDay();
-            if (day === 1) w1++;
-            else if (day === 2) w2++;
-            else if (day === 3) w3++;
-            else if (day === 4) w4++;
-            else if (day === 5) w5++;
-            else if (day === 6) w6++;
-            else w7++;
-        });
-        counts.push(w1, w2, w3, w4, w5, w6, w7);
-    } else if (period === 'month') {
-        labels.push('Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4');
-        let m1 = 0, m2 = 0, m3 = 0, m4 = 0;
-        filteredLogs.forEach(l => {
-            let d = new Date(Number(l.time));
-            if (d.getMonth() === now.getMonth()) {
-                let date = d.getDate();
-                if (date <= 7) m1++;
-                else if (date <= 14) m2++;
-                else if (date <= 21) m3++;
-                else m4++;
-            }
-        });
-        counts.push(m1, m2, m3, m4);
-    }
-
-    if (adminChartInstance) adminChartInstance.destroy();
-    adminChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { 
-            labels: labels, 
-            datasets: [{ 
-                label: 'Số lần đăng nhập', 
-                data: counts, 
-                backgroundColor: '#007bff',
-                borderRadius: 4
-            }] 
-        },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
-    });
+    await syncDataFromGoogleSheet();
+    renderStatsTableOnly();
 }
 function renderDynamicList(typeCode, targetElementId) {
     const container = document.getElementById(targetElementId);
     if (!container) return;
     const items = appData.configs.filter(c => c.code === typeCode);
     if (items.length === 0) {
-        container.innerHTML = `<p style="color:#6c757d; text-align:center;">Chưa có bài viết nào trong mục này. Hãy thêm dòng có mã <b>${typeCode}</b> vào Tab <b>Cai_Dat</b> trên Google Sheet.</p>`;
+        container.innerHTML = `<p style="color:#6c757d; text-align:center;">Chưa có nội dung trong mục này.</p>`;
         return;
     }
     container.innerHTML = items.map(item => `
-        <article class="card" style="margin-bottom:15px;">
-            <h3 style="margin-top:0; color:var(--primary);">${item.title}</h3>
-            <p>${item.content}</p>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-                ${item.media ? `<a href="${item.media}" target="_blank" class="btn btn-danger" style="text-decoration:none; font-size:13px;">▶ Xem Video YouTube</a>` : ''}
-                ${item.affiliate ? `<a href="${item.affiliate}" target="_blank" class="btn btn-success" style="text-decoration:none; font-size:13px;">🛒 Xem Giá & Đặt Mua Vật Tư</a>` : ''}
+        <article class="card" style="margin-bottom:12px;">
+            <h3 style="margin-top:0; color:var(--primary); font-size:15.5px;">${item.title}</h3>
+            <p style="margin-bottom:8px;">${item.content}</p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                ${item.media ? `<a href="${item.media}" target="_blank" class="btn btn-danger" style="text-decoration:none; font-size:12.5px;">▶ Xem Video YouTube</a>` : ''}
+                ${item.affiliate ? `<a href="${item.affiliate}" target="_blank" class="btn btn-success" style="text-decoration:none; font-size:12.5px;">🛒 Xem Giá & Đặt Mua</a>` : ''}
             </div>
         </article>
     `).join('');
@@ -384,12 +363,12 @@ function runPumpCalc() {
     const resBox = document.getElementById('calcResultArea');
     resBox.style.display = 'block';
     resBox.innerHTML = `
-        <h3 style="margin-top:0; color:var(--secondary);">KẾT QUẢ TÍNH CÔNG SUẤT BƠM</h3>
-        <p>- Lưu lượng thiết kế (Q): <span class="highlight">${flow.toFixed(1)}</span> m³/giờ</p>
-        <p>- Cột áp tổng cộng đẩy dốc (H tổng): <span class="highlight">${totalHead.toFixed(1)}</span> mét *(Đã tính ma sát đường ống)*</p>
-        <p>- 🔋 <b>Công suất máy bơm đề xuất:</b> <span class="highlight">${computedPumpHP.toFixed(1)} HP</span> (~${(computedPumpHP * 0.7457).toFixed(2)} kW)</p>
-        <p style="background:#fff; padding:10px; border-radius:5px; border:1px solid #dee2e6; margin-bottom:0;">
-            💡 <b>Khuyến nghị:</b> Với cột áp ${totalHead.toFixed(1)}m, bạn nên chọn bơm ly tâm trục đứng đa tầng cánh hoặc bơm hỏa tiễn. Hãy chuyển sang tab <b>"CHỌN BIẾN TẦN & CÔNG SUẤT GIÀN PIN NLMT"</b> ngay bên cạnh để tính tủ điện nhé!
+        <h3 style="margin-top:0; color:var(--secondary); font-size:15.5px;">KẾT QUẢ TÍNH CÔNG SUẤT BƠM</h3>
+        <p>- Lưu lượng (Q): <span class="highlight">${flow.toFixed(1)}</span> m³/giờ</p>
+        <p>- Cột áp tổng (H tổng): <span class="highlight">${totalHead.toFixed(1)}</span> mét (Đã tính ma sát)</p>
+        <p>- 🔋 <b>Công suất bơm đề xuất:</b> <span class="highlight">${computedPumpHP.toFixed(1)} HP</span> (~${(computedPumpHP * 0.7457).toFixed(2)} kW)</p>
+        <p style="background:#fff; padding:8px; border-radius:4px; border:1px solid #dee2e6; margin-bottom:0; font-size:13px;">
+            💡 <b>Khuyến nghị:</b> Cột áp ${totalHead.toFixed(1)}m nên dùng bơm ly tâm trục đứng đa tầng cánh hoặc bơm hỏa tiễn. Chuyển sang tab bên cạnh để tính biến tần & giàn pin!
         </p>
     `;
 }
@@ -429,21 +408,21 @@ function runSolarInverterCalc() {
     const actualSolarKW = (totalPanels * selectedPanel.power) / 1000;
     const totalVoc = panelsPerString * selectedPanel.voc;
     let vocAlert = totalVoc > 900 
-        ? `<span style="color:red; font-weight:bold;">⚠️ CẢNH BÁO: Điện áp ${totalVoc.toFixed(2)}V vượt quá 900V! Cần giảm số tấm mỗi chuỗi.</span>` 
-        : `<span style="color:green; font-weight:bold;">✅ An toàn tuyệt đối (Dưới ngưỡng 900V)</span>`;
+        ? `<span style="color:red; font-weight:bold;">⚠️ Vượt 900V! Cần giảm số tấm/chuỗi.</span>` 
+        : `<span style="color:green; font-weight:bold;">✅ An toàn (&lt; 900V)</span>`;
 
     const resBox = document.getElementById('calcResultArea');
     resBox.style.display = 'block';
     resBox.innerHTML = `
-        <h3 style="margin-top:0; color:var(--secondary);">CẤU HÌNH BIẾN TẦN & GIÀN PIN ĐỀ XUẤT</h3>
-        <p>- Công suất bơm đầu vào: <b>${pumpHP.toFixed(1)} HP</b> (Quy đổi: <b>${pumpKW.toFixed(2)} kW</b>)</p>
-        <p>- ⚙️ <b>Biến tần bơm chọn lựa:</b> <span class="highlight">${finalInvKW} kW</span> *(Đã làm tròn vượt 2 cấp bảo vệ)*</p>
-        <p>- ☀️ <b>Tổng công suất giàn pin NLMT:</b> <span class="highlight" style="color:#e65100;">${actualSolarKW.toFixed(2)} kWp</span> *(Gấp ${(actualSolarKW/finalInvKW).toFixed(2)} lần biến tần)*</p>
-        <p>- 📦 <b>Tổng số lượng tấm pin:</b> <b>${totalPanels} tấm</b> (${selectedPanel.name})</p>
-        <p>- 🧩 <b>Phương án chia chuỗi (String):</b> Chia thành <b>${stringCount} chuỗi</b>, mỗi chuỗi mắc nối tiếp <span class="highlight">${panelsPerString} tấm</span> *(Khuyến nghị tối ưu 17 tấm)*</p>
-        <p>- ⚡ <b>Điện áp hở mạch mỗi chuỗi (Voc):</b> <b>${totalVoc.toFixed(2)} V</b> — ${vocAlert}</p>
-        <p style="background:#fff; padding:10px; border-radius:5px; border:1px solid #dee2e6; margin-bottom:0;">
-            💡 <b>Lưu ý lắp đặt:</b> Hệ thống bơm nước dốc có lực cản thủy lực lớn giúp motor dừng nhanh tự nhiên, <b>không cần lắp thêm điện trở hãm ngoài</b>. Hãy cài chế độ dừng tự do (Coast to Stop).
+        <h3 style="margin-top:0; color:var(--secondary); font-size:15.5px;">CẤU HÌNH BIẾN TẦN & GIÀN PIN ĐỀ XUẤT</h3>
+        <p>- Công suất bơm: <b>${pumpHP.toFixed(1)} HP</b> (~<b>${pumpKW.toFixed(2)} kW</b>)</p>
+        <p>- ⚙️ <b>Biến tần chọn lựa:</b> <span class="highlight">${finalInvKW} kW</span> (Vượt 2 cấp bảo vệ)</p>
+        <p>- ☀️ <b>Tổng công suất giàn pin:</b> <span class="highlight" style="color:#e65100;">${actualSolarKW.toFixed(2)} kWp</span></p>
+        <p>- 📦 <b>Số lượng tấm pin:</b> <b>${totalPanels} tấm</b> (${selectedPanel.name})</p>
+        <p>- 🧩 <b>Chia chuỗi (String):</b> <b>${stringCount} chuỗi</b>, mỗi chuỗi <span class="highlight">${panelsPerString} tấm</span> nối tiếp</p>
+        <p>- ⚡ <b>Điện áp hở mạch (Voc):</b> <b>${totalVoc.toFixed(2)} V</b> — ${vocAlert}</p>
+        <p style="background:#fff; padding:8px; border-radius:4px; border:1px solid #dee2e6; margin-bottom:0; font-size:13px;">
+            💡 <b>Lưu ý:</b> Bơm nước dốc tự dừng nhanh, <b>không cần lắp thêm điện trở hãm ngoài</b>. Cài chế độ dừng tự do (Coast to Stop).
         </p>
     `;
 }
