@@ -510,4 +510,42 @@ function runAccessoryCalc() {
         </p>
     `;
 }
+function toggleMobileMegaMenu() {
+    const menu = document.getElementById('mobileMegaDropdown');
+    if (menu) menu.classList.toggle('open');
+}
+
+function selectMobileCategory(pageFile, labelText, el) {
+    document.querySelectorAll('.mega-left-item').forEach(item => item.classList.remove('active'));
+    el.classList.add('active');
+    
+    const labelEl = document.getElementById('mobileCurrentPageLabel');
+    if (labelEl) labelEl.innerText = labelText;
+
+    const rightCol = document.getElementById('megaRightSubArea');
+    if (pageFile === 'page-tinh-toan.html') {
+        rightCol.innerHTML = `
+            <div class="mega-right-title">Truy cập nhanh</div>
+            <a href="javascript:void(0)" class="mega-sub-link" onclick="jumpToCalcSubTab('subPump', 0)">💧 Tính công suất bơm</a>
+            <a href="javascript:void(0)" class="mega-sub-link" onclick="jumpToCalcSubTab('subSolar', 1)">☀️ Chọn biến tần & Pin</a>
+            <a href="javascript:void(0)" class="mega-sub-link" onclick="jumpToCalcSubTab('subAccessory', 2)">🔩 Tính phụ kiện áp mái</a>
+        `;
+    } else {
+        rightCol.innerHTML = `
+            <div class="mega-right-title">Mục đang xem</div>
+            <p style="font-size:12.5px; color:#555; margin:4px 0;">Đang mở trang <b>${labelText}</b>.</p>
+        `;
+        document.getElementById('mobileMegaDropdown').classList.remove('open');
+    }
+    loadSubPage(pageFile, null);
+}
+
+async function jumpToCalcSubTab(subTabId, tabIndex) {
+    document.getElementById('mobileMegaDropdown').classList.remove('open');
+    await loadSubPage('page-tinh-toan.html', null);
+    const btns = document.querySelectorAll('.sub-tab-btn');
+    if (btns[tabIndex]) {
+        switchSubCalcTab(subTabId, btns[tabIndex]);
+    }
+}
 
