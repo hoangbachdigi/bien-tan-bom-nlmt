@@ -548,4 +548,17 @@ async function jumpToCalcSubTab(subTabId, tabIndex) {
         switchSubCalcTab(subTabId, btns[tabIndex]);
     }
 }
+async function jumpToCalcSubTab(subTabId, tabIndex) {
+    document.getElementById('mobileMegaDropdown').classList.remove('open');
+    const labelEl = document.getElementById('mobileCurrentPageLabel');
+    const subNames = ['Tính công suất bơm', 'Chọn biến tần & Pin', 'Tính phụ kiện áp mái'];
+    if (labelEl && subNames[tabIndex]) {
+        labelEl.innerText = subNames[tabIndex];
+    }
+    await loadSubPage('page-tinh-toan.html', null);
+    const btns = document.querySelectorAll('.sub-tab-btn');
+    if (btns[tabIndex]) {
+        switchSubCalcTab(subTabId, btns[tabIndex]);
+    }
+}
 
