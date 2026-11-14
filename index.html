@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Biến Tần Bơm & Điện Năng Lượng Mặt Trời - Công Cụ Tính Toán Tự Động</title>
-    <meta name="description" content="Phần mềm tính toán công suất máy bơm, chọn biến tần bơm an toàn và thiết kế hệ thống điện năng lượng mặt trời (Solar).">
+    <meta name="description" content="Phần mềm tính toán công suất máy bơm, chọn biến tần bơm vượt cấp an toàn và thiết kế hệ thống điện năng lượng mặt trời (Solar) phân chuỗi chuẩn xác nhất.">
     <meta name="keywords" content="biến tần bơm, điện năng lượng mặt trời, tính công suất bơm, biến tần bơm năng lượng mặt trời, chia chuỗi tấm pin">
     <meta name="robots" content="index, follow">
     <script type="application/ld+json">
@@ -22,21 +22,29 @@
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #eef2f5; color: var(--dark); margin: 0; padding: 15px; font-size: 15px; line-height: 1.55; }
         .wrapper { max-width: 1050px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; }
-        
         .top-user-bar { display: flex; justify-content: space-between; align-items: center; background: #f1f3f5; padding: 8px 16px; border-bottom: 1px solid #dee2e6; font-size: 13.5px; gap: 8px; }
         .user-status-center { flex: 1; text-align: center; }
         .user-icon-btn { background: #fff; border: 1px solid #ced4da; border-radius: 16px; padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600; font-size: 13px; color: var(--dark); white-space: nowrap; }
-        
         .banner-area { width: 100%; background: linear-gradient(135deg, #0056b3, #00a8ff); color: white; text-align: center; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 18px; }
         .banner-area img { width: 100%; max-height: 240px; object-fit: cover; display: block; }
         .seo-main-title { margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 0.3px; }
         .seo-sub-title { margin: 5px 0 0; font-size: 13.5px; opacity: 0.95; }
-        
-        .main-nav { display: flex; background-color: var(--gray-menu); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .main-nav { display: flex; background-color: var(--gray-menu); }
         .nav-item { flex: 1; text-align: center; padding: 12px 10px; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; border-right: 1px solid #6c757d; white-space: nowrap; }
         .nav-item:last-child { border-right: none; }
         .nav-item.active { background-color: #ffffff; color: var(--primary); border-top: 3px solid var(--primary); }
-        
+        .mobile-cat-bar { display: none; background: #fff; border-bottom: 1px solid #dee2e6; padding: 8px 12px; align-items: center; justify-content: space-between; position: relative; }
+        .mobile-cat-btn { display: flex; align-items: center; gap: 6px; background: #f1f3f5; border: 1px solid #ced4da; border-radius: 6px; padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--dark); cursor: pointer; }
+        .mobile-current-title { font-size: 12.5px; font-weight: 600; color: var(--primary); }
+        .mobile-mega-dropdown { display: none; background: #fff; border-bottom: 2px solid var(--primary); box-shadow: 0 6px 16px rgba(0,0,0,0.12); grid-template-columns: 1.15fr 1fr; }
+        .mobile-mega-dropdown.open { display: grid; }
+        .mega-left-col { background: #f8f9fa; border-right: 1px solid #dee2e6; }
+        .mega-left-item { padding: 10px 10px; font-size: 12.5px; font-weight: 600; color: #333; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .mega-left-item.active { background: #fff; color: var(--primary); border-left: 3px solid var(--primary); }
+        .mega-right-col { padding: 10px; background: #fff; }
+        .mega-right-title { font-size: 11.5px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+        .mega-sub-link { display: block; padding: 7px 6px; font-size: 12.5px; color: var(--dark); text-decoration: none; border-radius: 4px; margin-bottom: 4px; background: #f8f9fa; font-weight: 500; }
+        .mega-sub-link:active { background: #e9ecef; color: var(--primary); }
         .page-container { padding: 20px; min-height: 360px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .card { background: var(--light); padding: 16px; border-radius: 6px; border: 1px solid #dee2e6; }
@@ -44,7 +52,6 @@
         .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13.5px; }
         input[type="number"], input[type="text"], select { width: 100%; padding: 9px 10px; border: 1px solid #ced4da; border-radius: 5px; font-size: 14px; }
-        
         .btn { padding: 9px 14px; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; color: #fff; font-size: 14px; }
         .btn-primary { background: var(--primary); width: 100%; }
         .btn-orange { background: var(--orange); width: 100%; }
@@ -52,36 +59,32 @@
         .btn-danger { background: var(--danger); }
         .btn-outline { background: #fff; color: var(--dark); border: 1px solid #ced4da; }
         .btn-outline.active-sort { background: var(--primary); color: #fff; border-color: var(--primary); }
-        
         .result-box { margin-top: 16px; padding: 16px; background: #e8f5e9; border-left: 4px solid var(--secondary); border-radius: 5px; display: none; }
         .highlight { font-weight: 700; color: #d9534f; font-size: 16px; }
-        
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); z-index: 1000; justify-content: center; align-items: center; padding: 10px; }
         .modal-box { background: #fff; padding: 18px; border-radius: 8px; max-width: 780px; width: 100%; max-height: 92vh; overflow-y: auto; position: relative; }
         .close-modal { position: absolute; top: 12px; right: 14px; font-size: 18px; cursor: pointer; font-weight: bold; color: #6c757d; }
-        
         .table-wrap { overflow-x: auto; }
         .admin-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
         .admin-table th, .admin-table td { border: 1px solid #dee2e6; padding: 7px 6px; text-align: left; }
         .admin-table th { background: #e9ecef; font-weight: 600; }
         footer { background: #f1f3f5; text-align: center; padding: 12px; border-top: 1px solid #dee2e6; font-size: 13px; color: #495057; }
-
-        /* TỐI ƯU GIAO DIỆN MOBILE CHUẨN BÁO ONLINE */
         @media (max-width: 768px) {
             body { padding: 0; font-size: 14px; line-height: 1.5; background: #fff; }
             .wrapper { border-radius: 0; box-shadow: none; }
             .top-user-bar { padding: 6px 10px; font-size: 12px; }
             .user-icon-btn { padding: 3px 8px; font-size: 12px; }
-            .banner-area { min-height: 95px; padding: 14px 12px; }
-            .seo-main-title { font-size: 16.5px; line-height: 1.35; }
-            .seo-sub-title { font-size: 12px; }
-            .nav-item { padding: 10px 10px; font-size: 12px; }
-            .page-container { padding: 14px 12px; }
+            .banner-area { min-height: 85px; padding: 12px 10px; }
+            .seo-main-title { font-size: 15.5px; line-height: 1.35; }
+            .seo-sub-title { font-size: 11.5px; }
+            .main-nav { display: none; }
+            .mobile-cat-bar { display: flex; }
+            .page-container { padding: 12px 10px; }
             .grid-2 { grid-template-columns: 1fr; gap: 12px; }
             .card { padding: 12px; }
             .card-title { font-size: 14.5px; margin-bottom: 10px; }
             label { font-size: 13px; }
-            input[type="number"], input[type="text"], select { padding: 8px; font-size: 13.5px; }
+            input[type="number"], input[type="text"], select { padding: 8px; font-size: 16px; }
             .btn { padding: 8px 12px; font-size: 13.5px; }
             .highlight { font-size: 14.5px; }
             .admin-table { font-size: 12px; }
@@ -112,6 +115,29 @@
         <div class="nav-item" onclick="loadSubPage('page-kien-thuc.html', this)">KIẾN THỨC</div>
         <div class="nav-item" onclick="loadSubPage('page-dich-vu.html', this)">DỊCH VỤ KHÁC</div>
     </nav>
+
+    <div class="mobile-cat-bar">
+        <button class="mobile-cat-btn" onclick="toggleMobileMegaMenu()">
+            <span>☰</span> <span>Danh mục</span>
+        </button>
+        <span class="mobile-current-title" id="mobileCurrentPageLabel">Công cụ tính toán</span>
+    </div>
+
+    <div class="mobile-mega-dropdown" id="mobileMegaDropdown">
+        <div class="mega-left-col">
+            <div class="mega-left-item active" onclick="selectMobileCategory('page-tinh-toan.html', 'Công cụ tính toán', this)">🧮 Công cụ tính toán</div>
+            <div class="mega-left-item" onclick="selectMobileCategory('page-san-pham.html', 'Thông tin sản phẩm', this)">🛒 Thông tin sản phẩm</div>
+            <div class="mega-left-item" onclick="selectMobileCategory('page-xu-ly-loi.html', 'Xử lý lỗi biến tần', this)">🔧 Xử lý lỗi biến tần</div>
+            <div class="mega-left-item" onclick="selectMobileCategory('page-kien-thuc.html', 'Kiến thức & Kinh nghiệm', this)">📚 Kiến thức</div>
+            <div class="mega-left-item" onclick="selectMobileCategory('page-dich-vu.html', 'Dịch vụ kỹ thuật', this)">🛠️ Dịch vụ khác</div>
+        </div>
+        <div class="mega-right-col" id="megaRightSubArea">
+            <div class="mega-right-title">Truy cập nhanh</div>
+            <a href="javascript:void(0)" class="mega-sub-link" onclick="jumpToCalcSubTab('subPump', 0)">💧 Tính công suất bơm</a>
+            <a href="javascript:void(0)" class="mega-sub-link" onclick="jumpToCalcSubTab('subSolar', 1)">☀️ Chọn biến tần & Pin</a>
+            <a href="javascript:void(0)" class="mega-sub-link" onclick="jumpToCalcSubTab('subAccessory', 2)">🔩 Tính phụ kiện áp mái</a>
+        </div>
+    </div>
 
     <main class="page-container" id="mainPageContent">
         <p style="text-align: center; color: #6c757d; font-size: 13.5px;">Đang khởi tạo công cụ...</p>
