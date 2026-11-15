@@ -499,159 +499,60 @@ function openCalcToolModal(toolId) {
             <button class="btn btn-primary" onclick="checkLimitAndRun(execPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
             <div id="toolModalResult" class="result-box"></div>
         `);
+//////////
+        
     } else if (toolId === 'solar') {
-        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.name.includes('610W (132-cell') ? 'selected' : ''}>${p.name}</option>`).join('');
-        const invOpts = SOLAR_INVERTERS_DB.map((inv, i) => `<option value="${i}" ${inv.name.includes('SG800-011GB') ? 'selected' : ''}>${inv.name}</option>`).join('');
+        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.name.includes('610W (132-cell') ? 'selected' : ''}>${p.name} - Imp: ${p.imp}A</option>`).join('');
+        const invOpts = SOLAR_INVERTERS_DB.map((inv, i) => `<option value="${i}">${inv.name} (VdcMax: ${inv.vdcMax}V, IdcMax: ${inv.idcMax}A)</option>`).join('');
         openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">☀️ Tính Toán & Phối Ghép Hệ Thống Bơm NLMT</h3>
+            <h3 style="margin-top:0; color:var(--primary);">☀️ Tính Toán & Phối Ghép Hệ Thống Bơm NLMT Chuẩn Kỹ Thuật</h3>
             <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Công suất máy bơm (kW):</label><input type="number" id="spPumpKW" value="7.5" step="0.1"></div>
                 <div class="form-group">
-                    <label>Loại máy bơm:</label>
-                    <select id="spPumpType">
-                        <option value="1.4" selected>Bơm hỏa tiễn (Hệ số 1.4)</option>
-                        <option value="1.3">Bơm đặt cạn (Hệ số 1.3)</option>
+                    <label>Công suất máy bơm (kW):</label>
+                    <input type="number" id="spPumpKW" value="7.5" step="0.1" oninput="autoSelectBestInverter()">
+                </div>
+                <div class="form-group">
+                    <label>Nguồn điện máy bơm:</label>
+                    <select id="spPumpPhase" onchange="autoSelectBestInverter()">
+                        <option value="3 pha 380V" selected>3 Pha 380V (Khuyên dùng)</option>
+                        <option value="1 pha 220V">1 Pha 220V (Bơm dân dụng)</option>
                     </select>
                 </div>
             </div>
-            <div class="form-group"><label>Chọn mã tấm pin mặt trời (36 mã):</label><select id="spPanelIdx">${panelOpts}</select></div>
-            <div class="form-group"><label>Chọn mã biến tần bơm NLMT (47 mã):</label><select id="spInvIdx">${invOpts}</select></div>
             <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Chiều dài dây DC từ pin tới tủ (m):</label><input type="number" id="spDcLen" value="25"></div>
-                <div class="form-group"><label>Chiều dài dây AC xuống bơm (m):</label><input type="number" id="spAcLen" value="80"></div>
+                <div class="form-group">
+                    <label>Loại máy bơm thực tế:</label>
+                    <select id="spPumpType" onchange="autoSelectBestInverter()">
+                        <option value="gieng" selected>Bơm hỏa tiễn thả giếng sâu (Vượt 1-2 cấp)</option>
+                        <option value="can">Bơm ly tâm đặt cạn / trục đứng (Vượt 1 cấp)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Chiều dài dây AC xuống bơm (m):</label>
+                    <input type="number" id="spAcLen" value="80" oninput="autoSelectBestInverter()">
+                </div>
             </div>
-            <button class="btn btn-orange" onclick="checkLimitAndRun(execSolarSystemCalc)">TÍNH TOÁN & PHỐI GHÉP HỆ THỐNG</button>
+            <div class="form-group">
+                <label>Biến tần bơm đề xuất tự động (Có thể chọn lại nếu muốn):</label>
+                <select id="spInvIdx">${invOpts}</select>
+            </div>
+            <div class="grid-2" style="gap:10px;">
+                <div class="form-group">
+                    <label>Chọn mã tấm pin mặt trời (36 mã):</label>
+                    <select id="spPanelIdx">${panelOpts}</select>
+                </div>
+                <div class="form-group">
+                    <label>Chiều dài dây DC từ pin tới tủ (m):</label>
+                    <input type="number" id="spDcLen" value="25">
+                </div>
+            </div>
+            <button class="btn btn-orange" onclick="checkLimitAndRun(execSolarSystemCalc)">TÍNH TOÁN & KIỂM TRA AN TOÀN HỆ THỐNG</button>
             <div id="toolModalResult" class="result-box"></div>
         `);
+        setTimeout(autoSelectBestInverter, 50);
     } else if (toolId === 'acc') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
-            <div class="form-group"><label>Tổng số lượng tấm pin (tấm):</label><input type="number" id="accTotalPanels" value="18"></div>
-            <div class="form-group"><label>Số dãy pin lắp đặt (dãy):</label><input type="number" id="accRows" value="2"></div>
-            <div class="form-group">
-                <label>Cấu hình chân đế:</label>
-                <select id="accLegType">
-                    <option value="2">Loại 2 chân đế (2 thanh ray / dãy)</option>
-                    <option value="3">Loại 3 chân đế (3 thanh ray / dãy)</option>
-                </select>
-            </div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execAccCalc)">TÍNH PHỤ KIỆN</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
-    } else if (toolId === 'vdrop') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">⚡ Tính Sụt Áp Trên Đường Dây</h3>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group">
-                    <label>Hệ thống điện:</label>
-                    <select id="vdSystem">
-                        <option value="380">3 Pha 380V (AC)</option>
-                        <option value="220">1 Pha 220V (AC)</option>
-                        <option value="550">Điện mặt trời DC (~550V)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Chất liệu lõi dây:</label>
-                    <select id="vdMaterial">
-                        <option value="0.0175">Dây Đồng (Cu)</option>
-                        <option value="0.0283">Dây Nhôm (Al)</option>
-                    </select>
-                </div>
-            </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Dòng điện tải (A):</label><input type="number" id="vdCurrent" value="25"></div>
-                <div class="form-group"><label>Chiều dài dây 1 chiều (m):</label><input type="number" id="vdLength" value="80"></div>
-            </div>
-            <div class="form-group">
-                <label>Tiết diện dây dẫn (mm²):</label>
-                <select id="vdSize">
-                    <option value="2.5">2.5 mm²</option><option value="4">4.0 mm²</option>
-                    <option value="6" selected>6.0 mm²</option><option value="10">10 mm²</option>
-                    <option value="16">16 mm²</option><option value="25">25 mm²</option>
-                </select>
-            </div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execVdropCalc)">TÍNH ĐỘ SỤT ÁP</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
-    } else if (toolId === 'divider') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">🔌 Tính Cầu Trở Phân Áp</h3>
-            <div class="form-group"><label>Điện áp nguồn đầu vào Vin (V):</label><input type="number" id="divVin" value="24" step="0.1"></div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Điện trở R1 (kΩ):</label><input type="number" id="divR1" value="10" step="0.1"></div>
-                <div class="form-group"><label>Điện trở R2 (kΩ):</label><input type="number" id="divR2" value="4.7" step="0.1"></div>
-            </div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execDividerCalc)">TÍNH ĐIỆN ÁP RA VOUT</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
-    }
-}
-function execSolarSystemCalc() {
-    const pumpKW = parseFloat(document.getElementById('spPumpKW').value) || 0;
-    const factor = parseFloat(document.getElementById('spPumpType').value) || 1.4;
-    const panel = SOLAR_PANELS_DB[parseInt(document.getElementById('spPanelIdx').value)];
-    const inv = SOLAR_INVERTERS_DB[parseInt(document.getElementById('spInvIdx').value)];
-    const dcLen = parseFloat(document.getElementById('spDcLen').value) || 0;
-    const acLen = parseFloat(document.getElementById('spAcLen').value) || 0;
 
-    if (pumpKW <= 0) return alert("Vui lòng nhập công suất máy bơm!");
-
-    // 1. Tính số tấm pin tối thiểu theo công suất bơm
-    const minPanelsByPower = Math.ceil((pumpKW * factor * 1000) / panel.power);
-    // 2. Số tấm tối đa & tối thiểu 1 chuỗi (Hệ số an toàn 1.1 lạnh và 0.85 nóng)
-    const maxPanelsPerString = Math.floor(inv.vdcMax / (panel.voc * 1.1));
-    const minPanelsPerString = Math.ceil(inv.mpptMin / (panel.vmp * 0.85));
-
-    let strings = 1;
-    let panelsPerString = minPanelsByPower;
-    if (minPanelsByPower > maxPanelsPerString) {
-        strings = Math.ceil(minPanelsByPower / maxPanelsPerString);
-        panelsPerString = Math.ceil(minPanelsByPower / strings);
-    }
-    if (panelsPerString < minPanelsPerString) {
-        panelsPerString = minPanelsPerString;
-    }
-
-    const totalPanels = strings * panelsPerString;
-    const totalKWp = (totalPanels * panel.power) / 1000;
-    const vocTotal = panelsPerString * panel.voc;
-    const vmpTotal = panelsPerString * panel.vmp;
-    const impTotal = strings * panel.imp;
-
-    // Đề xuất dây dẫn & cuộn kháng
-    const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
-    const acCable = inv.iOut <= 18 ? "Cáp đồng 3x4mm²" : (inv.iOut <= 28 ? "Cáp đồng 3x6mm²" : (inv.iOut <= 45 ? "Cáp đồng 3x10mm²" : "Cáp đồng 3x16mm²"));
-    const reactorNote = (factor === 1.4 && acLen >= 50) ? "Nên lắp thêm Cuộn kháng đầu ra (Output Reactor) bảo vệ bơm thả sâu" : "Không bắt buộc";
-
-    // Kiểm tra cảnh báo an toàn
-    let warnings = [];
-    if (inv.kw < pumpKW) warnings.push("Công suất biến tần đang nhỏ hơn công suất bơm!");
-    if (vocTotal * 1.1 > inv.vdcMax) warnings.push("Điện áp hở mạch buổi sáng lạnh vượt ngưỡng Vdc_max!");
-    if (impTotal > inv.idcMax) warnings.push("Tổng dòng DC vượt ngưỡng chịu đựng Idc_max của biến tần!");
-    const statusHtml = warnings.length === 0 
-        ? `<span style="color:green; font-weight:bold;">✅ PHỐI GHÉP AN TOÀN & TỐI ƯU</span>` 
-        : `<span style="color:red; font-weight:bold;">⚠️ CẢNH BÁO: ${warnings.join(' | ')}</span>`;
-
-    // Lưu dữ liệu sang bộ tạo Báo Giá
-    lastSolarQuoteData = {
-        pumpKW, factor, panel, inv, totalPanels, totalKWp, strings, panelsPerString,
-        dcLen, acLen, dcCable, acCable
-    };
-
-    const resBox = document.getElementById('toolModalResult');
-    resBox.style.display = 'block';
-    resBox.innerHTML = `
-        <h4 style="margin:0 0 8px; color:var(--secondary);">KẾT QUẢ PHỐI GHÉP KỸ THUẬT</h4>
-        <p>- 🧩 <b>Tổng số tấm pin chốt phương án:</b> <span class="highlight">${totalPanels} tấm</span> (<b>${totalKWp.toFixed(2)} kWp</b>)</p>
-        <p>- 🔌 <b>Sơ đồ đấu nối:</b> Chia <b>${strings} chuỗi (String)</b> × <b>${panelsPerString} tấm/chuỗi</b></p>
-        <p>- ⚡ <b>Thông số điện giàn pin:</b> Voc = <b>${vocTotal.toFixed(1)}V</b> | Vmp = <b>${vmpTotal.toFixed(1)}V</b> | Imp = <b>${impTotal.toFixed(1)}A</b></p>
-        <p>- 🧵 <b>Vật tư dây dẫn:</b> ${dcCable} (${dcLen * 2}m) | ${acCable} (${acLen}m)</p>
-        <p>- 🛡️ <b>Cuộn kháng đầu ra:</b> ${reactorNote}</p>
-        <p>- 📋 <b>Trạng thái hệ thống:</b> ${statusHtml}</p>
-        <button class="btn btn-success" style="width:100%; margin-top:10px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ (CHO PHÉP SỬA GIÁ)</button>
-    `;
-}
-
+/////
 const QUOTE_ITEM_NAMES = [
     "Tấm pin năng lượng mặt trời",
     "Biến tần bơm năng lượng mặt trời",
