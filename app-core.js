@@ -652,6 +652,18 @@ function execSolarSystemCalc() {
     `;
 }
 
+const QUOTE_ITEM_NAMES = [
+    "Tấm pin năng lượng mặt trời",
+    "Biến tần bơm năng lượng mặt trời",
+    "Hệ khung giá đỡ nhôm & phụ kiện kẹp",
+    "Tủ điện bảo vệ DC/AC, CB & Chống sét SPD",
+    "Cáp chuyên dụng Solar DC (Đỏ + Đen)",
+    "Cáp động lực AC xuống máy bơm",
+    "Vật tư phụ, jack MC4 & hệ thống tiếp địa",
+    "Nhân công lắp đặt & cài đặt vận hành"
+];
+const QUOTE_UNITS = ["Tấm", "Bộ", "kWp", "Tủ", "Mét", "Mét", "Gói", "kWp"];
+
 function openEditableQuoteModal() {
     const d = lastSolarQuoteData;
     if (!d) return;
@@ -669,32 +681,33 @@ function openEditableQuoteModal() {
 
     const trHtml = rows.map((r, i) => `
         <tr>
-            <td>${i + 1}</td>
-            <td><b>${r.name}</b></td>
-            <td>${r.unit}</td>
+            <td style="text-align:center;">${i + 1}</td>
+            <td id="qName_${i}" style="min-width:130px;"><b>${r.name}</b></td>
+            <td style="text-align:center;">${r.unit}</td>
             <td><input type="number" class="quote-qty" id="qQty_${i}" value="${r.qty}" oninput="recalcQuoteTotal()"></td>
             <td><input type="number" class="quote-input" id="qPrice_${i}" value="${r.price}" oninput="recalcQuoteTotal()"></td>
-            <td style="text-align:right; font-weight:600;" id="qSub_${i}">${(r.qty * r.price).toLocaleString('vi-VN')}</td>
+            <td style="text-align:right; font-weight:600; white-space:nowrap;" id="qSub_${i}">${(r.qty * r.price).toLocaleString('vi-VN')}</td>
         </tr>
     `).join('');
 
     openGlobalModal(`
-        <h3 style="margin:0 0 6px; color:var(--primary);">📄 BẢNG BÁO GIÁ HỆ THỐNG BƠM NĂNG LƯỢNG MẶT TRỜI</h3>
-        <p style="font-size:12.5px; color:#64748b; margin-top:0;">Cấu hình: Bơm <b>${d.pumpKW}kW</b> | Giàn pin <b>${d.totalKWp.toFixed(2)} kWp</b> (${d.strings} chuỗi × ${d.panelsPerString} tấm). <i>Bạn có thể gõ trực tiếp vào ô Số lượng hoặc Đơn giá để điều chỉnh:</i></p>
+        <h3 style="margin:0 0 6px; color:var(--primary); font-size:16px;">📄 BẢNG BÁO GIÁ BƠM NĂNG LƯỢNG MẶT TRỜI</h3>
+        <p style="font-size:12px; color:#64748b; margin-top:0;">Cấu hình: Bơm <b>${d.pumpKW}kW</b> | Giàn pin <b>${d.totalKWp.toFixed(2)} kWp</b> (${d.strings} chuỗi × ${d.panelsPerString} tấm). <i>Chạm vào ô SL hoặc Đơn giá để sửa trực tiếp:</i></p>
         <div class="table-wrap">
             <table class="data-table">
                 <thead><tr><th>STT</th><th>Hạng mục thiết bị</th><th>ĐVT</th><th>SL</th><th>Đơn giá (đ)</th><th style="text-align:right;">Thành tiền</th></tr></thead>
                 <tbody>${trHtml}</tbody>
             </table>
         </div>
-        <div style="margin-top:12px; text-align:right; font-size:14px;">
-            <div>Tổng cộng trước chiết khấu: <b id="qTotalRaw">0</b> đ</div>
-            <div style="margin:6px 0;">Giảm giá / Chiết khấu (đ): <input type="number" class="quote-input" id="qDiscount" value="0" oninput="recalcQuoteTotal()"></div>
-            <div style="font-size:17px; color:var(--danger); margin-top:6px;">TỔNG THANH TOÁN: <b id="qFinalTotal">0</b> VNĐ</div>
+        <div style="margin-top:12px; text-align:right; font-size:13.5px;">
+            <div>Tổng cộng: <b id="qTotalRaw">0</b> đ</div>
+            <div style="margin:6px 0;">Giảm giá (đ): <input type="number" class="quote-input" id="qDiscount" value="0" oninput="recalcQuoteTotal()"></div>
+            <div style="font-size:16px; color:var(--danger); margin-top:6px;">TỔNG THANH TOÁN: <b id="qFinalTotal">0</b> VNĐ</div>
         </div>
-        <div style="display:flex; gap:10px; margin-top:14px;">
-            <button class="btn btn-primary" onclick="window.print()">🖨️ In / Xuất PDF Báo Giá</button>
-            <button class="btn btn-outline" onclick="closeGlobalModal()">Đóng</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" onclick="exportQuoteToExcel()">📊 Xuất Excel (.xls)</button>
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Xuất PDF / In</button>
+            <button class="btn" style="background:#0068ff; grid-column: span 2;" onclick="shareQuoteToZalo()">💬 Copy & Gửi Báo Giá Qua Zalo</button>
         </div>
     `);
     recalcQuoteTotal();
@@ -715,6 +728,90 @@ function recalcQuoteTotal() {
     document.getElementById('qTotalRaw').innerText = rawTotal.toLocaleString('vi-VN');
     document.getElementById('qFinalTotal').innerText = finalTotal.toLocaleString('vi-VN');
 }
+
+function exportQuoteToExcel() {
+    const d = lastSolarQuoteData;
+    if (!d) return;
+    let rowsHtml = '';
+    for (let i = 0; i < 8; i++) {
+        const name = document.getElementById(`qName_${i}`)?.innerText || QUOTE_ITEM_NAMES[i];
+        const qty = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
+        const price = parseFloat(document.getElementById(`qPrice_${i}`)?.value) || 0;
+        const sub = Math.round(qty * price);
+        rowsHtml += `<tr>
+            <td style="text-align:center;">${i + 1}</td>
+            <td>${name}</td>
+            <td style="text-align:center;">${QUOTE_UNITS[i]}</td>
+            <td style="text-align:center;">${qty}</td>
+            <td style="text-align:right;">${price}</td>
+            <td style="text-align:right;">${sub}</td>
+        </tr>`;
+    }
+    const rawTotal = document.getElementById('qTotalRaw').innerText;
+    const discount = parseFloat(document.getElementById('qDiscount')?.value) || 0;
+    const finalTotal = document.getElementById('qFinalTotal').innerText;
+
+    const excelContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://w3.org">
+        <head><meta charset="UTF-8"></head>
+        <body>
+            <table border="1" style="border-collapse:collapse; font-family:Arial, sans-serif;">
+                <tr><th colspan="6" style="font-size:16px; background:#0066cc; color:#ffffff; height:35px;">BẢNG BÁO GIÁ HỆ THỐNG BƠM NĂNG LƯỢNG MẶT TRỜI</th></tr>
+                <tr><td colspan="6"><b>Cấu hình:</b> Bơm ${d.pumpKW}kW | Giàn pin ${d.totalKWp.toFixed(2)} kWp (${d.strings} chuỗi x ${d.panelsPerString} tấm)</td></tr>
+                <tr style="background:#f1f5f9; font-weight:bold;">
+                    <th>STT</th><th>Hạng mục thiết bị</th><th>ĐVT</th><th>Số lượng</th><th>Đơn giá (VNĐ)</th><th>Thành tiền (VNĐ)</th>
+                </tr>
+                ${rowsHtml}
+                <tr><td colspan="5" style="text-align:right;"><b>Tổng cộng:</b></td><td style="text-align:right;"><b>${rawTotal}</b></td></tr>
+                <tr><td colspan="5" style="text-align:right;">Chiết khấu / Giảm giá:</td><td style="text-align:right;">${discount.toLocaleString('vi-VN')}</td></tr>
+                <tr><td colspan="5" style="text-align:right; color:red;"><b>TỔNG THANH TOÁN (VNĐ):</b></td><td style="text-align:right; color:red;"><b>${finalTotal}</b></td></tr>
+            </table>
+        </body>
+        </html>
+    `;
+
+    const blob = new Blob(['\ufeff', excelContent], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Bao_Gia_Bom_NLMT_${d.pumpKW}kW.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function shareQuoteToZalo() {
+    const d = lastSolarQuoteData;
+    if (!d) return;
+    let text = `☀️ BÁO GIÁ HỆ THỐNG BƠM NĂNG LƯỢNG MẶT TRỜI\n`;
+    text += `• Cấu hình: Bơm ${d.pumpKW}kW | Giàn pin ${d.totalKWp.toFixed(2)} kWp (${d.strings} chuỗi x ${d.panelsPerString} tấm)\n`;
+    text += `--------------------------------\n`;
+    for (let i = 0; i < 8; i++) {
+        const name = document.getElementById(`qName_${i}`)?.innerText || QUOTE_ITEM_NAMES[i];
+        const qty = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
+        const sub = document.getElementById(`qSub_${i}`)?.innerText || "0";
+        if (qty > 0) {
+            text += `${i + 1}. ${name} (SL: ${qty} ${QUOTE_UNITS[i]}): ${sub}đ\n`;
+        }
+    }
+    const finalTotal = document.getElementById('qFinalTotal').innerText;
+    text += `--------------------------------\n`;
+    text += `💰 TỔNG THANH TOÁN: ${finalTotal} VNĐ\n`;
+    text += `📞 Tư vấn & Hỗ trợ kỹ thuật: Zalo Quang Nguyen`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ Đã sao chép toàn bộ nội dung Báo Giá vào bộ nhớ tạm! Hệ thống sẽ mở Zalo để bạn dán (Ctrl+V / Dán) gửi ngay cho khách hàng.");
+            window.open("https://zalo.me", "_blank");
+        }).catch(() => {
+            prompt("Hãy sao chép nội dung báo giá dưới đây để gửi Zalo:", text);
+        });
+    } else {
+        prompt("Hãy sao chép nội dung báo giá dưới đây để gửi Zalo:", text);
+    }
+}
+
 function execPumpCalc() {
     const source = document.getElementById('calcSource').value;
     const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
