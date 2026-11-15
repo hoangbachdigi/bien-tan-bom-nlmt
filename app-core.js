@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwXhaoIyrMIJNitAvvlIc9f3dHMc2R4YHU74Tk1KxeJ2iQf2YJiYa2BmYRt87ELQuFSYA/exec";
+const API_URL = "https://google.com";
 
 let cachedData = JSON.parse(localStorage.getItem('solar_app_cache')) || null;
 let appData = cachedData || {
@@ -29,7 +29,6 @@ function selectMobileDrawer(pageFile, labelText, el) {
     document.getElementById('mobileDrawer').classList.remove('open');
     loadSubPage(pageFile, null);
 }
-
 async function loadSubPage(pageFile, navElement) {
     if (navElement) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -49,6 +48,7 @@ async function loadSubPage(pageFile, navElement) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
 }
+
 function applyBannerFromConfig() {
     const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
     if (bannerCfg && bannerCfg.media) {
@@ -85,7 +85,6 @@ async function syncDataFromGoogleSheet() {
         console.log("Sử dụng bộ nhớ đệm để tối ưu tốc độ.");
     }
 }
-
 function updateTopUserBar() {
     const statusText = document.getElementById('userStatusText');
     const btnLabel = document.getElementById('userBtnLabel');
@@ -120,6 +119,7 @@ function checkLimitAndRun(callbackFn) {
     updateTopUserBar();
     callbackFn();
 }
+
 function openGlobalModal(htmlContent) {
     document.getElementById('globalModalBody').innerHTML = htmlContent;
     document.getElementById('globalModal').style.display = 'flex';
@@ -297,8 +297,6 @@ async function adminAction(act, username) {
     await syncDataFromGoogleSheet();
     renderStatsTableOnly();
 }
-
-// TAB 1: THÔNG TIN SẢN PHẨM (20 SP/TRANG + POPUP 10 DÒNG MÔ TẢ)
 function getCombinedProducts() {
     const realItems = appData.configs.filter(c => c.code === 'SAN_PHAM').map(c => ({
         title: c.title,
@@ -350,16 +348,16 @@ function openProductDetail(idx) {
         <button class="btn btn-outline" style="width:100%;" onclick="closeGlobalModal()">Đóng cửa sổ</button>
     `);
 }
-// TAB 2: XỬ LÝ LỖI BIẾN TẦN (TÌM KIẾM + LỌC HÃNG + 20 DÒNG/TRANG)
+
 function getCombinedErrors() {
     const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
         const bParts = c.title.split('|');
         const cParts = c.content.split('|');
         return {
-            brand: (bParts[0] || "PowerS").trim(),
-            code: (bParts[1] || "").trim(),
-            desc: (cParts[0] || "").trim(),
-            fix: (cParts[1] || "").trim()
+            brand: (bParts || "PowerS").trim(),
+            code: (bParts || "").trim(),
+            desc: (cParts || "").trim(),
+            fix: (cParts || "").trim()
         };
     });
     return [...realErrors, ...MOCK_ERRORS];
@@ -402,7 +400,6 @@ function renderErrorsPage(page) {
     `).join('');
 }
 
-// TAB 4: KIẾN THỨC (DANH SÁCH 1 CỘT + POPUP CHI TIẾT)
 function getCombinedKnowledge() {
     const realBlogs = appData.configs.filter(c => c.code === 'KIEN_THUC').map(c => ({
         title: c.title,
@@ -499,8 +496,6 @@ function openCalcToolModal(toolId) {
             <button class="btn btn-primary" onclick="checkLimitAndRun(execPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
             <div id="toolModalResult" class="result-box"></div>
         `);
-//////////
-        
     } else if (toolId === 'solar') {
         const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.name.includes('610W (132-cell') ? 'selected' : ''}>${p.name} - Imp: ${p.imp}A</option>`).join('');
         const invOpts = SOLAR_INVERTERS_DB.map((inv, i) => `<option value="${i}">${inv.name} (VdcMax: ${inv.vdcMax}V, IdcMax: ${inv.idcMax}A)</option>`).join('');
@@ -551,8 +546,175 @@ function openCalcToolModal(toolId) {
         `);
         setTimeout(autoSelectBestInverter, 50);
     } else if (toolId === 'acc') {
+        openGlobalModal(`
+            <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
+            <div class="form-group"><label>Tổng số lượng tấm pin (tấm):</label><input type="number" id="accTotalPanels" value="18"></div>
+            <div class="form-group"><label>Số dãy pin lắp đặt (dãy):</label><input type="number" id="accRows" value="2"></div>
+            <div class="form-group">
+                <label>Cấu hình chân đế:</label>
+                <select id="accLegType">
+                    <option value="2">Loại 2 chân đế (2 thanh ray / dãy)</option>
+                    <option value="3">Loại 3 chân đế (3 thanh ray / dãy)</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execAccCalc)">TÍNH PHỤ KIỆN</button>
+            <div id="toolModalResult" class="result-box"></div>
+        `);
+    } else if (toolId === 'vdrop') {
+        openGlobalModal(`
+            <h3 style="margin-top:0; color:var(--primary);">⚡ Tính Sụt Áp Trên Đường Dây</h3>
+            <div class="grid-2" style="gap:10px;">
+                <div class="form-group">
+                    <label>Hệ thống điện:</label>
+                    <select id="vdSystem">
+                        <option value="380">3 Pha 380V (AC)</option>
+                        <option value="220">1 Pha 220V (AC)</option>
+                        <option value="550">Điện mặt trời DC (~550V)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Chất liệu lõi dây:</label>
+                    <select id="vdMaterial">
+                        <option value="0.0175">Dây Đồng (Cu)</option>
+                        <option value="0.0283">Dây Nhôm (Al)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid-2" style="gap:10px;">
+                <div class="form-group"><label>Dòng điện tải (A):</label><input type="number" id="vdCurrent" value="25"></div>
+                <div class="form-group"><label>Chiều dài dây 1 chiều (m):</label><input type="number" id="vdLength" value="80"></div>
+            </div>
+            <div class="form-group">
+                <label>Tiết diện dây dẫn (mm²):</label>
+                <select id="vdSize">
+                    <option value="2.5">2.5 mm²</option><option value="4">4.0 mm²</option>
+                    <option value="6" selected>6.0 mm²</option><option value="10">10 mm²</option>
+                    <option value="16">16 mm²</option><option value="25">25 mm²</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execVdropCalc)">TÍNH ĐỘ SỤT ÁP</button>
+            <div id="toolModalResult" class="result-box"></div>
+        `);
+    } else if (toolId === 'divider') {
+        openGlobalModal(`
+            <h3 style="margin-top:0; color:var(--primary);">🔌 Tính Cầu Trở Phân Áp</h3>
+            <div class="form-group"><label>Điện áp nguồn đầu vào Vin (V):</label><input type="number" id="divVin" value="24" step="0.1"></div>
+            <div class="grid-2" style="gap:10px;">
+                <div class="form-group"><label>Điện trở R1 (kΩ):</label><input type="number" id="divR1" value="10" step="0.1"></div>
+                <div class="form-group"><label>Điện trở R2 (kΩ):</label><input type="number" id="divR2" value="4.7" step="0.1"></div>
+            </div>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execDividerCalc)">TÍNH ĐIỆN ÁP RA VOUT</button>
+            <div id="toolModalResult" class="result-box"></div>
+        `);
+    }
+}
 
-/////
+function autoSelectBestInverter() {
+    const pumpKW = parseFloat(document.getElementById('spPumpKW')?.value) || 0;
+    const phase = document.getElementById('spPumpPhase')?.value || "3 pha 380V";
+    const pumpType = document.getElementById('spPumpType')?.value || "gieng";
+    const acLen = parseFloat(document.getElementById('spAcLen')?.value) || 0;
+    const invSelect = document.getElementById('spInvIdx');
+    if (!invSelect || pumpKW <= 0) return;
+
+    const validInvs = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
+                                        .filter(inv => inv.phase === phase);
+    if (validInvs.length === 0) return;
+
+    let basePos = validInvs.findIndex(inv => inv.kw > pumpKW);
+    if (basePos === -1) basePos = validInvs.length - 1;
+
+    let targetPos = basePos;
+    if (phase === "1 pha 220V" || (pumpType === "gieng" && acLen >= 60)) {
+        targetPos = Math.min(basePos + 1, validInvs.length - 1);
+    }
+
+    invSelect.value = validInvs[targetPos].origIdx;
+}
+function execSolarSystemCalc() {
+    const pumpKW = parseFloat(document.getElementById('spPumpKW').value) || 0;
+    const phase = document.getElementById('spPumpPhase').value;
+    const pumpType = document.getElementById('spPumpType').value;
+    const panel = SOLAR_PANELS_DB[parseInt(document.getElementById('spPanelIdx').value)];
+    const inv = SOLAR_INVERTERS_DB[parseInt(document.getElementById('spInvIdx').value)];
+    const dcLen = parseFloat(document.getElementById('spDcLen').value) || 0;
+    const acLen = parseFloat(document.getElementById('spAcLen').value) || 0;
+
+    if (pumpKW <= 0) return alert("Vui lòng nhập công suất máy bơm!");
+
+    const pumpFactor = (pumpType === 'gieng') ? 1.45 : 1.35;
+    const requiredWattsByPump = pumpKW * pumpFactor * 1000;
+    const requiredWattsByInv = inv.kw * 1.15 * 1000;
+    const targetWatts = Math.max(requiredWattsByPump, requiredWattsByInv);
+
+    let minPanelsByPower = Math.ceil(targetWatts / panel.power);
+
+    const maxPanelsPerString = Math.floor(inv.vdcMax / (panel.voc * 1.1));
+    const minPanelsPerString = Math.ceil(inv.mpptMin / (panel.vmp * 0.85));
+
+    if (maxPanelsPerString < minPanelsPerString) {
+        alert("⚠️ Mã tấm pin và biến tần này không tương thích dải điện áp MPPT. Vui lòng chọn biến tần có Vdc_max cao hơn (900V-950V)!");
+        return;
+    }
+
+    let strings = Math.max(1, Math.ceil(minPanelsByPower / maxPanelsPerString));
+    let panelsPerString = Math.ceil(minPanelsByPower / strings);
+
+    if (panelsPerString < minPanelsPerString) {
+        panelsPerString = minPanelsPerString;
+    }
+    if (panelsPerString > maxPanelsPerString) {
+        strings++;
+        panelsPerString = Math.ceil(minPanelsByPower / strings);
+    }
+
+    const totalPanels = strings * panelsPerString;
+    const totalKWp = (totalPanels * panel.power) / 1000;
+    const vocTotal = panelsPerString * panel.voc;
+    const vocCold = vocTotal * 1.1;
+    const vmpTotal = panelsPerString * panel.vmp;
+    const vmpHot = vmpTotal * 0.85;
+    const impTotal = strings * panel.imp;
+
+    const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
+    const wireCores = (phase === "1 pha 220V") ? "2x" : "3x";
+    const acCable = inv.iOut <= 18 ? `Cáp đồng ${wireCores}4mm²` : (inv.iOut <= 28 ? `Cáp đồng ${wireCores}6mm²` : (inv.iOut <= 45 ? `Cáp đồng ${wireCores}10mm²` : `Cáp đồng ${wireCores}16mm²`));
+    const reactorNote = (pumpType === 'gieng' && acLen >= 50) 
+        ? `<b style="color:#d97706;">Khuyến nghị lắp thêm Cuộn kháng đầu ra (Output Reactor)</b> do cáp thả giếng dài ${acLen}m (chống xung áp hại cách điện motor).` 
+        : "Không bắt buộc (Chiều dài cáp trong ngưỡng an toàn).";
+
+    let warnings = [];
+    if (inv.phase !== phase) warnings.push(`Sai pha điện áp! Bơm dùng ${phase} nhưng biến tần xuất ra ${inv.phase}.`);
+    if (inv.kw <= pumpKW) warnings.push(`Biến tần (${inv.kw}kW) chưa vượt cấp so với bơm (${pumpKW}kW), dễ báo lỗi quá dòng khi khởi động!`);
+    if (vocCold > inv.vdcMax) warnings.push(`Quá áp buổi sáng lạnh (${vocCold.toFixed(0)}V > ${inv.vdcMax}V)!`);
+    if (vmpHot < inv.mpptMin) warnings.push(`Thiếu áp buổi trưa nắng nóng (${vmpHot.toFixed(0)}V < ${inv.mpptMin}V)!`);
+    if (impTotal > inv.idcMax) warnings.push(`Nghẽn dòng DC (${impTotal.toFixed(1)}A > ${inv.idcMax}A)! Hãy đổi sang mã pin dòng thấp hơn (loại 13A-15A) hoặc nâng cấp biến tần.`);
+    if (phase === "1 pha 220V") warnings.push(`Lưu ý bơm 1 pha: Cần kiểm tra đấu đúng sơ đồ bỏ tụ đề (3 dây) nếu biến tần yêu cầu.`);
+
+    const statusHtml = warnings.length === 0 
+        ? `<div style="padding:8px; background:#dcfce7; color:#166534; border-radius:5px; font-weight:bold; margin-top:8px;">✅ PHỐI GHÉP ĐẠT CHUẨN KỸ THUẬT 100% (An toàn cả sáng lạnh lẫn trưa nắng gắt)</div>` 
+        : `<div style="padding:8px; background:#fee2e2; color:#991b1b; border-radius:5px; font-weight:bold; margin-top:8px;">⚠️ CẢNH BÁO KỸ THUẬT:<br>• ${warnings.join('<br>• ')}</div>`;
+
+    lastSolarQuoteData = {
+        pumpKW, factor: pumpFactor, panel, inv, totalPanels, totalKWp, strings, panelsPerString,
+        dcLen, acLen, dcCable, acCable
+    };
+
+    const resBox = document.getElementById('toolModalResult');
+    resBox.style.display = 'block';
+    resBox.innerHTML = `
+        <h4 style="margin:0 0 8px; color:var(--secondary);">KẾT QUẢ TÍNH TOÁN & PHỐI GHÉP CHUẨN</h4>
+        <p>- ⚙️ <b>Biến tần sử dụng:</b> <b>${inv.name}</b></p>
+        <p>- 🧩 <b>Tổng số tấm pin chốt:</b> <span class="highlight">${totalPanels} tấm</span> ${panel.name} (Tổng: <b>${totalKWp.toFixed(2)} kWp</b>)</p>
+        <p>- 🔌 <b>Sơ đồ đấu nối giàn pin:</b> Chia thành <b>${strings} chuỗi (String)</b> song song, mỗi chuỗi nối tiếp <span class="highlight">${panelsPerString} tấm</span></p>
+        <p>- ⚡ <b>Kiểm soát điện áp chuỗi:</b> Áp danh định Voc = <b>${vocTotal.toFixed(1)}V</b> (Sáng lạnh: <b>${vocCold.toFixed(0)}V</b> / Max ${inv.vdcMax}V) | Áp tải Vmp = <b>${vmpTotal.toFixed(1)}V</b> (Trưa nóng: <b>${vmpHot.toFixed(0)}V</b> / Min ${inv.mpptMin}V)</p>
+        <p>- 🔋 <b>Kiểm soát dòng điện DC:</b> Tổng dòng làm việc Imp = <b>${impTotal.toFixed(1)}A</b> (Ngưỡng chịu tải biến tần: <b>${inv.idcMax}A</b>)</p>
+        <p>- 🧵 <b>Dây dẫn đề xuất:</b> ${dcCable} (${dcLen * 2}m) | ${acCable} (${acLen}m)</p>
+        <p>- 🛡️ <b>Cuộn kháng đầu ra:</b> ${reactorNote}</p>
+        ${statusHtml}
+        <button class="btn btn-success" style="width:100%; margin-top:12px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ (CHO PHÉP SỬA GIÁ)</button>
+    `;
+}
 const QUOTE_ITEM_NAMES = [
     "Tấm pin năng lượng mặt trời",
     "Biến tần bơm năng lượng mặt trời",
@@ -712,7 +874,6 @@ function shareQuoteToZalo() {
         prompt("Hãy sao chép nội dung báo giá dưới đây để gửi Zalo:", text);
     }
 }
-
 function execPumpCalc() {
     const source = document.getElementById('calcSource').value;
     const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
