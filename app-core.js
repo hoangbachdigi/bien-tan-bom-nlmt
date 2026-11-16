@@ -835,15 +835,35 @@ function copyQuoteForZalo() {
 function exportQuoteToPDF() {
     const d = lastSolarQuoteData;
     if (!d) return;
-    const element = document.createElement('div');
-    element.innerHTML = buildFinalQuotePrintHtml();
+    const printHtml = buildFinalQuotePrintHtml();
+    const fileName = `Bao_Gia_Bom_NLMT_${d.pumpKW}kW.pdf`;
+
+    const runPdfGenerate = () => {
+        const element = document.createElement('div');
+        element.innerHTML = printHtml;
+        html2pdf().set({
+            margin: 10,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(element).save();
+    };
+
     if (typeof html2pdf !== 'undefined') {
-        html2pdf().set({ margin: 10, filename: `Bao_Gia_Bom_NLMT_${d.pumpKW}kW.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save();
+        runPdfGenerate();
     } else {
-        alert("Đang tải bộ xuất PDF, vui lòng thử lại sau 2 giây hoặc dùng nút In báo giá!");
+        const script = document.createElement('script');
+        script.src = "https://unpkg.com";
+        script.onload = () => runPdfGenerate();
+        script.onerror = () => {
+            const pdfWin = window.open('', '_blank', 'width=850,height=650');
+            pdfWin.document.write(`<html><head><title>${fileName}</title></head><body>${printHtml}<script>window.onload=function(){window.print();}<\/script></body></html>`);
+            pdfWin.document.close();
+        };
+        document.head.appendChild(script);
     }
 }
-
 function printFinalQuote() {
     const printWin = window.open('', '_blank', 'width=850,height=650');
     printWin.document.write(`<html><head><title>In Báo Giá</title></head><body>${buildFinalQuotePrintHtml()}</body></html>`);
