@@ -494,7 +494,7 @@ function openCalcToolModal(toolId) {
                 <div class="form-group">
                     <label>Công suất bơm (Nhập số hoặc phép tính VD: 7.5+2.2):</label>
                     <div class="input-unit-group">
-                        <input type="text" id="spPumpExpr" value="7.5" placeholder="VD: 7.5 + 2.2" oninput="filterAndSelectInverters()">
+                        <input type="text" id="spPumpExpr" value="7.5" placeholder="VD: 7.5 + 2.2" oninput="this.value=this.value.replace(/[^0-9+\-*/().,\s]/g,''); filterAndSelectInverters();" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
                         <select id="spPumpUnit" onchange="filterAndSelectInverters()">
                             <option value="kW" selected>kW</option>
                             <option value="HP">HP</option>
@@ -570,6 +570,20 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" class="result-box"></div>
         `);
     }
+}
+
+function evaluatePumpInput() {
+    const inputEl = document.getElementById('spPumpExpr');
+    if (!inputEl) return;
+    const rawExpr = inputEl.value.replace(/,/g, '.').trim();
+    const cleanExpr = rawExpr.replace(/[^0-9+\-*/().\s]/g, '');
+    try {
+        const val = Function('"use strict";return (' + cleanExpr + ')')();
+        if (typeof val === 'number' && !isNaN(val) && val > 0) {
+            inputEl.value = Number(val.toFixed(2));
+            filterAndSelectInverters();
+        }
+    } catch (e) {}
 }
 
 function parseSafePumpPowerKW() {
