@@ -747,10 +747,9 @@ function openEditableQuoteModal() {
             <div style="margin:6px 0;">Giảm giá (đ): <input type="number" class="quote-input" id="qDiscount" value="0" oninput="recalcQuoteTotal()"></div>
             <div style="font-size:16px; color:var(--danger); margin-top:6px;">TỔNG THANH TOÁN: <b id="qFinalTotal">0</b> VNĐ</div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:14px;">
-            <button class="btn" style="background:#0068ff; padding:9px 6px; font-size:13px;" onclick="copyQuoteForZalo()">💬 Sao chép gửi Zalo</button>
-            <button class="btn btn-danger" style="padding:9px 6px; font-size:13px;" onclick="exportQuoteToPDF()">📄 Xuất file PDF</button>
-            <button class="btn btn-primary" style="padding:9px 6px; font-size:13px;" onclick="printFinalQuote()">🖨️ In báo giá</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:14px;">
+            <button class="btn" style="background:#0068ff; padding:10px; font-size:14px;" onclick="copyQuoteForZalo()">💬 Sao chép gửi Zalo</button>
+            <button class="btn btn-primary" style="padding:10px; font-size:14px;" onclick="printFinalQuote()">🖨️ In / Lưu PDF</button>
         </div>
     `);
     recalcQuoteTotal();
@@ -832,38 +831,17 @@ function copyQuoteForZalo() {
     }
 }
 
-function exportQuoteToPDF() {
+function printFinalQuote() {
     const d = lastSolarQuoteData;
-    if (!d) return;
-    const printHtml = buildFinalQuotePrintHtml();
-    const fileName = `Bao_Gia_Bom_NLMT_${d.pumpKW}kW.pdf`;
-
-    const runPdfGenerate = () => {
-        const element = document.createElement('div');
-        element.innerHTML = printHtml;
-        html2pdf().set({
-            margin: 10,
-            filename: fileName,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(element).save();
-    };
-
-    if (typeof html2pdf !== 'undefined') {
-        runPdfGenerate();
-    } else {
-        const script = document.createElement('script');
-        script.src = "https://unpkg.com";
-        script.onload = () => runPdfGenerate();
-        script.onerror = () => {
-            const pdfWin = window.open('', '_blank', 'width=850,height=650');
-            pdfWin.document.write(`<html><head><title>${fileName}</title></head><body>${printHtml}<script>window.onload=function(){window.print();}<\/script></body></html>`);
-            pdfWin.document.close();
-        };
-        document.head.appendChild(script);
-    }
+    const cleanPump = d ? d.pumpSummary.replace(/\(.*?\)/g, '').trim() : '';
+    const docTitle = d ? `Báo Giá Hệ Bơm ${cleanPump} - Giàn Pin ${d.totalKWp.toFixed(2)} kWp` : 'Báo Giá Hệ Bơm NLMT';
+    const printWin = window.open('', '_blank', 'width=850,height=650');
+    printWin.document.write(`<html><head><title>${docTitle}</title></head><body>${buildFinalQuotePrintHtml()}</body></html>`);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); printWin.close(); }, 300);
 }
+
 function printFinalQuote() {
     const printWin = window.open('', '_blank', 'width=850,height=650');
     printWin.document.write(`<html><head><title>In Báo Giá</title></head><body>${buildFinalQuotePrintHtml()}</body></html>`);
