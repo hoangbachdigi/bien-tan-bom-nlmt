@@ -841,14 +841,6 @@ function printFinalQuote() {
     printWin.focus();
     setTimeout(() => { printWin.print(); printWin.close(); }, 300);
 }
-
-function printFinalQuote() {
-    const printWin = window.open('', '_blank', 'width=850,height=650');
-    printWin.document.write(`<html><head><title>In Báo Giá</title></head><body>${buildFinalQuotePrintHtml()}</body></html>`);
-    printWin.document.close();
-    printWin.focus();
-    setTimeout(() => { printWin.print(); printWin.close(); }, 300);
-}
 function execPumpCalc() {
     const source = document.getElementById('calcSource').value;
     const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
