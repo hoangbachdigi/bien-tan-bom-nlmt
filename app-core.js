@@ -19,25 +19,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     checkSharedProductUrl();
     syncDataFromGoogleSheet();
 });
-
 function renderVietnamDate() {
     const el = document.getElementById('vnDateDisplay');
     if (!el) return;
     try {
         const now = new Date();
         const vnStr = now.toLocaleDateString('vi-VN', {
-            timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
+            timeZone: 'Asia/Ho_Chi_Minh',
+            weekday: 'long',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
         });
         el.innerText = "📅 " + vnStr.charAt(0).toUpperCase() + vnStr.slice(1);
-    } catch (e) { el.innerText = "📅 Hôm nay"; }
+    } catch (e) {
+        el.innerText = "📅 Hôm nay";
+    }
 }
 
 function checkSharedProductUrl() {
     const params = new URLSearchParams(window.location.search);
     const spIdx = params.get('sp');
-    if (spIdx !== null && !isNaN(parseInt(spIdx))) openProductDetail(parseInt(spIdx));
+    if (spIdx !== null && !isNaN(parseInt(spIdx))) {
+        openProductDetail(parseInt(spIdx));
+    }
 }
-
 function toggleMobileDrawer() {
     document.getElementById('mobileDrawer').classList.toggle('open');
 }
@@ -49,6 +55,7 @@ function selectMobileDrawer(pageFile, labelText, el) {
     document.getElementById('mobileDrawer').classList.remove('open');
     loadSubPage(pageFile, null);
 }
+
 async function loadSubPage(pageFile, navElement) {
     if (navElement) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -67,7 +74,6 @@ async function loadSubPage(pageFile, navElement) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
 }
-
 function applyBannerFromConfig() {
     const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
     if (bannerCfg && bannerCfg.media) {
@@ -130,7 +136,6 @@ function checkLimitAndRun(callbackFn) {
     updateTopUserBar();
     callbackFn();
 }
-
 function openGlobalModal(htmlContent) {
     document.getElementById('globalModalBody').innerHTML = htmlContent;
     document.getElementById('globalModal').style.display = 'flex';
@@ -250,7 +255,6 @@ function renderStatsTableOnly() {
         </tr>
     `).join('');
 }
-
 async function renderAdminDashboard() {
     const currentBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
     openGlobalModal(`
@@ -303,7 +307,9 @@ async function adminAction(act, username) {
 }
 function getCombinedProducts() {
     const realItems = appData.configs.filter(c => c.code === 'SAN_PHAM').map(c => ({
-        title: c.title, img: c.media || "https://unsplash.com", specs: c.content
+        title: c.title,
+        img: c.media || "https://unsplash.com",
+        specs: c.content
     }));
     return realItems.length > 0 ? [...realItems, ...MOCK_PRODUCTS] : MOCK_PRODUCTS;
 }
@@ -336,7 +342,6 @@ function renderProductsPage(page) {
         <button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>
     `).join('');
 }
-
 function openProductDetail(idx) {
     const item = getCombinedProducts()[idx];
     if (!item) return;
@@ -356,22 +361,21 @@ function copyProductShareLink(idx, title) {
     const shareUrl = `${baseUrl}?sp=${idx}`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(shareUrl).then(() => {
-            alert(`✅ Đã sao chép đường dẫn sản phẩm "${title}" vào bộ nhớ tạm!`);
+            alert(`✅ Đã sao chép đường dẫn sản phẩm "${title}" vào bộ nhớ tạm! Bạn có thể dán gửi ngay cho khách hàng.`);
         }).catch(() => prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl));
     } else {
         prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl);
     }
 }
-
 function getCombinedErrors() {
     const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
         const bParts = c.title.split('|');
         const cParts = c.content.split('|');
         return {
-            brand: (bParts[0] || "PowerS").trim(),
-            code: (bParts[1] || "").trim(),
-            desc: (cParts[0] || "").trim(),
-            fix: (cParts[1] || "").trim()
+            brand: (bParts || "PowerS").trim(),
+            code: (bParts || "").trim(),
+            desc: (cParts || "").trim(),
+            fix: (cParts || "").trim()
         };
     });
     return [...realErrors, ...MOCK_ERRORS];
@@ -405,7 +409,6 @@ function renderErrorsPage(page) {
         <button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderErrorsPage(${i + 1})">${i + 1}</button>
     `).join('');
 }
-
 function getCombinedKnowledge() {
     const realBlogs = appData.configs.filter(c => c.code === 'KIEN_THUC').map(c => ({
         title: c.title, date: "Mới cập nhật", content: c.content, video: c.media
@@ -491,7 +494,7 @@ function openCalcToolModal(toolId) {
                 <div class="form-group">
                     <label>Công suất bơm (Nhập số hoặc phép tính VD: 7.5+2.2):</label>
                     <div class="input-unit-group">
-                        <input type="text" id="spPumpExpr" value="7.5" placeholder="VD: 7.5 + 2.2" oninput="this.value=this.value.replace(/[^0-9+\-*/().,\s]/g,''); filterAndSelectInverters();" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
+                        <input type="text" id="spPumpExpr" value="7.5" placeholder="VD: 7.5 + 2.2" oninput="this.value=this.value.replace(/[^0-9+\\-*/().,\\s]/g,''); filterAndSelectInverters();" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
                         <select id="spPumpUnit" onchange="filterAndSelectInverters()">
                             <option value="kW" selected>kW</option>
                             <option value="HP">HP</option>
@@ -510,8 +513,8 @@ function openCalcToolModal(toolId) {
                 <div class="form-group">
                     <label>Loại máy bơm thực tế:</label>
                     <select id="spPumpType" onchange="filterAndSelectInverters()">
-                        <option value="gieng" selected>Bơm hỏa tiễn thả giếng sâu (Tối ưu tải)</option>
-                        <option value="can">Bơm ly tâm đặt cạn / trục đứng (Tải tiêu chuẩn)</option>
+                        <option value="gieng" selected>Bơm hỏa tiễn thả giếng sâu (Vượt tối đa 1 cấp)</option>
+                        <option value="can">Bơm ly tâm đặt cạn / trục đứng (Vượt tối đa 1 cấp)</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -568,6 +571,7 @@ function openCalcToolModal(toolId) {
         `);
     }
 }
+
 function evaluatePumpInput() {
     const inputEl = document.getElementById('spPumpExpr');
     if (!inputEl) return;
@@ -591,9 +595,10 @@ function parseSafePumpPowerKW() {
         const val = Function('"use strict";return (' + cleanExpr + ')')();
         if (typeof val !== 'number' || isNaN(val) || val <= 0) return 0;
         return unit === "HP" ? (val * 0.75) : val;
-    } catch (e) { return 0; }
+    } catch (e) {
+        return 0;
+    }
 }
-
 function filterAndSelectInverters() {
     const pumpKW = parseSafePumpPowerKW();
     const phase = document.getElementById('spPumpPhase')?.value || "3 pha 380V";
@@ -603,32 +608,43 @@ function filterAndSelectInverters() {
     const lbl = document.getElementById('invFilterLabel');
     if (!invSelect) return;
 
-    const validInvs = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx })).filter(inv => inv.phase === phase);
+    const validInvs = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
+                                        .filter(inv => inv.phase === phase);
     if (validInvs.length === 0) return;
 
-    let loadFactor = 1.0;
-    if (phase === "1 pha 220V") loadFactor = 1.35;
-    else if (pumpType === "gieng") loadFactor = acLen > 60 ? 1.35 : 1.2;
-    else loadFactor = 1.05;
-
-    const reqKW = (pumpKW || 0.1) * loadFactor;
     const distinctKWs = [...new Set(validInvs.map(i => i.kw))].sort((a, b) => a - b);
+    const activePumpKW = pumpKW > 0 ? pumpKW : 0.1;
 
-    let recommendedKW = distinctKWs.find(kw => kw >= reqKW - 0.01);
-    if (!recommendedKW) recommendedKW = distinctKWs[distinctKWs.length - 1];
+    let loadFactor = 1.05;
+    if (phase === "1 pha 220V") {
+        loadFactor = 1.35;
+    } else if (pumpType === "gieng") {
+        loadFactor = (acLen > 60) ? 1.35 : 1.2;
+    }
 
-    let baseIdx = distinctKWs.findIndex(kw => kw >= (pumpKW || 0.1) - 0.01);
+    const reqKW = activePumpKW * loadFactor;
+
+    let baseIdx = distinctKWs.findIndex(kw => kw >= activePumpKW);
     if (baseIdx === -1) baseIdx = distinctKWs.length - 1;
-    const maxAllowedKW = distinctKWs[Math.min(baseIdx + 1, distinctKWs.length - 1)];
-    if (recommendedKW > maxAllowedKW) recommendedKW = maxAllowedKW;
+    const maxAllowedIdx = Math.min(baseIdx + 1, distinctKWs.length - 1);
 
+    let targetIdx = distinctKWs.findIndex(kw => kw >= reqKW);
+    if (targetIdx === -1 || targetIdx > maxAllowedIdx) {
+        targetIdx = maxAllowedIdx;
+    }
+
+    const recommendedKW = distinctKWs[targetIdx];
     const matchedInvs = validInvs.filter(inv => inv.kw === recommendedKW);
 
-    if (lbl) lbl.innerHTML = `Chọn mã biến tần cấp <b style="color:var(--danger);">${recommendedKW} kW</b> (Đã tối ưu đúng cấp tải):`;
-    invSelect.innerHTML = matchedInvs.map(inv => `<option value="${inv.origIdx}">${inv.name} (VdcMax: ${inv.vdcMax}V, IdcMax: ${inv.idcMax}A)</option>`).join('');
+    if (lbl) {
+        lbl.innerHTML = `Chọn mã biến tần cấp <b style="color:var(--danger);">${recommendedKW} kW</b> (Đã ẩn các cấp khác):`;
+    }
+    invSelect.innerHTML = matchedInvs.map(inv => 
+        `<option value="${inv.origIdx}">${inv.name} (VdcMax: ${inv.vdcMax}V, IdcMax: ${inv.idcMax}A)</option>`
+    ).join('');
 }
-
 function execSolarSystemCalc() {
+    evaluatePumpInput();
     const pumpKW = parseSafePumpPowerKW();
     const unit = document.getElementById('spPumpUnit').value;
     const rawExpr = document.getElementById('spPumpExpr').value.trim();
@@ -641,9 +657,12 @@ function execSolarSystemCalc() {
 
     if (pumpKW <= 0 || !inv) return alert("Vui lòng nhập công suất máy bơm hợp lệ!");
 
-    let pumpFactor = (pumpType === 'gieng') ? (acLen >= 80 ? 1.65 : 1.55) : 1.45;
+    let pumpFactor = 1.45;
+    if (pumpType === 'gieng') {
+        pumpFactor = (acLen >= 80) ? 1.65 : 1.55;
+    }
     const targetWatts = pumpKW * pumpFactor * 1000;
-    let minPanelsByPower = Math.ceil(targetWatts / panel.power);
+    const minPanelsByPower = Math.ceil(targetWatts / panel.power);
 
     const vocColdUnit = panel.voc * 1.06;
     const vmpHotUnit = panel.vmp * 0.86;
@@ -656,47 +675,50 @@ function execSolarSystemCalc() {
 
     let strings = 1;
     let panelsPerString = minPanelsByPower;
-    if (minPanelsByPower > maxPanelsPerString) {
+    if (minPanelsByPower <= maxPanelsPerString) {
+        strings = 1;
+        panelsPerString = Math.max(minPanelsByPower, minPanelsPerString);
+    } else {
         strings = Math.ceil(minPanelsByPower / maxPanelsPerString);
-        panelsPerString = Math.ceil(minPanelsByPower / strings);
+        panelsPerString = Math.max(Math.ceil(minPanelsByPower / strings), minPanelsPerString);
     }
-    if (panelsPerString < minPanelsPerString) panelsPerString = minPanelsPerString;
 
     const totalPanels = strings * panelsPerString;
     const totalKWp = (totalPanels * panel.power) / 1000;
-    const vocCold = panelsPerString * vocColdUnit;
-    const vmpHot = panelsPerString * vmpHotUnit;
+    const vocColdTotal = panelsPerString * vocColdUnit;
+    const vmpHotTotal = panelsPerString * vmpHotUnit;
     const impTotal = strings * panel.imp;
 
     const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
-    const wireCores = (phase === "1 pha 220V") ? "3x" : "4x";
-    const ratedPumpCurrent = (phase === "1 pha 220V") ? (pumpKW * 1000) / (220 * 0.85) : (pumpKW * 1000) / (Math.sqrt(3) * 380 * 0.85);
-    const kDrop = (phase === "1 pha 220V") ? 2 : Math.sqrt(3);
-    const maxDropVolt = (phase === "1 pha 220V") ? 6.6 : 11.4;
-    const minArea = (kDrop * 0.0185 * acLen * ratedPumpCurrent) / maxDropVolt;
+    const is1Phase = (phase === "1 pha 220V");
+    const wireCores = is1Phase ? "3x" : "4x";
+    const maxVdrop = is1Phase ? 6.6 : 11.4;
+    const iMotor = is1Phase ? (pumpKW * 1000) / (220 * 0.85) : (pumpKW * 1000) / (Math.sqrt(3) * 380 * 0.85);
+    const dropFactor = is1Phase ? 2 : Math.sqrt(3);
 
-    let selectedArea = 4;
-    if (minArea > 16 || ratedPumpCurrent > 55) selectedArea = 25;
-    else if (minArea > 10 || ratedPumpCurrent > 40) selectedArea = 16;
-    else if (minArea > 6 || ratedPumpCurrent > 28) selectedArea = 10;
-    else if (minArea > 4 || ratedPumpCurrent > 18) selectedArea = 6;
-
-    const acCable = `Cáp đồng ${wireCores}${selectedArea}mm²`;
+    const stdSizes = [2.5, 4, 6, 10, 16, 25, 35, 50, 70];
+    let chosenAcSize = stdSizes.find(s => ((dropFactor * 0.0175 * acLen * iMotor) / s) <= maxVdrop) || 70;
+    if (iMotor > 20 && chosenAcSize < 4) chosenAcSize = 4;
+    if (iMotor > 32 && chosenAcSize < 6) chosenAcSize = 6;
+    if (iMotor > 45 && chosenAcSize < 10) chosenAcSize = 10;
+    const acCable = `Cáp đồng ${wireCores}${chosenAcSize}mm² (Có dây tiếp địa PE)`;
 
     let reactorNote = "Không bắt buộc.";
-    if (pumpType === 'gieng' && acLen >= 100) {
-        reactorNote = `<b style="color:#dc2626;">Bắt buộc lắp thêm Cuộn kháng đầu ra (Output Reactor)</b> do cáp thả giếng dài ${acLen}m.`;
-    } else if (pumpType === 'gieng' && acLen >= 50) {
-        reactorNote = `<b style="color:#d97706;">Khuyến nghị lắp thêm Cuộn kháng đầu ra (Output Reactor)</b> do cáp thả giếng dài ${acLen}m.`;
+    if (pumpType === 'gieng') {
+        if (acLen >= 100) {
+            reactorNote = `<span style="color:#dc2626; font-weight:bold;">⚠️ Bắt buộc lắp thêm Cuộn kháng đầu ra (Output Reactor) để chống sóng phản xạ cháy motor (cáp dài ${acLen}m)</span>`;
+        } else if (acLen >= 50) {
+            reactorNote = `<span style="color:#d97706; font-weight:bold;">Khuyến nghị lắp thêm Cuộn kháng đầu ra (cáp dài ${acLen}m)</span>`;
+        }
     }
 
     let warnings = [];
     if (inv.phase !== phase) warnings.push(`Sai pha điện áp! Bơm dùng ${phase} nhưng biến tần xuất ra ${inv.phase}.`);
-    if (inv.kw < pumpKW) warnings.push(`Biến tần (${inv.kw}kW) nhỏ hơn công suất bơm (${pumpKW.toFixed(2)}kW)!`);
-    if (vocCold > inv.vdcMax) warnings.push(`Quá áp buổi sáng lạnh (${vocCold.toFixed(0)}V > ${inv.vdcMax}V)!`);
-    if (vmpHot < inv.mpptMin) warnings.push(`Thiếu áp buổi trưa nắng nóng (${vmpHot.toFixed(0)}V < ${inv.mpptMin}V)!`);
-    if (impTotal > inv.idcMax) warnings.push(`Nghẽn dòng DC (${impTotal.toFixed(1)}A > ${inv.idcMax}A)! Hãy đổi sang mã pin dòng thấp hơn.`);
-    if (phase === "1 pha 220V") warnings.push(`Lưu ý bơm 1 pha: Kiểm tra đấu đúng sơ đồ bỏ tụ đề (3 dây) nếu biến tần yêu cầu.`);
+    if (inv.kw < pumpKW) warnings.push(`Biến tần (${inv.kw}kW) nhỏ hơn công suất thực của bơm (${pumpKW.toFixed(2)}kW)!`);
+    if (vocColdTotal > inv.vdcMax) warnings.push(`Quá áp buổi sáng lạnh (${vocColdTotal.toFixed(0)}V > ${inv.vdcMax}V)!`);
+    if (vmpHotTotal < inv.mpptMin) warnings.push(`Thiếu áp buổi trưa nắng nóng (${vmpHotTotal.toFixed(0)}V < ${inv.mpptMin}V)!`);
+    if (impTotal > inv.idcMax) warnings.push(`Nghẽn dòng DC (${impTotal.toFixed(1)}A > ${inv.idcMax}A)! Hãy đổi sang mã pin dòng thấp hơn hoặc chọn biến tần có Idc_max lớn hơn.`);
+    if (is1Phase) warnings.push(`Lưu ý bơm 1 pha: Cần kiểm tra đấu đúng sơ đồ bỏ tụ đề (3 dây) nếu biến tần yêu cầu.`);
 
     const statusHtml = warnings.length === 0 
         ? `<div style="padding:8px; background:#dcfce7; color:#166534; border-radius:5px; font-weight:bold; margin-top:8px;">✅ PHỐI GHÉP ĐẠT CHUẨN KỸ THUẬT 100%</div>` 
@@ -709,11 +731,12 @@ function execSolarSystemCalc() {
     resBox.style.display = 'block';
     resBox.innerHTML = `
         <h4 style="margin:0 0 8px; color:var(--secondary);">KẾT QUẢ TÍNH TOÁN & PHỐI GHÉP CHUẨN</h4>
-        <p>- 🔋 <b>Tổng tải bơm:</b> <b>${pumpSummary}</b> | ⚙️ <b>Biến tần:</b> <b>${inv.name}</b></p>
+        <p>- 🔋 <b>Tổng tải bơm thực:</b> <b>${pumpSummary}</b> (Hệ số pin: <b>${pumpFactor}</b>) | ⚙️ <b>Biến tần:</b> <b>${inv.name}</b></p>
         <p>- 🧩 <b>Tổng số tấm pin:</b> <span class="highlight">${totalPanels} tấm</span> ${panel.name} (<b>${totalKWp.toFixed(2)} kWp</b>)</p>
         <p>- 🔌 <b>Sơ đồ đấu nối:</b> Chia <b>${strings} chuỗi (String)</b> × <span class="highlight">${panelsPerString} tấm/chuỗi</span></p>
-        <p>- ⚡ <b>Điện áp & Dòng DC:</b> Voc lạnh = <b>${vocCold.toFixed(0)}V</b> (Max ${inv.vdcMax}V) | Vmp nóng = <b>${vmpHot.toFixed(0)}V</b> (Min ${inv.mpptMin}V) | Imp = <b>${impTotal.toFixed(1)}A</b> (Max ${inv.idcMax}A)</p>
-        <p>- 🧵 <b>Dây dẫn:</b> ${dcCable} (${dcLen * 2}m) | ${acCable} (${acLen}m) | 🛡️ <b>Cuộn kháng:</b> ${reactorNote}</p>
+        <p>- ⚡ <b>Điện áp & Dòng DC:</b> Voc lạnh (+6%) = <b>${vocColdTotal.toFixed(0)}V</b> (Max ${inv.vdcMax}V) | Vmp nóng (-14%) = <b>${vmpHotTotal.toFixed(0)}V</b> (Min ${inv.mpptMin}V) | Imp = <b>${impTotal.toFixed(1)}A</b> (Max ${inv.idcMax}A)</p>
+        <p>- 🧵 <b>Dây dẫn chuẩn sụt áp ≤ 3%:</b> ${dcCable} (${dcLen * 2}m) | ${acCable} (${acLen}m)</p>
+        <p>- 🛡️ <b>Cuộn kháng đầu ra:</b> ${reactorNote}</p>
         ${statusHtml}
         <button class="btn btn-success" style="width:100%; margin-top:12px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ (CHO PHÉP SỬA GIÁ)</button>
     `;
@@ -772,7 +795,6 @@ function openEditableQuoteModal() {
     `);
     recalcQuoteTotal();
 }
-
 function recalcQuoteTotal() {
     let rawTotal = 0;
     for (let i = 0; i < 8; i++) {
@@ -787,6 +809,7 @@ function recalcQuoteTotal() {
     document.getElementById('qTotalRaw').innerText = rawTotal.toLocaleString('vi-VN');
     document.getElementById('qFinalTotal').innerText = Math.max(0, rawTotal - discount).toLocaleString('vi-VN');
 }
+
 function buildFinalQuotePrintHtml() {
     const d = lastSolarQuoteData;
     let rowsHtml = '';
@@ -843,7 +866,7 @@ function copyQuoteForZalo() {
     text += `💰 TỔNG THANH TOÁN: ${finalTotal} VNĐ`;
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép toàn bộ nội dung Báo Giá vào bộ nhớ tạm!"))
+        navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép toàn bộ nội dung Báo Giá vào bộ nhớ tạm! Bạn chỉ cần mở Zalo và bấm Dán để gửi cho khách."))
         .catch(() => prompt("Sao chép nội dung báo giá dưới đây để dán vào Zalo:", text));
     } else {
         prompt("Sao chép nội dung báo giá dưới đây để dán vào Zalo:", text);
@@ -857,10 +880,10 @@ function printFinalQuote() {
     const printWin = window.open('', '_blank', 'width=850,height=650');
     printWin.document.write(`<html><head><title>${docTitle}</title></head><body>${buildFinalQuotePrintHtml()}</body></html>`);
     printWin.document.close();
+    printWin.document.title = docTitle;
     printWin.focus();
     setTimeout(() => { printWin.print(); printWin.close(); }, 300);
 }
-
 function execPumpCalc() {
     const source = document.getElementById('calcSource').value;
     const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
