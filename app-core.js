@@ -1,4 +1,4 @@
-const API_URL = "https://google.com";
+const API_URL = "https://script.google.com/macros/s/AKfycbwXhaoIyrMIJNitAvvlIc9f3dHMc2R4YHU74Tk1KxeJ2iQf2YJiYa2BmYRt87ELQuFSYA/exec";
 
 let cachedData = JSON.parse(localStorage.getItem('solar_app_cache')) || null;
 let appData = cachedData || {
@@ -440,7 +440,7 @@ function openKnowledgeDetail(idx) {
 }
 const CALC_TOOLS_LIST = [
     { id: 'pump', icon: '💧', title: 'Tính công suất bơm', desc: 'Tính cột áp tổng, tổn thất ma sát ống và chọn công suất bơm chuẩn thủy lực.' },
-    { id: 'solar', icon: '☀️', title: 'Chọn biến tần và công suất giàn pin', desc: 'Phối ghép 36 mã pin & 47 biến tần, phân chuỗi an toàn và lập báo giá chi tiết.' },
+    { id: 'solar', icon: '☀️', title: 'Chọn biến tần và công suất giàn pin', desc: 'Phối ghép 28 mã pin & 47 biến tần, phân chuỗi an toàn và lập báo giá chi tiết.' },
     { id: 'acc', icon: '🔩', title: 'Tính phụ kiện', desc: 'Tính nhanh số lượng chân đế, kẹp biên, kẹp giữa cho hệ thống pin áp mái.' },
     { id: 'vdrop', icon: '⚡', title: 'Tính sụt áp trên đường dây', desc: 'Kiểm tra độ sụt áp dây dẫn DC/AC và khuyến nghị tiết diện cáp an toàn.' },
     { id: 'divider', icon: '🔌', title: 'Tính cầu trở phân áp', desc: 'Tính điện áp đầu ra Vout và dòng tiêu thụ cho mạch cảm biến, đo lường.' }
@@ -527,7 +527,7 @@ function openCalcToolModal(toolId) {
             </div>
             <div class="grid-2" style="gap:10px;">
                 <div class="form-group">
-                    <label id="panelFilterLabel">Chọn mã tấm pin tối ưu chi phí (Đã ẩn mã dư thừa):</label>
+                    <label id="panelFilterLabel">Chọn mã tấm pin phù hợp (Đã ẩn mã dư thừa):</label>
                     <select id="spPanelIdx"></select>
                 </div>
                 <div class="form-group">
@@ -697,11 +697,11 @@ function filterOptimalPanels() {
     }).filter(Boolean);
 
     const minKWp = Math.min(...evaluated.map(e => e.totalKWp));
-    const optimalPanels = evaluated.filter(e => e.totalKWp <= minKWp + 1.5);
+    const optimalPanels = evaluated.filter(e => e.totalKWp <= minKWp + 2.5);
     const finalPanels = optimalPanels.length > 0 ? optimalPanels : evaluated;
 
     if (panelLbl) {
-        panelLbl.innerHTML = `Chọn mã tấm pin tối ưu (Hiện <b>${finalPanels.length}/${SOLAR_PANELS_DB.length}</b> mã tiết kiệm nhất):`;
+        panelLbl.innerHTML = `Chọn mã tấm pin phù hợp (Hiện <b>${finalPanels.length}/${SOLAR_PANELS_DB.length}</b> mã tối ưu):`;
     }
     panelSelect.innerHTML = finalPanels.map(p => 
         `<option value="${p.origIdx}">${p.name} ➔ ${p.totalPanels} tấm (${p.strings} chuỗi × ${p.perStr} tấm = ${p.totalKWp.toFixed(2)} kWp)</option>`
