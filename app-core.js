@@ -652,6 +652,7 @@ function filterAndSelectInverters() {
         `<option value="${inv.origIdx}">${inv.name} (VdcMax: ${inv.vdcMax}V, IdcMax: ${inv.idcMax}A)</option>`
     ).join('');
 }
+
 function execSolarSystemCalc() {
     evaluatePumpInput();
     const pumpKW = parseSafePumpPowerKW();
@@ -684,9 +685,15 @@ function execSolarSystemCalc() {
 
     let strings = 1;
     let panelsPerString = minPanelsByPower;
+    const max1StringKWp = (maxPanelsPerString * panel.power) / 1000;
+
+    // Ưu tiên chốt 1 chuỗi tối đa nếu chỉ dư 1-2 tấm và vẫn đạt >= 1.45 lần công suất bơm
     if (minPanelsByPower <= maxPanelsPerString) {
         strings = 1;
         panelsPerString = Math.max(minPanelsByPower, minPanelsPerString);
+    } else if ((minPanelsByPower - maxPanelsPerString) <= 2 && max1StringKWp >= (pumpKW * 1.45)) {
+        strings = 1;
+        panelsPerString = maxPanelsPerString;
     } else {
         strings = Math.ceil(minPanelsByPower / maxPanelsPerString);
         panelsPerString = Math.max(Math.ceil(minPanelsByPower / strings), minPanelsPerString);
@@ -697,12 +704,12 @@ function execSolarSystemCalc() {
     const vocColdTotal = panelsPerString * vocColdUnit;
     const vmpHotTotal = panelsPerString * vmpHotUnit;
     const impTotal = strings * panel.imp;
-
     const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
     const is1Phase = (phase === "1 pha 220V");
     const wireCores = is1Phase ? "3x" : "4x";
     const maxVdrop = is1Phase ? 6.6 : 11.4;
-    const iMotor = is1Phase ? (pumpKW * 1000) / (220 * 0.85) : (pumpKW * 1000) / (Math.sqrt(3) * 380 * 0.85);
+    const cosPhi = (pumpType === 'gieng') ? 0.78 : 0.85;
+    const iMotor = is1Phase ? (pumpKW * 1000) / (220 * cosPhi) : (pumpKW * 1000) / (Math.sqrt(3) * 380 * cosPhi);
     const dropFactor = is1Phase ? 2 : Math.sqrt(3);
 
     const stdSizes = [2.5, 4, 6, 10, 16, 25, 35, 50, 70];
@@ -750,6 +757,7 @@ function execSolarSystemCalc() {
         <button class="btn btn-success" style="width:100%; margin-top:12px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ (CHO PHÉP SỬA GIÁ)</button>
     `;
 }
+
 const QUOTE_ITEM_NAMES = [
     "Tấm pin năng lượng mặt trời", "Biến tần bơm năng lượng mặt trời",
     "Hệ khung giá đỡ nhôm & phụ kiện kẹp", "Tủ điện bảo vệ DC/AC, CB & Chống sét SPD",
