@@ -708,7 +708,6 @@ function filterOptimalPanels() {
     ).join('');
 }
 function execSolarSystemCalc() {
-    evaluatePumpInput();
     const pumpKW = parseSafePumpPowerKW();
     const unit = document.getElementById('spPumpUnit').value;
     const rawExpr = document.getElementById('spPumpExpr').value.trim();
