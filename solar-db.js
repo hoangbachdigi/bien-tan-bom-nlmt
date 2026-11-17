@@ -1,40 +1,32 @@
 const SOLAR_PANELS_DB = [
     { name: "LONGi Hi-MO 6 580W (LR5-72HTH-580M)", power: 580, voc: 52.21, vmp: 44.06, imp: 13.17, priceWp: 2950 },
-    { name: "LONGi Hi-MO 7 610W 2 mặt kính (LR7-72HGD-610M)", power: 610, voc: 52.45, vmp: 44.40, imp: 13.74, priceWp: 3000 },
-    { name: "LONGi Hi-MO 7 620W 2 mặt kính (LR7-72HGD-620M)", power: 620, voc: 52.75, vmp: 44.70, imp: 13.87, priceWp: 3050 },
+    { name: "LONGi Hi-MO 7 610W (132-cell - LR7-66HGD-610M)", power: 610, voc: 48.38, vmp: 40.30, imp: 15.14, priceWp: 3000 },
+    { name: "LONGi Hi-MO 7 620W (132-cell - LR7-66HGD-620M)", power: 620, voc: 48.78, vmp: 40.66, imp: 15.25, priceWp: 3050 },
+    { name: "LONGi Hi-MO 7 625W (132-cell - LR7-66HGD-625M)", power: 625, voc: 48.98, vmp: 40.84, imp: 15.31, priceWp: 3080 },
+    { name: "LONGi Hi-MO 7 610W (144-cell - LR7-72HGD-610M)", power: 610, voc: 52.45, vmp: 44.40, imp: 13.74, priceWp: 3000 },
     { name: "Jinko Tiger Neo 580W (JKM580N-72HL4-V)", power: 580, voc: 52.31, vmp: 43.35, imp: 13.38, priceWp: 2950 },
-    { name: "Jinko Tiger Neo 585W (JKM585N-72HL4-V)", power: 585, voc: 52.47, vmp: 43.53, imp: 13.44, priceWp: 2950 },
     { name: "Jinko Tiger Neo 610W (132-cell - JKM610N-66HL4M)", power: 610, voc: 48.68, vmp: 40.56, imp: 15.04, priceWp: 2980 },
-    { name: "Jinko Tiger Neo 610W (156-cell - JKM610N-78HL4)", power: 610, voc: 55.31, vmp: 45.90, imp: 13.29, priceWp: 2980 },
-    { name: "Jinko Tiger Neo 625W (JKM625N-78HL4-BDV)", power: 625, voc: 55.73, vmp: 46.33, imp: 13.49, priceWp: 3020 },
+    { name: "Jinko Tiger Neo 620W (132-cell - JKM620N-66HL4M)", power: 620, voc: 49.02, vmp: 40.90, imp: 15.16, priceWp: 3020 },
+    { name: "Jinko Tiger Neo 625W (156-cell - JKM625N-78HL4-BDV)", power: 625, voc: 55.73, vmp: 46.33, imp: 13.49, priceWp: 3020 },
     { name: "TCL Solar G12R 605W (HSM-ND66-GR605)", power: 605, voc: 48.40, vmp: 40.30, imp: 15.01, priceWp: 2750 },
     { name: "TCL Solar G12R 620W (HSM-ND66-GR620)", power: 620, voc: 48.90, vmp: 40.80, imp: 15.20, priceWp: 2780 },
     { name: "TCL Solar G12R 630W (HSM-ND66-GR630)", power: 630, voc: 49.20, vmp: 41.10, imp: 15.33, priceWp: 2800 },
-    { name: "TCL Solar T-Class 650W (HSM-ND66-650)", power: 650, voc: 49.80, vmp: 41.65, imp: 15.61, priceWp: 2850 },
     { name: "Astronergy Astro N5 580W (CHSM72N(DG)/F-BH-580)", power: 580, voc: 51.62, vmp: 43.15, imp: 13.44, priceWp: 2850 },
     { name: "Astronergy Astro N7 610W (CHSM66RN(DG)/F-BH-610)", power: 610, voc: 48.55, vmp: 40.42, imp: 15.09, priceWp: 2900 },
     { name: "Astronergy Astro N7 625W (CHSM66RN(DG)/F-BH-625)", power: 625, voc: 49.02, vmp: 40.88, imp: 15.29, priceWp: 2920 },
-    { name: "Astronergy Astro N8 700W (CHSM66N(DG)/F-BH-700)", power: 700, voc: 48.60, vmp: 40.50, imp: 17.28, priceWp: 2950 },
-    { name: "Astronergy Astro N8 710W (CHSM66N(DG)/F-BH-710)", power: 710, voc: 48.90, vmp: 40.80, imp: 17.40, priceWp: 2980 },
     { name: "Trina Vertex N 610W (TSM-NEG19RC.20-610)", power: 610, voc: 48.70, vmp: 40.50, imp: 15.06, priceWp: 2950 },
     { name: "Trina Vertex N 620W (TSM-NEG19RC.20-620)", power: 620, voc: 49.00, vmp: 40.80, imp: 15.20, priceWp: 2980 },
-    { name: "Trina Vertex N G12 700W (TSM-NEG21C.20-700)", power: 700, voc: 48.60, vmp: 40.50, imp: 17.29, priceWp: 3000 },
-    { name: "Trina Vertex N G12 710W (TSM-NEG21C.20-710)", power: 710, voc: 48.90, vmp: 40.80, imp: 17.40, priceWp: 3050 },
+    { name: "Trina Vertex N 625W (TSM-NEG19RC.20-625)", power: 625, voc: 49.15, vmp: 40.95, imp: 15.26, priceWp: 3000 },
     { name: "Canadian TOPBiHiKu6 580W (CS6W-580TB-AG)", power: 580, voc: 52.20, vmp: 43.30, imp: 13.40, priceWp: 2950 },
-    { name: "Canadian TOPBiHiKu6 610W (CS6.1-72TB-610)", power: 610, voc: 52.60, vmp: 44.10, imp: 13.84, priceWp: 2980 },
-    { name: "Canadian TOPBiHiKu7 700W (CS7N-700TB-AG)", power: 700, voc: 48.70, vmp: 40.60, imp: 17.25, priceWp: 3020 },
-    { name: "Canadian TOPBiHiKu7 710W (CS7N-710TB-AG)", power: 710, voc: 49.00, vmp: 40.90, imp: 17.37, priceWp: 3050 },
+    { name: "Canadian TOPBiHiKu6 610W (144-cell - CS6.1-72TB-610)", power: 610, voc: 52.60, vmp: 44.10, imp: 13.84, priceWp: 2980 },
+    { name: "Canadian TOPBiHiKu6 620W (132-cell - CS6.2-66TB-620)", power: 620, voc: 48.80, vmp: 40.70, imp: 15.24, priceWp: 3000 },
     { name: "Risen TOPCon 605W (RSM132-8-605BHDG)", power: 605, voc: 48.45, vmp: 40.35, imp: 14.99, priceWp: 2780 },
-    { name: "Risen Hyper-ion HJT 700W (RSM132-8-700BHDG)", power: 700, voc: 49.90, vmp: 41.60, imp: 16.83, priceWp: 2850 },
-    { name: "Risen Hyper-ion HJT 710W (RSM132-8-710BHDG)", power: 710, voc: 50.15, vmp: 41.85, imp: 16.97, priceWp: 2880 },
-    { name: "Risen Hyper-ion HJT 715W (RSM132-8-715BHDG)", power: 715, voc: 50.30, vmp: 42.00, imp: 17.03, priceWp: 2900 },
+    { name: "Risen TOPCon 620W (RSM132-8-620BHDG)", power: 620, voc: 48.95, vmp: 40.85, imp: 15.18, priceWp: 2820 },
     { name: "AIKO Comet 1N72 610W ABC (AIKO-A610-MAH72Mw)", power: 610, voc: 54.20, vmp: 45.10, imp: 13.53, priceWp: 3450 },
     { name: "AIKO Comet 1N72 620W ABC (AIKO-A620-MAH72Mw)", power: 620, voc: 54.40, vmp: 45.30, imp: 13.69, priceWp: 3500 },
-    { name: "AIKO Stellar 650W ABC (AIKO-G650-MCH72Dw)", power: 650, voc: 54.65, vmp: 45.55, imp: 14.27, priceWp: 3550 },
     { name: "JA Solar DeepBlue 4.0 580W (JAM72D40-580/MB)", power: 580, voc: 51.30, vmp: 42.85, imp: 13.54, priceWp: 2920 },
     { name: "JA Solar DeepBlue 4.0 610W (JAM66D45-610/LB)", power: 610, voc: 48.50, vmp: 40.35, imp: 15.12, priceWp: 2950 },
-    { name: "JA Solar DeepBlue 4.0 630W (JAM66D45-630/LB)", power: 630, voc: 49.10, vmp: 40.90, imp: 15.40, priceWp: 2980 },
-    { name: "JA Solar DeepBlue 4.0 650W (JAM78D40-650/MB)", power: 650, voc: 56.10, vmp: 46.95, imp: 13.85, priceWp: 3020 }
+    { name: "JA Solar DeepBlue 4.0 630W (JAM66D45-630/LB)", power: 630, voc: 49.10, vmp: 40.90, imp: 15.40, priceWp: 2980 }
 ];
 const SOLAR_INVERTERS_DB = [
     { name: "PowerS SG800-004GB-4T (4.0kW - 3P 380V)", kw: 4, phase: "3 pha 380V", iOut: 10, vdcMax: 900, mpptMin: 486, idcMax: 20, price: 5800000 },
@@ -136,3 +128,4 @@ const MOCK_KNOWLEDGE = [
         content: "Điện trở hãm ngoài chỉ dùng cho các tải có quán tính quay lớn như băng tải, cẩu trục hoặc máy ly tâm tốc độ cao để tiêu tán năng lượng trả ngược khi phanh gấp. Đối với hệ thống bơm nước đẩy lên dốc cao, ngay khi ngắt điện, áp lực cột nước đè ngược xuống cánh bơm kết hợp lực ma sát sẽ làm motor dừng quay gần như tức thì. Bạn chỉ cần cài chế độ dừng tự do (Coast to stop) trên biến tần là hoàn toàn an toàn và tiết kiệm chi phí."
     }
 ];
+
