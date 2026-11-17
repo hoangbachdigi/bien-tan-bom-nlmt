@@ -693,11 +693,12 @@ function filterOptimalPanels() {
         return { ...p, origIdx: idx, totalPanels, totalKWp, strings, perStr };
     }).filter(Boolean);
 
-    const minKWp = Math.min(...evaluated.map(e => e.totalKWp));
-    const optimalPanels = evaluated.filter(e => e.totalKWp <= minKWp + 2.5);
+    evaluated.sort((a, b) => a.totalKWp - b.totalKWp);
+    const minKWp = evaluated[0]?.totalKWp || 0;
+    const optimalPanels = evaluated.filter(e => e.totalKWp <= minKWp + 1.0);
     const finalPanels = optimalPanels.length > 0 ? optimalPanels : evaluated;
 
-    if (panelLbl) panelLbl.innerHTML = `Chọn mã tấm pin phù hợp (Hiện <b>${finalPanels.length}/${SOLAR_PANELS_DB.length}</b> mã tối ưu):`;
+    if (panelLbl) panelLbl.innerHTML = `Chọn mã tấm pin tối ưu (Hiện <b>${finalPanels.length}/${SOLAR_PANELS_DB.length}</b> mã tiết kiệm nhất):`;
     panelSelect.innerHTML = finalPanels.map(p => 
         `<option value="${p.origIdx}">${p.name} ➔ ${p.totalPanels} tấm (${p.strings} chuỗi × ${p.perStr} tấm = ${p.totalKWp.toFixed(2)} kWp)</option>`
     ).join('');
