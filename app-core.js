@@ -679,7 +679,7 @@ function filterOptimalPanels() {
         if (minByPower <= maxStr) {
             strings = 1;
             perStr = Math.max(minByPower, minStr);
-        } else if ((minByPower - maxStr) <= 2 && max1StrKWp >= (activePumpKW * 1.45)) {
+        } else if ((minByPower - maxStr) <= 3 && max1StrKWp >= (activePumpKW * 1.4)) {
             strings = 1;
             perStr = maxStr;
         } else {
@@ -694,7 +694,7 @@ function filterOptimalPanels() {
     }).filter(Boolean);
 
     evaluated.sort((a, b) => a.totalKWp - b.totalKWp);
-    const minKWp = evaluated[0]?.totalKWp || 0;
+    const minKWp = evaluated.length > 0 ? evaluated[0].totalKWp : 0;
     const optimalPanels = evaluated.filter(e => e.totalKWp <= minKWp + 1.0);
     const finalPanels = optimalPanels.length > 0 ? optimalPanels : evaluated;
 
@@ -703,6 +703,8 @@ function filterOptimalPanels() {
         `<option value="${p.origIdx}">${p.name} ➔ ${p.totalPanels} tấm (${p.strings} chuỗi × ${p.perStr} tấm = ${p.totalKWp.toFixed(2)} kWp)</option>`
     ).join('');
 }
+
+
 function execSolarSystemCalc() {
     const pumpKW = parseSafePumpPowerKW();
     const unit = document.getElementById('spPumpUnit').value;
