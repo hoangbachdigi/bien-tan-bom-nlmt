@@ -225,6 +225,7 @@ function calculateUserStats() {
 
     return Object.values(statsMap).sort((a, b) => b[currentSortBy] - a[currentSortBy]);
 }
+
 function sortStatsTable(criteria) {
     currentSortBy = criteria;
     renderStatsTableOnly();
@@ -435,46 +436,6 @@ function openKnowledgeDetail(idx) {
         <button class="btn btn-outline" style="width:100%;" onclick="closeGlobalModal()">Đóng bài viết</button>
     `);
 }
-function renderToolsPage(page) {
-    const grid = document.getElementById('toolsGridArea');
-    const pag = document.getElementById('toolsPagination');
-    if (!grid) return;
-    const perPage = 9;
-    const totalPages = Math.ceil(CALC_TOOLS_LIST.length / perPage);
-    const items = CALC_TOOLS_LIST.slice((page - 1) * perPage, page * perPage);
-
-    grid.innerHTML = items.map(t => `
-        <div class="item-card" onclick="openCalcToolModal('${t.id}')" style="padding:16px; text-align:center;">
-            <div style="font-size:32px; margin-bottom:8px;">${t.icon}</div>
-            <h3 class="card-heading" style="color:var(--primary);">${t.title}</h3>
-            <p class="card-desc-2line">${t.desc}</p>
-        </div>
-    `).join('');
-
-    pag.innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `
-        <button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderToolsPage(${i + 1})">${i + 1}</button>
-    `).join('') : '';
-}
-
-function openCalcToolModal(toolId) {
-    if (toolId === 'pump') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">💧 Tính Công Suất Máy Bơm Chuẩn Thủy Lực</h3>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Loại bơm:</label><select id="calcSource"><option value="gieng">Giếng khoan sâu (Bơm hỏa tiễn)</option><option value="ho" selected>Ao, hồ, sông (Bơm cạn / trục đứng)</option></select></div>
-                <div class="form-group"><label>Cỡ ống dẫn chính (Phi):</label><select id="calcPipeDia"><option value="40">Ống Phi 42</option><option value="50">Ống Phi 49</option><option value="63" selected>Ống Phi 60</option><option value="75">Ống Phi 76</option><option value="90">Ống Phi 90</option><option value="110">Ống Phi 114</option></select></div>
-            </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Độ cao đẩy đứng (m):</label><input type="number" id="calcHeight" value="50"></div>
-                <div class="form-group"><label>Tổng chiều dài ống (m):</label><input type="number" id="calcLength" value="200"></div>
-            </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Lưu lượng cần bơm (m³/h):</label><input type="number" id="calcFlow" value="15"></div>
-                <div class="form-group"><label>Áp lực đầu béc (m):</label><input type="number" id="calcOutletHead" value="15"></div>
-            </div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
 const CALC_TOOLS_LIST = [
     { id: 'pump', icon: '💧', title: 'Tính công suất bơm', desc: 'Tính cột áp tổng, tổn thất ma sát ống và chọn công suất bơm chuẩn thủy lực.' },
     { id: 'solar', icon: '☀️', title: 'Chọn biến tần và công suất giàn pin', desc: 'Phối ghép 28 mã pin & 47 biến tần, phân chuỗi an toàn và lập báo giá chi tiết.' },
@@ -613,6 +574,7 @@ function openCalcToolModal(toolId) {
         `);
     }
 }
+
 function cleanPumpExprInput() {
     const inputEl = document.getElementById('spPumpExpr');
     if (!inputEl) return;
@@ -863,6 +825,7 @@ function openEditableQuoteModal() {
         { name: `Vật tư phụ, jack MC4 & hệ thống tiếp địa`, unit: "Gói", qty: 1, price: 1500000 },
         { name: `Nhân công lắp đặt & cài đặt vận hành`, unit: "kWp", qty: Number(d.totalKWp.toFixed(2)), price: 900000 }
     ];
+
     const trHtml = rows.map((r, i) => `
         <tr>
             <td style="text-align:center;">${i + 1}</td>
@@ -947,6 +910,7 @@ function buildFinalQuotePrintHtml() {
         </div>
     </div>`;
 }
+
 function copyQuoteForZalo() {
     const d = lastSolarQuoteData;
     if (!d) return;
