@@ -672,7 +672,7 @@ function filterOptimalPanels() {
     const evaluated = SOLAR_PANELS_DB.map((p, idx) => {
         const minByPower = Math.ceil(targetWatts / p.power);
         const maxStr = Math.floor((inv.vdcMax * 0.96) / (p.voc * 1.06));
-        const minStr = Math.ceil(inv.mpptMin / (p.vmp * 0.86));
+        const minStr = Math.ceil(const effectiveMpptMin = (inv.phase === "3 pha 380V") ? Math.max(inv.mpptMin, 485) : inv.mpptMin;);
         if (maxStr < minStr) return null;
 
         let strings = 1;
@@ -730,7 +730,7 @@ function execSolarSystemCalc() {
     const vocColdUnit = panel.voc * 1.06;
     const vmpHotUnit = panel.vmp * 0.86;
     const maxPanelsPerString = Math.floor((inv.vdcMax * 0.96) / vocColdUnit);
-    const minPanelsPerString = Math.ceil(inv.mpptMin / vmpHotUnit);
+    const minPanelsPerString = Math.ceil(const effectiveMpptMin = (inv.phase === "3 pha 380V") ? Math.max(inv.mpptMin, 485) : inv.mpptMin;);
 
     if (maxPanelsPerString < minPanelsPerString) {
         return alert("⚠️ Mã tấm pin và biến tần này không tương thích dải điện áp MPPT. Vui lòng chọn biến tần có Vdc_max cao hơn!");
