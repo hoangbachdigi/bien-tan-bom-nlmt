@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwXhaoIyrMIJNitAvvlIc9f3dHMc2R4YHU74Tk1KxeJ2iQf2YJiYa2BmYRt87ELQuFSYA/exec";
+const API_URL = "https://google.com";
 
 let cachedData = JSON.parse(localStorage.getItem('solar_app_cache')) || null;
 let appData = cachedData || {
@@ -487,7 +487,6 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" class="result-box"></div>
         `);
     } else if (toolId === 'solar') {
-        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.name.includes('610W (132-cell') ? 'selected' : ''}>${p.name} - Imp: ${p.imp}A</option>`).join('');
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">☀️ Tính Toán & Phối Ghép Hệ Thống Bơm NLMT</h3>
             <div class="grid-2" style="gap:10px;">
@@ -524,11 +523,17 @@ function openCalcToolModal(toolId) {
             </div>
             <div class="form-group">
                 <label id="invFilterLabel">Chọn mã biến tần (Chỉ hiển thị đúng cấp công suất đề xuất):</label>
-                <select id="spInvIdx"></select>
+                <select id="spInvIdx" onchange="filterOptimalPanels()"></select>
             </div>
             <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Chọn mã tấm pin mặt trời (36 mã):</label><select id="spPanelIdx">${panelOpts}</select></div>
-                <div class="form-group"><label>Chiều dài dây DC từ pin tới tủ (m):</label><input type="number" id="spDcLen" value="25"></div>
+                <div class="form-group">
+                    <label id="panelFilterLabel">Chọn mã tấm pin tối ưu chi phí (Đã ẩn mã dư thừa):</label>
+                    <select id="spPanelIdx"></select>
+                </div>
+                <div class="form-group">
+                    <label>Chiều dài dây DC từ pin tới tủ (m):</label>
+                    <input type="number" id="spDcLen" value="25">
+                </div>
             </div>
             <button class="btn btn-orange" onclick="checkLimitAndRun(execSolarSystemCalc)">TÍNH TOÁN & KIỂM TRA AN TOÀN HỆ THỐNG</button>
             <div id="toolModalResult" class="result-box"></div>
@@ -571,13 +576,12 @@ function openCalcToolModal(toolId) {
         `);
     }
 }
+
 function cleanPumpExprInput() {
     const inputEl = document.getElementById('spPumpExpr');
     if (!inputEl) return;
     const cleaned = inputEl.value.replace(/[^0-9+\-*/().,\s]/g, '');
-    if (inputEl.value !== cleaned) {
-        inputEl.value = cleaned;
-    }
+    if (inputEl.value !== cleaned) inputEl.value = cleaned;
     filterAndSelectInverters();
 }
 
@@ -632,27 +636,77 @@ function filterAndSelectInverters() {
     }
 
     const reqKW = activePumpKW * loadFactor;
-
     let baseIdx = distinctKWs.findIndex(kw => kw >= activePumpKW);
     if (baseIdx === -1) baseIdx = distinctKWs.length - 1;
     const maxAllowedIdx = Math.min(baseIdx + 1, distinctKWs.length - 1);
 
     let targetIdx = distinctKWs.findIndex(kw => kw >= reqKW);
-    if (targetIdx === -1 || targetIdx > maxAllowedIdx) {
-        targetIdx = maxAllowedIdx;
-    }
+    if (targetIdx === -1 || targetIdx > maxAllowedIdx) targetIdx = maxAllowedIdx;
 
     const recommendedKW = distinctKWs[targetIdx];
     const matchedInvs = validInvs.filter(inv => inv.kw === recommendedKW);
 
-    if (lbl) {
-        lbl.innerHTML = `Chọn mã biến tần cấp <b style="color:var(--danger);">${recommendedKW} kW</b> (Đã ẩn các cấp khác):`;
-    }
+    if (lbl) lbl.innerHTML = `Chọn mã biến tần cấp <b style="color:var(--danger);">${recommendedKW} kW</b> (Đã ẩn các cấp khác):`;
     invSelect.innerHTML = matchedInvs.map(inv => 
         `<option value="${inv.origIdx}">${inv.name} (VdcMax: ${inv.vdcMax}V, IdcMax: ${inv.idcMax}A)</option>`
     ).join('');
+
+    filterOptimalPanels();
 }
 
+function filterOptimalPanels() {
+    const pumpKW = parseSafePumpPowerKW();
+    const pumpType = document.getElementById('spPumpType')?.value || "gieng";
+    const acLen = parseFloat(document.getElementById('spAcLen')?.value) || 0;
+    const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
+    const panelSelect = document.getElementById('spPanelIdx');
+    const panelLbl = document.getElementById('panelFilterLabel');
+    if (!panelSelect || isNaN(invIdx)) return;
+
+    const inv = SOLAR_INVERTERS_DB[invIdx];
+    const activePumpKW = pumpKW > 0 ? pumpKW : 0.1;
+    let pumpFactor = 1.45;
+    if (pumpType === 'gieng') pumpFactor = (acLen >= 80) ? 1.65 : 1.55;
+    const targetWatts = activePumpKW * pumpFactor * 1000;
+
+    const evaluated = SOLAR_PANELS_DB.map((p, idx) => {
+        const minByPower = Math.ceil(targetWatts / p.power);
+        const maxStr = Math.floor((inv.vdcMax * 0.96) / (p.voc * 1.06));
+        const minStr = Math.ceil(inv.mpptMin / (p.vmp * 0.86));
+        if (maxStr < minStr) return null;
+
+        let strings = 1;
+        let perStr = minByPower;
+        const max1StrKWp = (maxStr * p.power) / 1000;
+        if (minByPower <= maxStr) {
+            strings = 1;
+            perStr = Math.max(minByPower, minStr);
+        } else if ((minByPower - maxStr) <= 2 && max1StrKWp >= (activePumpKW * 1.45)) {
+            strings = 1;
+            perStr = maxStr;
+        } else {
+            strings = Math.ceil(minByPower / maxStr);
+            perStr = Math.max(Math.ceil(minByPower / strings), minStr);
+        }
+        const totalPanels = strings * perStr;
+        const totalKWp = (totalPanels * p.power) / 1000;
+        const impTotal = strings * p.imp;
+        if (impTotal > inv.idcMax) return null;
+
+        return { ...p, origIdx: idx, totalPanels, totalKWp, strings, perStr };
+    }).filter(Boolean);
+
+    const minKWp = Math.min(...evaluated.map(e => e.totalKWp));
+    const optimalPanels = evaluated.filter(e => e.totalKWp <= minKWp + 1.5);
+    const finalPanels = optimalPanels.length > 0 ? optimalPanels : evaluated;
+
+    if (panelLbl) {
+        panelLbl.innerHTML = `Chọn mã tấm pin tối ưu (Hiện <b>${finalPanels.length}/${SOLAR_PANELS_DB.length}</b> mã tiết kiệm nhất):`;
+    }
+    panelSelect.innerHTML = finalPanels.map(p => 
+        `<option value="${p.origIdx}">${p.name} ➔ ${p.totalPanels} tấm (${p.strings} chuỗi × ${p.perStr} tấm = ${p.totalKWp.toFixed(2)} kWp)</option>`
+    ).join('');
+}
 function execSolarSystemCalc() {
     evaluatePumpInput();
     const pumpKW = parseSafePumpPowerKW();
@@ -665,7 +719,7 @@ function execSolarSystemCalc() {
     const dcLen = parseFloat(document.getElementById('spDcLen').value) || 0;
     const acLen = parseFloat(document.getElementById('spAcLen').value) || 0;
 
-    if (pumpKW <= 0 || !inv) return alert("Vui lòng nhập công suất máy bơm hợp lệ!");
+    if (pumpKW <= 0 || !inv || !panel) return alert("Vui lòng nhập công suất máy bơm hợp lệ!");
 
     let pumpFactor = 1.45;
     if (pumpType === 'gieng') {
@@ -687,7 +741,6 @@ function execSolarSystemCalc() {
     let panelsPerString = minPanelsByPower;
     const max1StringKWp = (maxPanelsPerString * panel.power) / 1000;
 
-    // Ưu tiên chốt 1 chuỗi tối đa nếu chỉ dư 1-2 tấm và vẫn đạt >= 1.45 lần công suất bơm
     if (minPanelsByPower <= maxPanelsPerString) {
         strings = 1;
         panelsPerString = Math.max(minPanelsByPower, minPanelsPerString);
@@ -704,6 +757,7 @@ function execSolarSystemCalc() {
     const vocColdTotal = panelsPerString * vocColdUnit;
     const vmpHotTotal = panelsPerString * vmpHotUnit;
     const impTotal = strings * panel.imp;
+
     const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
     const is1Phase = (phase === "1 pha 220V");
     const wireCores = is1Phase ? "3x" : "4x";
@@ -714,9 +768,9 @@ function execSolarSystemCalc() {
 
     const stdSizes = [2.5, 4, 6, 10, 16, 25, 35, 50, 70];
     let chosenAcSize = stdSizes.find(s => ((dropFactor * 0.0175 * acLen * iMotor) / s) <= maxVdrop) || 70;
-    if (iMotor > 20 && chosenAcSize < 4) chosenAcSize = 4;
-    if (iMotor > 32 && chosenAcSize < 6) chosenAcSize = 6;
-    if (iMotor > 45 && chosenAcSize < 10) chosenAcSize = 10;
+    if (iMotor > 11 && chosenAcSize < 4) chosenAcSize = 4;
+    if (iMotor > 18 && chosenAcSize < 6) chosenAcSize = 6;
+    if (iMotor > 28 && chosenAcSize < 10) chosenAcSize = 10;
     const acCable = `Cáp đồng ${wireCores}${chosenAcSize}mm² (Có dây tiếp địa PE)`;
 
     let reactorNote = "Không bắt buộc.";
@@ -757,7 +811,6 @@ function execSolarSystemCalc() {
         <button class="btn btn-success" style="width:100%; margin-top:12px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ (CHO PHÉP SỬA GIÁ)</button>
     `;
 }
-
 const QUOTE_ITEM_NAMES = [
     "Tấm pin năng lượng mặt trời", "Biến tần bơm năng lượng mặt trời",
     "Hệ khung giá đỡ nhôm & phụ kiện kẹp", "Tủ điện bảo vệ DC/AC, CB & Chống sét SPD",
