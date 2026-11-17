@@ -37,21 +37,6 @@ const SOLAR_PANELS_DB = [
     { name: "JA Solar DeepBlue 4.0 650W (JAM78D40-650/MB)", power: 650, voc: 56.10, vmp: 46.95, imp: 13.85, priceWp: 3020 }
 ];
 const SOLAR_INVERTERS_DB = [
-    { name: "PowerS SG600-0R7G-2S (0.75kW - 1P 220V)", kw: 0.75, phase: "1 pha 220V", iOut: 3.8, vdcMax: 450, mpptMin: 260, idcMax: 12, price: 3100000 },
-    { name: "PowerS SG600-1R5G-2S (1.5kW - 1P 220V)", kw: 1.5, phase: "1 pha 220V", iOut: 7, vdcMax: 450, mpptMin: 260, idcMax: 15, price: 3600000 },
-    { name: "PowerS SG600-2R2G-2S (2.2kW - 1P 220V)", kw: 2.2, phase: "1 pha 220V", iOut: 10, vdcMax: 450, mpptMin: 260, idcMax: 18, price: 4100000 },
-    { name: "PowerS SG600-004G-2S (4.0kW - 1P 220V)", kw: 4, phase: "1 pha 220V", iOut: 17, vdcMax: 450, mpptMin: 260, idcMax: 25, price: 5200000 },
-    { name: "PowerS SG600-0R7G-4T (0.75kW - 3P 380V)", kw: 0.75, phase: "3 pha 380V", iOut: 2.3, vdcMax: 800, mpptMin: 486, idcMax: 10, price: 3400000 },
-    { name: "PowerS SG600-1R5G-4T (1.5kW - 3P 380V)", kw: 1.5, phase: "3 pha 380V", iOut: 3.8, vdcMax: 800, mpptMin: 486, idcMax: 12, price: 3900000 },
-    { name: "PowerS SG600-2R2G-4T (2.2kW - 3P 380V)", kw: 2.2, phase: "3 pha 380V", iOut: 5.1, vdcMax: 800, mpptMin: 486, idcMax: 15, price: 4400000 },
-    { name: "PowerS SG600-004G-4T (4.0kW - 3P 380V)", kw: 4, phase: "3 pha 380V", iOut: 10, vdcMax: 800, mpptMin: 486, idcMax: 18, price: 5300000 },
-    { name: "PowerS SG600-5R5G-4T (5.5kW - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 800, mpptMin: 486, idcMax: 22, price: 6400000 },
-    { name: "PowerS SG600-7R5G-4T (7.5kW - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 800, mpptMin: 486, idcMax: 28, price: 7600000 },
-    { name: "PowerS SG600-011G-4T (11kW - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 800, mpptMin: 486, idcMax: 38, price: 9800000 },
-    { name: "PowerS SG600-015G-4T (15kW - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 800, mpptMin: 486, idcMax: 48, price: 12200000 },
-    { name: "PowerS SG600-18R5G-4T (18.5kW - 3P 380V)", kw: 18.5, phase: "3 pha 380V", iOut: 37, vdcMax: 800, mpptMin: 486, idcMax: 56, price: 14800000 },
-    { name: "PowerS SG600-022G-4T (22kW - 3P 380V)", kw: 22, phase: "3 pha 380V", iOut: 45, vdcMax: 800, mpptMin: 486, idcMax: 68, price: 17200000 },
-    { name: "PowerS SG600-030G-4T (30kW - 3P 380V)", kw: 30, phase: "3 pha 380V", iOut: 60, vdcMax: 800, mpptMin: 486, idcMax: 88, price: 22500000 },
     { name: "PowerS SG800-004GB-4T (4.0kW - 3P 380V)", kw: 4, phase: "3 pha 380V", iOut: 10, vdcMax: 900, mpptMin: 486, idcMax: 20, price: 5800000 },
     { name: "PowerS SG800-5K5GB-4T (5.5kW - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 900, mpptMin: 486, idcMax: 25, price: 6900000 },
     { name: "PowerS SG800-7K5GB-4T (7.5kW - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 900, mpptMin: 486, idcMax: 30, price: 8200000 },
