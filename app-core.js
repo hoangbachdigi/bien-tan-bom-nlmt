@@ -741,7 +741,7 @@ function execSolarSystemCalc() {
     if (minPanelsByPower <= maxPanelsPerString) {
         strings = 1;
         panelsPerString = Math.max(minPanelsByPower, minPanelsPerString);
-    } else if ((minPanelsByPower - maxPanelsPerString) <= 2 && max1StringKWp >= (pumpKW * 1.45)) {
+    } else if ((minPanelsByPower - maxPanelsPerString) <= 3 && max1StringKWp >= (pumpKW * 1.45)) {
         strings = 1;
         panelsPerString = maxPanelsPerString;
     } else {
