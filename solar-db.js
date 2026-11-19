@@ -1,48 +1,22 @@
 const SOLAR_PANELS_DB = [
     { name: "Jinko Solar 580W (JKM580N-72HL4-BDV)", power: 580, imp: 13.22, vmp: 43.88, voc: 52.50, priceWp: 2950 },
-    { name: "Astronergy 595W (CHSM72N/F-BH 595)", power: 595, imp: 13.71, vmp: 43.40, voc: 51.85, priceWp: 2880 },
-    { name: "LONGi Hi-MO 7 610W (LR7-66HGD-610M)", power: 610, imp: 15.14, vmp: 40.30, voc: 48.38, priceWp: 3000 },
-    { name: "LONGi Hi-MO 7 620W (LR7-66HGD-620M)", power: 620, imp: 15.25, vmp: 40.66, voc: 48.78, priceWp: 3050 },
-    { name: "Jinko Solar 625W (JKM625N-66HL4M-BDV)", power: 625, imp: 15.28, vmp: 40.90, voc: 49.02, priceWp: 3020 },
-    { name: "Jinko Solar 630W (JKM630N-66HL4M-BDV)", power: 630, imp: 15.35, vmp: 41.05, voc: 49.18, priceWp: 3050 },
-    { name: "Trina Vertex N 610W (TSM-NEG19RC.20-610)", power: 610, imp: 15.06, vmp: 40.50, voc: 48.70, priceWp: 2950 },
-    { name: "Trina Vertex N 625W (TSM-NEG19RC.20-625)", power: 625, imp: 15.26, vmp: 40.95, voc: 49.15, priceWp: 3000 },
-    { name: "JA Solar DeepBlue 4.0 610W (JAM66D45-610/LB)", power: 610, imp: 15.12, vmp: 40.35, voc: 48.50, priceWp: 2950 },
-    { name: "JA Solar DeepBlue 4.0 630W (JAM66D45-630/LB)", power: 630, imp: 15.40, vmp: 40.90, voc: 49.10, priceWp: 2980 }
+    { name: "Astronergy 595W (CHSM72N/F-BH-595)", power: 595, imp: 13.46, vmp: 44.21, voc: 52.81, priceWp: 2880 },
+    { name: "Jinko Solar 625W (JKM625N-66HL4M-BDV)", power: 625, imp: 15.29, vmp: 40.90, voc: 49.28, priceWp: 3020 },
+    { name: "Jinko Solar 630W (JKM630N-66HL4M-BDV)", power: 630, imp: 15.36, vmp: 41.02, voc: 49.48, priceWp: 3050 }
 ];
 const SOLAR_INVERTERS_DB = [
-    { brand: "Power S", name: "Power S SG600-2R2G-2S (2.2kW - 1P 220V)", kw: 2.2, phase: "1 pha 220V", iOut: 10, vdcMax: 450, idcMax: 18, mpptMin: 260, mpptMax: 380, price: 4100000 },
-    { brand: "Power S", name: "Power S SG800-004GB-4T (4.0kW - 3P 380V)", kw: 4, phase: "3 pha 380V", iOut: 10, vdcMax: 900, idcMax: 20, mpptMin: 550, mpptMax: 680, price: 5800000 },
-    { brand: "Power S", name: "Power S SG800-5K5GB-4T (5.5kW - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 900, idcMax: 25, mpptMin: 550, mpptMax: 680, price: 6900000 },
-    { brand: "Power S", name: "Power S SG800-7K5GB-4T (7.5kW - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 900, idcMax: 30, mpptMin: 550, mpptMax: 680, price: 8200000 },
-    { brand: "Power S", name: "Power S SG800-011GB-4T (11kW - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 900, idcMax: 40, mpptMin: 550, mpptMax: 680, price: 10500000 },
-    { brand: "Power S", name: "Power S SG800-015GB-4T (15kW - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 900, idcMax: 40, mpptMin: 550, mpptMax: 680, price: 13200000 },
-    { brand: "Power S", name: "Power S SG800-018GB-4T (18.5kW - 3P 380V)", kw: 18.5, phase: "3 pha 380V", iOut: 37, vdcMax: 900, idcMax: 55, mpptMin: 550, mpptMax: 680, price: 15900000 },
-    { brand: "Power S", name: "Power S SG800-022GB-4T (22kW - 3P 380V)", kw: 22, phase: "3 pha 380V", iOut: 45, vdcMax: 900, idcMax: 65, mpptMin: 550, mpptMax: 680, price: 18500000 },
-    { brand: "Power S", name: "Power S SG800-030G-4T (30kW - 3P 380V)", kw: 30, phase: "3 pha 380V", iOut: 60, vdcMax: 900, idcMax: 85, mpptMin: 550, mpptMax: 680, price: 24000000 },
-    { brand: "SAJ", name: "SAJ PDS33-2S2R2B-EH (2.2kW - 1P 220V)", kw: 2.2, phase: "1 pha 220V", iOut: 9.6, vdcMax: 450, idcMax: 18, mpptMin: 275, mpptMax: 380, price: 5900000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T004B-EH (4.0kW - 3P 380V)", kw: 4, phase: "3 pha 380V", iOut: 9, vdcMax: 900, idcMax: 20, mpptMin: 550, mpptMax: 680, price: 7800000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T5R5B-EH (5.5kW - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 900, idcMax: 25, mpptMin: 550, mpptMax: 680, price: 9200000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T7R5B-EH (7.5kW - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 900, idcMax: 32, mpptMin: 550, mpptMax: 680, price: 11200000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T011B-EH (11kW - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 900, idcMax: 42, mpptMin: 550, mpptMax: 680, price: 14500000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T015B-EH (15kW - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 900, idcMax: 50, mpptMin: 550, mpptMax: 680, price: 17800000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T18R5B-EH (18.5kW - 3P 380V)", kw: 18.5, phase: "3 pha 380V", iOut: 37, vdcMax: 900, idcMax: 60, mpptMin: 550, mpptMax: 680, price: 21200000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T022B-EH (22kW - 3P 380V)", kw: 22, phase: "3 pha 380V", iOut: 45, vdcMax: 900, idcMax: 72, mpptMin: 550, mpptMax: 680, price: 24800000 },
-    { brand: "SAJ", name: "SAJ PDS33-4T030B-EH (30kW - 3P 380V)", kw: 30, phase: "3 pha 380V", iOut: 60, vdcMax: 900, idcMax: 95, mpptMin: 550, mpptMax: 680, price: 31500000 },
-    { brand: "Green Nova", name: "Green Nova GN500-4T-4R0G (4.0kW - 3P 380V)", kw: 4, phase: "3 pha 380V", iOut: 10, vdcMax: 950, idcMax: 20, mpptMin: 540, mpptMax: 720, price: 6100000 },
-    { brand: "Green Nova", name: "Green Nova GN500-4T-5R5G (5.5kW - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 950, idcMax: 25, mpptMin: 540, mpptMax: 720, price: 7300000 },
-    { brand: "Green Nova", name: "Green Nova GN500-4T-7R5G (7.5kW - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 950, idcMax: 32, mpptMin: 540, mpptMax: 720, price: 8600000 },
-    { brand: "Green Nova", name: "Green Nova GN500-4T-011G (11kW - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 950, idcMax: 42, mpptMin: 540, mpptMax: 720, price: 11200000 },
-    { brand: "Green Nova", name: "Green Nova GN500-4T-015G (15kW - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 950, idcMax: 50, mpptMin: 540, mpptMax: 720, price: 13800000 },
-    { brand: "Green Nova", name: "Green Nova GN500-4T-022G (22kW - 3P 380V)", kw: 22, phase: "3 pha 380V", iOut: 45, vdcMax: 950, idcMax: 72, mpptMin: 540, mpptMax: 720, price: 19400000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-4R0G (4.0kW - 3P 380V)", kw: 4, phase: "3 pha 380V", iOut: 10, vdcMax: 950, idcMax: 20, mpptMin: 540, mpptMax: 750, price: 6200000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-5R5G (5.5kW - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 950, idcMax: 25, mpptMin: 540, mpptMax: 750, price: 7500000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-7R5G (7.5kW - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 950, idcMax: 32, mpptMin: 540, mpptMax: 750, price: 8900000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-011G (11kW - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 950, idcMax: 42, mpptMin: 540, mpptMax: 750, price: 11500000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-015G (15kW - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 950, idcMax: 52, mpptMin: 540, mpptMax: 750, price: 14200000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-18R5G (18.5kW - 3P 380V)", kw: 18.5, phase: "3 pha 380V", iOut: 37, vdcMax: 950, idcMax: 62, mpptMin: 540, mpptMax: 750, price: 17100000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-022G (22kW - 3P 380V)", kw: 22, phase: "3 pha 380V", iOut: 45, vdcMax: 950, idcMax: 75, mpptMin: 540, mpptMax: 750, price: 19800000 },
-    { brand: "Voltique", name: "Voltique YK500-T4-030G (30kW - 3P 380V)", kw: 30, phase: "3 pha 380V", iOut: 60, vdcMax: 950, idcMax: 95, mpptMin: 540, mpptMax: 750, price: 25800000 }
+    { brand: "Power S", name: "Power S SG800-7K5GB-4T (7.5kW - 17A - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 900, idcMax: 30, mpptMin: 550, mpptMax: 680, price: 8200000 },
+    { brand: "Power S", name: "Power S SG800-011GB-4T (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 900, idcMax: 40, mpptMin: 550, mpptMax: 680, price: 10500000 },
+    { brand: "Power S", name: "Power S SG800-015GB-4T (15kW - 32A - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 900, idcMax: 40, mpptMin: 550, mpptMax: 680, price: 13200000 },
+    { brand: "Power S", name: "Power S SG800-022GB-4T (22kW - 45A - 3P 380V)", kw: 22, phase: "3 pha 380V", iOut: 45, vdcMax: 900, idcMax: 65, mpptMin: 550, mpptMax: 680, price: 18500000 },
+    { brand: "SAJ", name: "SAJ PDS33-4T011B-EH (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 900, idcMax: 42, mpptMin: 550, mpptMax: 680, price: 14500000 },
+    { brand: "SAJ", name: "SAJ PDS33-4T015B-EH (15kW - 32A - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 900, idcMax: 50, mpptMin: 550, mpptMax: 680, price: 17800000 },
+    { brand: "SAJ", name: "SAJ SC10-4T011-EH (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 900, idcMax: 32, mpptMin: 550, mpptMax: 680, price: 13800000 },
+    { brand: "SAJ", name: "SAJ SC10-4T022-EH (22kW - 45A - 3P 380V)", kw: 22, phase: "3 pha 380V", iOut: 45, vdcMax: 900, idcMax: 57.6, mpptMin: 550, mpptMax: 680, price: 24800000 },
+    { brand: "Green Nova", name: "Green Nova AC600-5R5G-4 (5.5kW - 13A - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 950, idcMax: 25, mpptMin: 540, mpptMax: 720, price: 7300000 },
+    { brand: "Green Nova", name: "Green Nova AC600-7R5G-4 (7.5kW - 17A - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 950, idcMax: 32, mpptMin: 540, mpptMax: 720, price: 8600000 },
+    { brand: "Green Nova", name: "Green Nova AC600-011G-4 (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 950, idcMax: 42, mpptMin: 540, mpptMax: 720, price: 11200000 },
+    { brand: "Voltique", name: "Voltique YK500-15KW-T4 (15kW - 32A - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 950, idcMax: 52, mpptMin: 540, mpptMax: 750, price: 14200000 }
 ];
 const MOCK_PRODUCTS = Array.from({ length: 24 }, (_, i) => {
     const idx = i + 1;
@@ -52,19 +26,19 @@ const MOCK_PRODUCTS = Array.from({ length: 24 }, (_, i) => {
         return {
             title: `Tấm Pin Năng Lượng Mặt Trời Công Suất Cao Mẫu #${idx}`,
             img: "https://unsplash.com",
-            specs: "Công nghệ tế bào quang điện N-Type TOPCon thế hệ mới | Hiệu suất chuyển đổi module đạt trên 22.5% | Chịu tải trọng gió bão 2400Pa và tuyết 5400Pa | Kính cường lực 2 mặt chống phản xạ ánh sáng | Suy giảm công suất cực thấp dưới 0.4% mỗi năm | Hoạt động ổn định trong điều kiện bức xạ yếu | Khung hợp kim nhôm anodized chống ăn mòn muối biển | Hộp đấu nối đạt chuẩn chống bụi nước IP68 | Bảo hành vật lý 12 năm chính hãng | Bảo hành hiệu suất tuyến tính 25 năm"
+            specs: "Công nghệ tế bào quang điện N-Type TOPCon thế hệ mới | Hiệu suất chuyển đổi module đạt trên 22.5% | Chịu tải trọng gió bão 2400Pa và tuyết 5400Pa | Kính cường lực 2 mặt chống phản xạ ánh sáng | Suy giảm công suất cực thấp dưới 0.4% mỗi năm | Bảo hành vật lý 12 năm chính hãng | Bảo hành hiệu suất tuyến tính 25 năm"
         };
     } else if (isPump) {
         return {
             title: `Máy Bơm Hỏa Tiễn & Bơm Trục Đứng Chuyên Dụng #${idx}`,
             img: "https://unsplash.com",
-            specs: "Thân bơm chế tạo từ Inox 304 chống gỉ sét tuyệt đối | Cánh bơm đa tầng chịu áp lực cột áp đẩy cao vượt trội | Động cơ dây đồng 100% tản nhiệt bằng dầu/nước | Tích hợp van một chiều chống tụt áp đường ống | Hoạt động tương thích hoàn hảo với biến tần năng lượng mặt trời | Lưu lượng ổn định phục vụ tưới sầu riêng, cà phê đồi dốc | Chịu được hàm lượng cát nhỏ trong giếng khoan sâu | Trục động cơ bằng thép không gỉ siêu bền | Tiết kiệm điện năng và vận hành êm ái | Bảo hành kỹ thuật 12 tháng"
+            specs: "Thân bơm chế tạo từ Inox 304 chống gỉ sét tuyệt đối | Cánh bơm đa tầng chịu áp lực cột áp đẩy cao vượt trội | Động cơ dây đồng 100% tản nhiệt bằng dầu/nước | Tích hợp van một chiều chống tụt áp đường ống | Lưu lượng ổn định phục vụ tưới sầu riêng, cà phê đồi dốc | Bảo hành kỹ thuật 12 tháng"
         };
     }
     return {
         title: `Biến Tần Bơm Năng Lượng Mặt Trời Chuyên Dụng #${idx}`,
         img: "https://unsplash.com",
-        specs: "Tích hợp thuật toán dò điểm công suất cực đại MPPT đạt 99.5% | Tự động khởi động khi có nắng và ngủ đông khi mây mù | Hỗ trợ chuyển đổi linh hoạt giữa điện mặt trời DC và điện lưới AC | Bảo vệ toàn diện: chạy khô, mất pha, quá áp, quá dòng, ngắn mạch | Dải điện áp hoạt động DC rộng từ 250V đến 950V | Tự động điều chỉnh tần số bơm theo cường độ bức xạ mặt trời | Màn hình bàn phím LED dễ dàng theo dõi và cài đặt thông số | Hệ thống tản nhiệt nhôm đúc nguyên khối kèm quạt làm mát | Hỗ trợ giám sát và điều khiển từ xa qua module mở rộng | Bảo hành chính hãng 24 tháng"
+        specs: "Tích hợp thuật toán dò điểm công suất cực đại MPPT đạt 99.5% | Tự động khởi động khi có nắng và ngủ đông khi mây mù | Hỗ trợ chuyển đổi linh hoạt giữa điện mặt trời DC và điện lưới AC | Bảo vệ toàn diện: chạy khô, mất pha, quá áp, quá dòng, ngắn mạch | Dải điện áp hoạt động DC rộng từ 250V đến 950V | Bảo hành chính hãng 24 tháng"
     };
 });
 const MOCK_ERRORS = [
