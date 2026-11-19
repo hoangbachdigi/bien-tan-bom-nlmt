@@ -10,6 +10,8 @@ let guestCount = parseInt(localStorage.getItem('guest_visits_count')) || 0;
 let currentUser = JSON.parse(sessionStorage.getItem('current_user')) || null;
 let currentSortBy = 'day';
 let lastSolarQuoteData = null;
+let currentSolarPlans = [];
+let selectedPlanIdx = 1;
 document.addEventListener("DOMContentLoaded", async () => {
     renderVietnamDate();
     applyBannerFromConfig();
@@ -316,7 +318,6 @@ function renderProductsPage(page) {
     const grid = document.getElementById('productGridArea');
     const pag = document.getElementById('productPagination');
     if (!grid) return;
-
     const all = getCombinedProducts();
     const perPage = 20;
     const totalPages = Math.ceil(all.length / perPage);
@@ -325,27 +326,16 @@ function renderProductsPage(page) {
     grid.innerHTML = items.map((item, idx) => {
         const globalIdx = (page - 1) * perPage + idx;
         const shortDesc = item.specs.split('|').slice(0, 2).join(' • ');
-        return `
-            <div class="item-card" onclick="openProductDetail(${globalIdx})">
-                <img class="card-thumb" src="${item.img}" alt="${item.title}" loading="lazy">
-                <div class="card-body">
-                    <h3 class="card-heading">${item.title}</h3>
-                    <p class="card-desc-2line">${shortDesc}</p>
-                </div>
-            </div>
-        `;
+        return `<div class="item-card" onclick="openProductDetail(${globalIdx})"><img class="card-thumb" src="${item.img}" alt="${item.title}" loading="lazy"><div class="card-body"><h3 class="card-heading">${item.title}</h3><p class="card-desc-2line">${shortDesc}</p></div></div>`;
     }).join('');
-
-    pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `
-        <button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>
-    `).join('');
+    pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>`).join('');
 }
+
 function openProductDetail(idx) {
     const item = getCombinedProducts()[idx];
     if (!item) return;
     const lines = item.specs.split(/\||\n/).map(s => s.trim()).filter(Boolean);
     const specListHtml = lines.map(line => `<li style="margin-bottom:6px; color:#334155;">✅ ${line}</li>`).join('');
-
     openGlobalModal(`
         <img src="${item.img}" alt="${item.title}" style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin-bottom:12px;">
         <h3 style="margin:0 0 12px; color:var(--primary); font-size:18px;">${item.title}</h3>
@@ -355,12 +345,10 @@ function openProductDetail(idx) {
 }
 
 function copyProductShareLink(idx, title) {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const shareUrl = `${baseUrl}?sp=${idx}`;
+    const shareUrl = `${window.location.origin + window.location.pathname}?sp=${idx}`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            alert(`✅ Đã sao chép đường dẫn sản phẩm "${title}" vào bộ nhớ tạm! Bạn có thể dán gửi ngay cho khách hàng.`);
-        }).catch(() => prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl));
+        navigator.clipboard.writeText(shareUrl).then(() => alert(`✅ Đã sao chép đường dẫn sản phẩm "${title}" vào bộ nhớ tạm!`))
+        .catch(() => prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl));
     } else {
         prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl);
     }
@@ -369,12 +357,7 @@ function getCombinedErrors() {
     const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
         const bParts = c.title.split('|');
         const cParts = c.content.split('|');
-        return {
-            brand: (bParts || "PowerS").trim(),
-            code: (bParts || "").trim(),
-            desc: (cParts || "").trim(),
-            fix: (cParts || "").trim()
-        };
+        return { brand: (bParts || "PowerS").trim(), code: (bParts || "").trim(), desc: (cParts || "").trim(), fix: (cParts || "").trim() };
     });
     return [...realErrors, ...MOCK_ERRORS];
 }
@@ -383,46 +366,29 @@ function renderErrorsPage(page) {
     const tbody = document.getElementById('errorTableBody');
     const pag = document.getElementById('errorPagination');
     if (!tbody) return;
-
     const searchCode = (document.getElementById('errSearchInput')?.value || "").toLowerCase().trim();
     const filterBrand = document.getElementById('errBrandSelect')?.value || "ALL";
-    const filtered = getCombinedErrors().filter(err => {
-        const matchBrand = (filterBrand === "ALL" || err.brand.toLowerCase() === filterBrand.toLowerCase());
-        const matchCode = (!searchCode || err.code.toLowerCase().includes(searchCode) || err.desc.toLowerCase().includes(searchCode));
-        return matchBrand && matchCode;
-    });
-
+    const filtered = getCombinedErrors().filter(err => (filterBrand === "ALL" || err.brand.toLowerCase() === filterBrand.toLowerCase()) && (!searchCode || err.code.toLowerCase().includes(searchCode) || err.desc.toLowerCase().includes(searchCode)));
     const perPage = 20;
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     const items = filtered.slice((page - 1) * perPage, page * perPage);
 
     tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" style="text-align:center; padding:20px;">Không tìm thấy mã lỗi phù hợp.</td></tr>` : items.map(e => {
-        let badgeCls = 'badge-powers';
-        if (e.brand.toLowerCase() === 'voltique') badgeCls = 'badge-voltique';
-        if (e.brand.toLowerCase() === 'saj') badgeCls = 'badge-saj';
+        let badgeCls = e.brand.toLowerCase() === 'voltique' ? 'badge-voltique' : (e.brand.toLowerCase() === 'saj' ? 'badge-saj' : 'badge-powers');
         return `<tr><td><span class="badge ${badgeCls}">${e.brand}</span></td><td><b style="color:var(--danger);">${e.code}</b></td><td>${e.desc}</td><td>${e.fix}</td></tr>`;
     }).join('');
-
-    pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `
-        <button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderErrorsPage(${i + 1})">${i + 1}</button>
-    `).join('');
+    pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderErrorsPage(${i + 1})">${i + 1}</button>`).join('');
 }
+
 function getCombinedKnowledge() {
-    const realBlogs = appData.configs.filter(c => c.code === 'KIEN_THUC').map(c => ({
-        title: c.title, date: "Mới cập nhật", content: c.content, video: c.media
-    }));
+    const realBlogs = appData.configs.filter(c => c.code === 'KIEN_THUC').map(c => ({ title: c.title, date: "Mới cập nhật", content: c.content, video: c.media }));
     return [...realBlogs, ...MOCK_KNOWLEDGE];
 }
 
 function renderKnowledgePage() {
     const listArea = document.getElementById('knowledgeListArea');
     if (!listArea) return;
-    listArea.innerHTML = getCombinedKnowledge().map((b, idx) => `
-        <div class="blog-row" onclick="openKnowledgeDetail(${idx})">
-            <div style="font-weight:600; color:var(--dark);">📄 ${b.title}</div>
-            <span style="font-size:12px; color:#64748b; white-space:nowrap;">${b.date} ➔</span>
-        </div>
-    `).join('');
+    listArea.innerHTML = getCombinedKnowledge().map((b, idx) => `<div class="blog-row" onclick="openKnowledgeDetail(${idx})"><div style="font-weight:600; color:var(--dark);">📄 ${b.title}</div><span style="font-size:12px; color:#64748b; white-space:nowrap;">${b.date} ➔</span></div>`).join('');
 }
 
 function openKnowledgeDetail(idx) {
@@ -438,7 +404,7 @@ function openKnowledgeDetail(idx) {
 }
 const CALC_TOOLS_LIST = [
     { id: 'pump', icon: '💧', title: 'Tính công suất bơm', desc: 'Tính cột áp tổng, tổn thất ma sát ống và chọn công suất bơm chuẩn thủy lực.' },
-    { id: 'solar', icon: '☀️', title: 'Chọn biến tần và công suất giàn pin', desc: 'Phối ghép 28 mã pin & 47 biến tần, phân chuỗi an toàn và lập báo giá chi tiết.' },
+    { id: 'solar', icon: '☀️', title: 'Tính Toán Chuỗi Pin Biến Tần Bơm NLMT', desc: 'Chọn biến tần theo hãng, nhập thông số pin và xuất 3 phương án cấu hình thực chiến.' },
     { id: 'acc', icon: '🔩', title: 'Tính phụ kiện', desc: 'Tính nhanh số lượng chân đế, kẹp biên, kẹp giữa cho hệ thống pin áp mái.' },
     { id: 'vdrop', icon: '⚡', title: 'Tính sụt áp trên đường dây', desc: 'Kiểm tra độ sụt áp dây dẫn DC/AC và khuyến nghị tiết diện cáp an toàn.' },
     { id: 'divider', icon: '🔌', title: 'Tính cầu trở phân áp', desc: 'Tính điện áp đầu ra Vout và dòng tiêu thụ cho mạch cảm biến, đo lường.' }
@@ -452,17 +418,8 @@ function renderToolsPage(page) {
     const totalPages = Math.ceil(CALC_TOOLS_LIST.length / perPage);
     const items = CALC_TOOLS_LIST.slice((page - 1) * perPage, page * perPage);
 
-    grid.innerHTML = items.map(t => `
-        <div class="item-card" onclick="openCalcToolModal('${t.id}')" style="padding:16px; text-align:center;">
-            <div style="font-size:32px; margin-bottom:8px;">${t.icon}</div>
-            <h3 class="card-heading" style="color:var(--primary);">${t.title}</h3>
-            <p class="card-desc-2line">${t.desc}</p>
-        </div>
-    `).join('');
-
-    pag.innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `
-        <button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderToolsPage(${i + 1})">${i + 1}</button>
-    `).join('') : '';
+    grid.innerHTML = items.map(t => `<div class="item-card" onclick="openCalcToolModal('${t.id}')" style="padding:16px; text-align:center;"><div style="font-size:32px; margin-bottom:8px;">${t.icon}</div><h3 class="card-heading" style="color:var(--primary);">${t.title}</h3><p class="card-desc-2line">${t.desc}</p></div>`).join('');
+    pag.innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderToolsPage(${i + 1})">${i + 1}</button>`).join('') : '';
 }
 
 function openCalcToolModal(toolId) {
@@ -485,58 +442,78 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" class="result-box"></div>
         `);
     } else if (toolId === 'solar') {
+        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.power === 625 ? 'selected' : ''}>${p.name}</option>`).join('') + `<option value="custom">-- Tự nhập thông số tấm pin khác --</option>`;
         openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">☀️ Tính Toán & Phối Ghép Hệ Thống Bơm NLMT</h3>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group">
-                    <label>Công suất bơm (Nhập số hoặc phép tính VD: 7.5+2.2):</label>
-                    <div class="input-unit-group">
-                        <input type="text" id="spPumpExpr" inputmode="decimal" value="7.5" placeholder="VD: 7.5 + 2.2" oninput="cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
-                        <select id="spPumpUnit" onchange="filterAndSelectInverters()">
-                            <option value="kW" selected>kW</option>
-                            <option value="HP">HP</option>
+            <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin Biến Tần Bơm NLMT (Bản Thực Chiến)</h3>
+            <div class="solar-sec-box" style="margin-bottom:12px;">
+                <div class="solar-sec-title">0. Thông Số Máy Bơm Thực Tế (Để trống nếu muốn xem toàn bộ Biến Tần)</div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Loại tải máy bơm:</label>
+                        <select id="scLoadType" onchange="updateInverterDropdownByBrand()">
+                            <option value="1" selected>Bơm hỏa tiễn / Bơm chìm (Tăng 1 cấp)</option>
+                            <option value="0">Bơm đặt cạn / Ly tâm nhẹ (Bằng cấp)</option>
+                            <option value="2">Bơm piston / Nén khí / Đẩy cao nặng (Tăng 2 cấp)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Công suất máy bơm (Hỗ trợ + - * /):</label>
+                        <div class="input-unit-group">
+                            <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Để trống = xem hết" oninput="cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
+                            <select id="spPumpUnit" onchange="updateInverterDropdownByBrand()">
+                                <option value="kW" selected>kW</option>
+                                <option value="HP">HP</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Hãng biến tần ưu tiên:</label>
+                        <select id="scBrandSelect" onchange="updateInverterDropdownByBrand()">
+                            <option value="Power S" selected>Power S (Max 900V)</option>
+                            <option value="SAJ">SAJ (Max 900V)</option>
+                            <option value="Green Nova">Green Nova (Max 950V)</option>
+                            <option value="Voltique">Voltique (Max 950V)</option>
                         </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Nguồn điện máy bơm:</label>
-                    <select id="spPumpPhase" onchange="filterAndSelectInverters()">
-                        <option value="3 pha 380V" selected>3 Pha 380V (Khuyên dùng)</option>
-                        <option value="1 pha 220V">1 Pha 220V (Bơm dân dụng)</option>
-                    </select>
+            </div>
+            <div class="solar-calc-grid">
+                <div class="solar-sec-box">
+                    <div class="solar-sec-title">1. Chọn Biến Tần Phù Hợp</div>
+                    <div class="form-group">
+                        <label>Danh sách biến tần theo hãng:</label>
+                        <select id="spInvIdx" onchange="fillInverterSpecs()"></select>
+                    </div>
+                    <div class="solar-mini-grid">
+                        <div class="form-group"><label>Công suất (kW):</label><input type="number" id="invKwInput" step="0.1" value="15"></div>
+                        <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="invVdcMaxInput" value="900"></div>
+                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="invIdcMaxInput" value="40"></div>
+                        <div class="form-group"><label>Áp MPPT tối ưu từ (V):</label><input type="number" id="invMpptMinInput" value="550"></div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Áp MPPT tối ưu đến (V):</label><input type="number" id="invMpptMaxInput" value="680"></div>
+                </div>
+                <div class="solar-sec-box">
+                    <div class="solar-sec-title">2. Chọn / Nhập Tấm Pin (STC)</div>
+                    <div class="form-group">
+                        <label>Chọn mẫu tấm pin có sẵn:</label>
+                        <select id="spPanelIdx" onchange="fillPanelSpecs()">${panelOpts}</select>
+                    </div>
+                    <div class="solar-mini-grid">
+                        <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="panPmaxInput" value="625"></div>
+                        <div class="form-group"><label>Dòng làm việc Imp (A):</label><input type="number" id="panImpInput" step="0.01" value="15.28"></div>
+                        <div class="form-group"><label>Áp làm việc Vmp (V):</label><input type="number" id="panVmpInput" step="0.01" value="40.90"></div>
+                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="49.02"></div>
+                    </div>
+                    <div class="solar-mini-grid" style="margin-top:4px;">
+                        <div class="form-group" style="margin-bottom:0;"><label>Dây DC 1 chiều (m):</label><input type="number" id="spDcLen" value="25"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label>Dây AC xuống bơm (m):</label><input type="number" id="spAcLen" value="60"></div>
+                    </div>
                 </div>
             </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group">
-                    <label>Loại máy bơm thực tế:</label>
-                    <select id="spPumpType" onchange="filterAndSelectInverters()">
-                        <option value="gieng" selected>Bơm hỏa tiễn thả giếng sâu (Vượt tối đa 1 cấp)</option>
-                        <option value="can">Bơm ly tâm đặt cạn / trục đứng (Vượt tối đa 1 cấp)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Chiều dài dây AC xuống bơm (m):</label>
-                    <input type="number" id="spAcLen" value="80" oninput="filterAndSelectInverters()">
-                </div>
-            </div>
-            <div class="form-group">
-                <label id="invFilterLabel">Chọn mã biến tần (Chỉ hiển thị đúng cấp công suất đề xuất):</label>
-                <select id="spInvIdx" onchange="filterOptimalPanels()"></select>
-            </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group">
-                    <label id="panelFilterLabel">Chọn mã tấm pin phù hợp (Đã ẩn mã dư thừa):</label>
-                    <select id="spPanelIdx"></select>
-                </div>
-                <div class="form-group">
-                    <label>Chiều dài dây DC từ pin tới tủ (m):</label>
-                    <input type="number" id="spDcLen" value="25">
-                </div>
-            </div>
-            <button class="btn btn-orange" onclick="checkLimitAndRun(execSolarSystemCalc)">TÍNH TOÁN & KIỂM TRA AN TOÀN HỆ THỐNG</button>
-            <div id="toolModalResult" class="result-box"></div>
+            <button class="btn btn-orange" style="font-size:15px;" onclick="checkLimitAndRun(execRealCombatSolarCalc)">TÍNH TOÁN CẤU HÌNH CHUỖI PIN</button>
+            <div id="toolModalResult" style="margin-top:12px;"></div>
         `);
-        setTimeout(filterAndSelectInverters, 50);
+        setTimeout(() => { updateInverterDropdownByBrand(); fillPanelSpecs(); }, 50);
     } else if (toolId === 'acc') {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
@@ -574,25 +551,25 @@ function openCalcToolModal(toolId) {
         `);
     }
 }
-
 function cleanPumpExprInput() {
     const inputEl = document.getElementById('spPumpExpr');
     if (!inputEl) return;
     const cleaned = inputEl.value.replace(/[^0-9+\-*/().,\s]/g, '');
     if (inputEl.value !== cleaned) inputEl.value = cleaned;
-    filterAndSelectInverters();
+    updateInverterDropdownByBrand();
 }
 
 function evaluatePumpInput() {
     const inputEl = document.getElementById('spPumpExpr');
     if (!inputEl) return;
     const rawExpr = inputEl.value.replace(/,/g, '.').trim();
+    if (!rawExpr) return;
     const cleanExpr = rawExpr.replace(/[^0-9+\-*/().\s]/g, '');
     try {
         const val = Function('"use strict";return (' + cleanExpr + ')')();
         if (typeof val === 'number' && !isNaN(val) && val > 0) {
             inputEl.value = Number(val.toFixed(2));
-            filterAndSelectInverters();
+            updateInverterDropdownByBrand();
         }
     } catch (e) {}
 }
@@ -610,202 +587,182 @@ function parseSafePumpPowerKW() {
         return 0;
     }
 }
-function filterAndSelectInverters() {
+function updateInverterDropdownByBrand() {
+    const brand = document.getElementById('scBrandSelect')?.value || "Power S";
+    const stepUp = parseInt(document.getElementById('scLoadType')?.value || "1");
     const pumpKW = parseSafePumpPowerKW();
-    const phase = document.getElementById('spPumpPhase')?.value || "3 pha 380V";
-    const pumpType = document.getElementById('spPumpType')?.value || "gieng";
-    const acLen = parseFloat(document.getElementById('spAcLen')?.value) || 0;
     const invSelect = document.getElementById('spInvIdx');
-    const lbl = document.getElementById('invFilterLabel');
     if (!invSelect) return;
 
-    const validInvs = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
-                                        .filter(inv => inv.phase === phase);
-    if (validInvs.length === 0) return;
+    const brandInvs = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
+                                        .filter(inv => inv.brand === brand);
+    if (brandInvs.length === 0) return;
 
-    const distinctKWs = [...new Set(validInvs.map(i => i.kw))].sort((a, b) => a - b);
-    const activePumpKW = pumpKW > 0 ? pumpKW : 0.1;
-
-    let loadFactor = 1.05;
-    if (phase === "1 pha 220V") {
-        loadFactor = 1.35;
-    } else if (pumpType === "gieng") {
-        loadFactor = (acLen > 60) ? 1.35 : 1.2;
+    let displayInvs = brandInvs;
+    if (pumpKW > 0) {
+        const distinctKWs = [...new Set(brandInvs.map(i => i.kw))].sort((a, b) => a - b);
+        let baseIdx = distinctKWs.findIndex(kw => kw >= pumpKW);
+        if (baseIdx === -1) baseIdx = distinctKWs.length - 1;
+        const targetIdx = Math.min(baseIdx + stepUp, distinctKWs.length - 1);
+        const targetKW = distinctKWs[targetIdx];
+        const exactMatches = brandInvs.filter(inv => inv.kw === targetKW);
+        if (exactMatches.length > 0) displayInvs = exactMatches;
     }
 
-    const reqKW = activePumpKW * loadFactor;
-    let baseIdx = distinctKWs.findIndex(kw => kw >= activePumpKW);
-    if (baseIdx === -1) baseIdx = distinctKWs.length - 1;
-    const maxAllowedIdx = Math.min(baseIdx + 1, distinctKWs.length - 1);
-
-    let targetIdx = distinctKWs.findIndex(kw => kw >= reqKW);
-    if (targetIdx === -1 || targetIdx > maxAllowedIdx) targetIdx = maxAllowedIdx;
-
-    const recommendedKW = distinctKWs[targetIdx];
-    const matchedInvs = validInvs.filter(inv => inv.kw === recommendedKW);
-
-    if (lbl) lbl.innerHTML = `Chọn mã biến tần cấp <b style="color:var(--danger);">${recommendedKW} kW</b> (Đã ẩn các cấp khác):`;
-    invSelect.innerHTML = matchedInvs.map(inv => 
-        `<option value="${inv.origIdx}">${inv.name} (VdcMax: ${inv.vdcMax}V, IdcMax: ${inv.idcMax}A)</option>`
-    ).join('');
-
-    filterOptimalPanels();
+    invSelect.innerHTML = displayInvs.map(inv => `<option value="${inv.origIdx}">${inv.name}</option>`).join('');
+    fillInverterSpecs();
 }
-function filterOptimalPanels() {
-    const pumpKW = parseSafePumpPowerKW();
-    const pumpType = document.getElementById('spPumpType')?.value || "gieng";
-    const acLen = parseFloat(document.getElementById('spAcLen')?.value) || 0;
+
+function fillInverterSpecs() {
     const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
-    const panelSelect = document.getElementById('spPanelIdx');
-    const panelLbl = document.getElementById('panelFilterLabel');
-    if (!panelSelect || isNaN(invIdx)) return;
-
     const inv = SOLAR_INVERTERS_DB[invIdx];
-    const activePumpKW = pumpKW > 0 ? pumpKW : 0.1;
-    let pumpFactor = 1.45;
-    if (pumpType === 'gieng') pumpFactor = (acLen >= 80) ? 1.65 : 1.55;
-    const targetWatts = activePumpKW * pumpFactor * 1000;
-    const effectiveMpptMin = (inv.phase === "3 pha 380V") ? Math.max(inv.mpptMin, 485) : inv.mpptMin;
-
-    const evaluated = SOLAR_PANELS_DB.map((p, idx) => {
-        const minByPower = Math.ceil(targetWatts / p.power);
-        const maxStr = Math.floor((inv.vdcMax * 0.96) / (p.voc * 1.06));
-        const minStr = Math.ceil(effectiveMpptMin / (p.vmp * 0.86));
-        if (maxStr < minStr) return null;
-
-        let strings = 1;
-        let perStr = minByPower;
-        const max1StrKWp = (maxStr * p.power) / 1000;
-        if (minByPower <= maxStr) {
-            strings = 1;
-            perStr = Math.max(minByPower, minStr);
-        } else if ((minByPower - maxStr) <= 3 && max1StrKWp >= (activePumpKW * 1.4)) {
-            strings = 1;
-            perStr = maxStr;
-        } else {
-            strings = Math.ceil(minByPower / maxStr);
-            perStr = Math.max(Math.ceil(minByPower / strings), minStr);
-        }
-        const totalPanels = strings * perStr;
-        const totalKWp = (totalPanels * p.power) / 1000;
-        if ((strings * p.imp) > inv.idcMax) return null;
-
-        return { ...p, origIdx: idx, totalPanels, totalKWp, strings, perStr };
-    }).filter(Boolean);
-
-    evaluated.sort((a, b) => a.totalKWp - b.totalKWp);
-    const minKWp = evaluated.length > 0 ? Math.min(...evaluated.map(e => e.totalKWp)) : 0;
-    const optimalPanels = evaluated.filter(e => e.totalKWp <= minKWp + 1.2);
-    const finalPanels = optimalPanels.length > 0 ? optimalPanels : evaluated;
-
-    if (panelLbl) panelLbl.innerHTML = `Chọn mã tấm pin tối ưu (Hiện <b>${finalPanels.length}/${SOLAR_PANELS_DB.length}</b> mã tiết kiệm nhất):`;
-    panelSelect.innerHTML = finalPanels.map(p => 
-        `<option value="${p.origIdx}">${p.name} ➔ ${p.totalPanels} tấm (${p.strings} chuỗi × ${p.perStr} tấm = ${p.totalKWp.toFixed(2)} kWp)</option>`
-    ).join('');
+    if (!inv) return;
+    document.getElementById('invKwInput').value = inv.kw;
+    document.getElementById('invVdcMaxInput').value = inv.vdcMax;
+    document.getElementById('invIdcMaxInput').value = inv.idcMax;
+    document.getElementById('invMpptMinInput').value = inv.mpptMin;
+    document.getElementById('invMpptMaxInput').value = inv.mpptMax;
 }
 
+function fillPanelSpecs() {
+    const val = document.getElementById('spPanelIdx')?.value;
+    if (val === 'custom') return;
+    const pan = SOLAR_PANELS_DB[parseInt(val)];
+    if (!pan) return;
+    document.getElementById('panPmaxInput').value = pan.power;
+    document.getElementById('panImpInput').value = pan.imp;
+    document.getElementById('panVmpInput').value = pan.vmp;
+    document.getElementById('panVocInput').value = pan.voc;
+}
+function execRealCombatSolarCalc() {
+    const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
+    const baseInv = SOLAR_INVERTERS_DB[invIdx] || { name: "Biến tần tùy chỉnh", phase: "3 pha 380V", price: 10000000 };
+    const invKw = parseFloat(document.getElementById('invKwInput').value) || 0;
+    const vdcMax = parseFloat(document.getElementById('invVdcMaxInput').value) || 900;
+    const idcMax = parseFloat(document.getElementById('invIdcMaxInput').value) || 40;
+    const mpptMin = parseFloat(document.getElementById('invMpptMinInput').value) || 550;
+    const mpptMax = parseFloat(document.getElementById('invMpptMaxInput').value) || 680;
 
-function execSolarSystemCalc() {
+    const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 0;
+    const imp = parseFloat(document.getElementById('panImpInput').value) || 0;
+    const vmp = parseFloat(document.getElementById('panVmpInput').value) || 0;
+    const voc = parseFloat(document.getElementById('panVocInput').value) || 0;
+    if (invKw <= 0 || pMax <= 0 || vmp <= 0 || voc <= 0) return alert("Vui lòng kiểm tra lại thông số biến tần và tấm pin!");
+
     const pumpKW = parseSafePumpPowerKW();
-    const unit = document.getElementById('spPumpUnit').value;
-    const rawExpr = document.getElementById('spPumpExpr').value.trim();
-    const phase = document.getElementById('spPumpPhase').value;
-    const pumpType = document.getElementById('spPumpType').value;
-    const panel = SOLAR_PANELS_DB[parseInt(document.getElementById('spPanelIdx').value)];
-    const inv = SOLAR_INVERTERS_DB[parseInt(document.getElementById('spInvIdx').value)];
-    const dcLen = parseFloat(document.getElementById('spDcLen').value) || 0;
-    const acLen = parseFloat(document.getElementById('spAcLen').value) || 0;
+    const refKW = pumpKW > 0 ? pumpKW : invKw;
+    const is1Phase = (baseInv.phase === "1 pha 220V" || vdcMax <= 500);
 
-    if (pumpKW <= 0 || !inv || !panel) return alert("Vui lòng nhập công suất máy bơm hợp lệ!");
+    const maxPerStr = Math.floor((vdcMax * 0.95) / voc);
+    const minPerStr = Math.max(1, Math.ceil(mpptMin / (vmp * 0.92)));
+    const optPerStr = Math.min(maxPerStr, Math.max(minPerStr, Math.round(((mpptMin + mpptMax) / 2) / vmp)));
 
-    let pumpFactor = 1.45;
-    if (pumpType === 'gieng') {
-        pumpFactor = (acLen >= 80) ? 1.65 : 1.55;
-    }
-    const targetWatts = pumpKW * pumpFactor * 1000;
-    const minPanelsByPower = Math.ceil(targetWatts / panel.power);
+    let minStrings = Math.max(1, Math.ceil((refKW * 1.25 * 1000) / (minPerStr * pMax)));
+    let minPanels = minStrings * minPerStr;
 
-    const vocColdUnit = panel.voc * 1.06;
-    const vmpHotUnit = panel.vmp * 0.86;
-    const effectiveMpptMin = (inv.phase === "3 pha 380V") ? Math.max(inv.mpptMin, 485) : inv.mpptMin;
-    const maxPanelsPerString = Math.floor((inv.vdcMax * 0.96) / vocColdUnit);
-    const minPanelsPerString = Math.ceil(effectiveMpptMin / vmpHotUnit);
-
-    if (maxPanelsPerString < minPanelsPerString) {
-        return alert("⚠️ Mã tấm pin và biến tần này không tương thích dải điện áp MPPT. Vui lòng chọn biến tần có Vdc_max cao hơn!");
-    }
-    let strings = 1;
-    let panelsPerString = minPanelsByPower;
-    const max1StringKWp = (maxPanelsPerString * panel.power) / 1000;
-
-    if (minPanelsByPower <= maxPanelsPerString) {
-        strings = 1;
-        panelsPerString = Math.max(minPanelsByPower, minPanelsPerString);
-    } else if ((minPanelsByPower - maxPanelsPerString) <= 3 && max1StringKWp >= (pumpKW * 1.45)) {
-        strings = 1;
-        panelsPerString = maxPanelsPerString;
+    let optStrings = 1;
+    let optPanelsPerStr = optPerStr;
+    if ((maxPerStr * pMax) >= (refKW * 1.35 * 1000)) {
+        optStrings = 1;
+        optPanelsPerStr = Math.min(maxPerStr, Math.max(optPerStr, Math.ceil((refKW * 1.45 * 1000) / pMax)));
     } else {
-        strings = Math.ceil(minPanelsByPower / maxPanelsPerString);
-        panelsPerString = Math.max(Math.ceil(minPanelsByPower / strings), minPanelsPerString);
+        optStrings = Math.max(2, Math.ceil((refKW * 1.45 * 1000) / (optPerStr * pMax)));
+        optPanelsPerStr = Math.max(minPerStr, Math.ceil((refKW * 1.45 * 1000) / (optStrings * pMax)));
+    }
+    let optPanels = optStrings * optPanelsPerStr;
+
+    let maxStrings = Math.max(optStrings, Math.floor(idcMax / imp) || 1);
+    if (maxStrings > 3) maxStrings = 3;
+    let maxPanels = maxStrings * maxPerStr;
+    if (maxPanels <= optPanels) {
+        maxStrings = optStrings + 1;
+        maxPanels = maxStrings * optPanelsPerStr;
     }
 
-    const totalPanels = strings * panelsPerString;
-    const totalKWp = (totalPanels * panel.power) / 1000;
-    const vocColdTotal = panelsPerString * vocColdUnit;
-    const vmpHotTotal = panelsPerString * vmpHotUnit;
-    const impTotal = strings * panel.imp;
+    currentSolarPlans = [
+        { label: "Phương án tối thiểu", strings: minStrings, perStr: minPerStr, total: minPanels },
+        { label: optStrings === 1 ? "⭐ Tối ưu nhất / 1 Chuỗi" : "⭐ Tối ưu nhất (Khuyên dùng)", strings: optStrings, perStr: optPanelsPerStr, total: optPanels },
+        { label: "Mở rộng tối đa an toàn", strings: maxStrings, perStr: Math.round(maxPanels / maxStrings), total: maxPanels }
+    ];
 
-    const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
-    const is1Phase = (phase === "1 pha 220V");
-    const wireCores = is1Phase ? "3x" : "4x";
-    const maxVdrop = is1Phase ? 6.6 : 11.4;
-    const cosPhi = (pumpType === 'gieng') ? 0.78 : 0.85;
-    const iMotor = is1Phase ? (pumpKW * 1000) / (220 * cosPhi) : (pumpKW * 1000) / (Math.sqrt(3) * 380 * cosPhi);
-    const dropFactor = is1Phase ? 2 : Math.sqrt(3);
-
-    const stdSizes = [2.5, 4, 6, 10, 16, 25, 35, 50, 70];
-    let chosenAcSize = stdSizes.find(s => ((dropFactor * 0.0175 * acLen * iMotor) / s) <= maxVdrop) || 70;
-    if (iMotor > 11 && chosenAcSize < 4) chosenAcSize = 4;
-    if (iMotor > 18 && chosenAcSize < 6) chosenAcSize = 6;
-    if (iMotor > 28 && chosenAcSize < 10) chosenAcSize = 10;
-    const acCable = `Cáp đồng ${wireCores}${chosenAcSize}mm² (Có dây tiếp địa PE)`;
-    let reactorNote = "Không bắt buộc.";
-    if (pumpType === 'gieng') {
-        if (acLen >= 100) {
-            reactorNote = `<span style="color:#dc2626; font-weight:bold;">⚠️ Bắt buộc lắp thêm Cuộn kháng đầu ra (Output Reactor) để chống sóng phản xạ cháy motor (cáp dài ${acLen}m)</span>`;
-        } else if (acLen >= 50) {
-            reactorNote = `<span style="color:#d97706; font-weight:bold;">Khuyến nghị lắp thêm Cuộn kháng đầu ra (cáp dài ${acLen}m)</span>`;
-        }
-    }
-
-    let warnings = [];
-    if (inv.phase !== phase) warnings.push(`Sai pha điện áp! Bơm dùng ${phase} nhưng biến tần xuất ra ${inv.phase}.`);
-    if (inv.kw < pumpKW) warnings.push(`Biến tần (${inv.kw}kW) nhỏ hơn công suất thực của bơm (${pumpKW.toFixed(2)}kW)!`);
-    if (vocColdTotal > inv.vdcMax) warnings.push(`Quá áp buổi sáng lạnh (${vocColdTotal.toFixed(0)}V > ${inv.vdcMax}V)!`);
-    if (vmpHotTotal < effectiveMpptMin) warnings.push(`Thiếu áp buổi trưa nắng nóng (${vmpHotTotal.toFixed(0)}V < ${effectiveMpptMin}V)!`);
-    if (impTotal > inv.idcMax) warnings.push(`Nghẽn dòng DC (${impTotal.toFixed(1)}A > ${inv.idcMax}A)! Hãy đổi sang mã pin dòng thấp hơn hoặc chọn biến tần có Idc_max lớn hơn.`);
-    if (is1Phase) warnings.push(`Lưu ý bơm 1 pha: Cần kiểm tra đấu đúng sơ đồ bỏ tụ đề (3 dây) nếu biến tần yêu cầu.`);
-
-    const statusHtml = warnings.length === 0 
-        ? `<div style="padding:8px; background:#dcfce7; color:#166534; border-radius:5px; font-weight:bold; margin-top:8px;">✅ PHỐI GHÉP ĐẠT CHUẨN KỸ THUẬT 100%</div>` 
-        : `<div style="padding:8px; background:#fee2e2; color:#991b1b; border-radius:5px; font-weight:bold; margin-top:8px;">⚠️ CẢNH BÁO KỸ THUẬT:<br>• ${warnings.join('<br>• ')}</div>`;
-
-    const pumpSummary = unit === "HP" ? `${rawExpr} HP (Quy đổi: ${pumpKW.toFixed(2)} kW)` : `${pumpKW.toFixed(2)} kW`;
-    lastSolarQuoteData = { pumpKW: Number(pumpKW.toFixed(2)), pumpSummary, factor: pumpFactor, panel, inv, totalPanels, totalKWp, strings, panelsPerString, dcLen, acLen, dcCable, acCable };
+    renderThreePlanCards(pMax, vmp, voc, imp, vdcMax, idcMax, is1Phase, refKW, baseInv);
+}
+function renderThreePlanCards(pMax, vmp, voc, imp, vdcMax, idcMax, is1Phase, refKW, baseInv) {
+    selectedPlanIdx = 1;
+    const cardsHtml = currentSolarPlans.map((pl, idx) => {
+        const kwp = ((pl.total * pMax) / 1000).toFixed(2);
+        const vmpSum = Math.round(pl.perStr * vmp);
+        const vocSum = Math.round(pl.perStr * voc);
+        const impSum = (pl.strings * imp).toFixed(1);
+        const bestCls = idx === 1 ? 'best-plan active-plan' : '';
+        return `
+            <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSolarPlan(${idx})">
+                <div class="plan-title">${pl.label}</div>
+                <div class="plan-panels">${pl.total} tấm</div>
+                <div class="plan-sub">
+                    <b>${kwp} kWp</b> (${pl.strings} chuỗi × ${pl.perStr} tấm)<br>
+                    Vmp: <b>${vmpSum}V</b> | Voc: <b>${vocSum}V</b><br>
+                    Dòng DC: <b>${impSum}A</b> / ${idcMax}A
+                </div>
+            </div>
+        `;
+    }).join('');
 
     const resBox = document.getElementById('toolModalResult');
-    resBox.style.display = 'block';
     resBox.innerHTML = `
-        <h4 style="margin:0 0 8px; color:var(--secondary);">KẾT QUẢ TÍNH TOÁN & PHỐI GHÉP CHUẨN</h4>
-        <p>- 🔋 <b>Tổng tải bơm thực:</b> <b>${pumpSummary}</b> (Hệ số pin: <b>${pumpFactor}</b>) | ⚙️ <b>Biến tần:</b> <b>${inv.name}</b></p>
-        <p>- 🧩 <b>Tổng số tấm pin:</b> <span class="highlight">${totalPanels} tấm</span> ${panel.name} (<b>${totalKWp.toFixed(2)} kWp</b>)</p>
-        <p>- 🔌 <b>Sơ đồ đấu nối:</b> Chia <b>${strings} chuỗi (String)</b> × <span class="highlight">${panelsPerString} tấm/chuỗi</span></p>
-        <p>- ⚡ <b>Điện áp & Dòng DC:</b> Voc lạnh (+6%) = <b>${vocColdTotal.toFixed(0)}V</b> (Max ${inv.vdcMax}V) | Vmp nóng (-14%) = <b>${vmpHotTotal.toFixed(0)}V</b> (Min ${effectiveMpptMin}V) | Imp = <b>${impTotal.toFixed(1)}A</b> (Max ${inv.idcMax}A)</p>
-        <p>- 🧵 <b>Dây dẫn chuẩn sụt áp ≤ 3%:</b> ${dcCable} (${dcLen * 2}m) | ${acCable} (${acLen}m)</p>
-        <p>- 🛡️ <b>Cuộn kháng đầu ra:</b> ${reactorNote}</p>
-        ${statusHtml}
-        <button class="btn btn-success" style="width:100%; margin-top:12px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ (CHO PHÉP SỬA GIÁ)</button>
+        <div style="font-size:13px; color:#334155; margin-bottom:6px;"><i>👆 Chạm vào 1 trong 3 thẻ phương án dưới đây để chọn cấu hình lập báo giá:</i></div>
+        <div class="solar-3cards">${cardsHtml}</div>
+        <div id="planDetailNote" style="margin-top:10px; padding:10px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0; font-size:13px;"></div>
+        <button class="btn btn-success" style="width:100%; margin-top:10px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ THEO PHƯƠNG ÁN ĐÃ CHỌN</button>
     `;
+    selectSolarPlan(1);
+}
+
+function selectSolarPlan(idx) {
+    selectedPlanIdx = idx;
+    document.querySelectorAll('.plan-card').forEach((el, i) => {
+        el.classList.toggle('active-plan', i === idx);
+    });
+
+    const pl = currentSolarPlans[idx];
+    const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 625;
+    const imp = parseFloat(document.getElementById('panImpInput').value) || 15.28;
+    const invKw = parseFloat(document.getElementById('invKwInput').value) || 15;
+    const dcLen = parseFloat(document.getElementById('spDcLen')?.value) || 25;
+    const acLen = parseFloat(document.getElementById('spAcLen')?.value) || 60;
+    const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
+    const invObj = SOLAR_INVERTERS_DB[invIdx] || { name: `Biến tần bơm ${invKw}kW`, phase: "3 pha 380V", price: invKw * 950000 };
+    const panVal = document.getElementById('spPanelIdx')?.value;
+    const panObj = panVal !== 'custom' ? SOLAR_PANELS_DB[parseInt(panVal)] : { name: `Tấm pin NLMT ${pMax}W`, power: pMax, priceWp: 2950 };
+
+    const totalKWp = (pl.total * pMax) / 1000;
+    const impTotal = pl.strings * imp;
+    const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
+    const is1Phase = invObj.phase === "1 pha 220V";
+    const wireCores = is1Phase ? "3x" : "4x";
+    const acCable = invKw <= 4 ? `Cáp đồng ${wireCores}4mm² (Có PE)` : (invKw <= 11 ? `Cáp đồng ${wireCores}6mm² (Có PE)` : `Cáp đồng ${wireCores}10mm² (Có PE)`);
+
+    const pumpKW = parseSafePumpPowerKW();
+    const pumpSummary = pumpKW > 0 ? `${pumpKW} kW` : `Hệ biến tần ${invKw} kW`;
+    lastSolarQuoteData = {
+        pumpKW: pumpKW || invKw,
+        pumpSummary,
+        panel: panObj,
+        inv: invObj,
+        totalPanels: pl.total,
+        totalKWp,
+        strings: pl.strings,
+        panelsPerString: pl.perStr,
+        dcLen,
+        acLen,
+        dcCable,
+        acCable
+    };
+
+    const noteEl = document.getElementById('planDetailNote');
+    if (noteEl) {
+        noteEl.innerHTML = `✅ Đang chọn: <b>${pl.label}</b> — <b>${pl.total} tấm</b> (${totalKWp.toFixed(2)} kWp) | Dây dẫn: <b>${dcCable}</b> & <b>${acCable}</b>.`;
+    }
 }
 const QUOTE_ITEM_NAMES = [
     "Tấm pin năng lượng mặt trời", "Biến tần bơm năng lượng mặt trời",
@@ -913,7 +870,6 @@ function buildFinalQuotePrintHtml() {
         </div>
     </div>`;
 }
-
 function copyQuoteForZalo() {
     const d = lastSolarQuoteData;
     if (!d) return;
@@ -932,7 +888,7 @@ function copyQuoteForZalo() {
     text += `💰 TỔNG THANH TOÁN: ${finalTotal} VNĐ`;
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép toàn bộ nội dung Báo Giá vào bộ nhớ tạm! Bạn chỉ cần mở Zalo và bấm Dán để gửi cho khách."))
+        navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép toàn bộ nội dung Báo Giá vào bộ nhớ tạm!"))
         .catch(() => prompt("Sao chép nội dung báo giá dưới đây để dán vào Zalo:", text));
     } else {
         prompt("Sao chép nội dung báo giá dưới đây để dán vào Zalo:", text);
@@ -984,7 +940,6 @@ function execAccCalc() {
     resBox.style.display = 'block';
     resBox.innerHTML = `<p>- 📐 <b>Số tấm/dãy:</b> <span class="highlight">${(panels / rows).toFixed(1)}</span> tấm | 🔩 <b>Chân đế:</b> <span class="highlight">${(panels + rows) * legType}</span> cái | 📎 <b>Kẹp biên:</b> <span class="highlight">${rows * 2 * legType}</span> cái | 🔗 <b>Kẹp giữa:</b> <span class="highlight">${(panels - rows) * legType}</span> cái</p>`;
 }
-
 function execVdropCalc() {
     const volt = parseFloat(document.getElementById('vdSystem').value) || 380;
     const rho = parseFloat(document.getElementById('vdMaterial').value) || 0.0175;
