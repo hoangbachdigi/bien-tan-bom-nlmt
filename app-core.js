@@ -20,36 +20,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     checkSharedProductUrl();
     syncDataFromGoogleSheet();
 });
-
 function renderVietnamDate() {
     const el = document.getElementById('vnDateDisplay');
     if (!el) return;
     try {
         const now = new Date();
         const vnStr = now.toLocaleDateString('vi-VN', {
-            timeZone: 'Asia/Ho_Chi_Minh',
-            weekday: 'long',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
+            timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
         });
         el.innerText = "📅 " + vnStr.charAt(0).toUpperCase() + vnStr.slice(1);
-    } catch (e) {
-        el.innerText = "📅 Hôm nay";
-    }
+    } catch (e) { el.innerText = "📅 Hôm nay"; }
 }
 function checkSharedProductUrl() {
     const params = new URLSearchParams(window.location.search);
     const spIdx = params.get('sp');
-    if (spIdx !== null && !isNaN(parseInt(spIdx))) {
-        openProductDetail(parseInt(spIdx));
-    }
+    if (spIdx !== null && !isNaN(parseInt(spIdx))) openProductDetail(parseInt(spIdx));
 }
 
 function toggleMobileDrawer() {
     document.getElementById('mobileDrawer').classList.toggle('open');
 }
-
 function selectMobileDrawer(pageFile, labelText, el) {
     document.querySelectorAll('.drawer-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
@@ -75,7 +65,6 @@ async function loadSubPage(pageFile, navElement) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
 }
-
 function applyBannerFromConfig() {
     const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
     if (bannerCfg && bannerCfg.media) {
@@ -90,20 +79,14 @@ async function syncDataFromGoogleSheet() {
         const res = await fetch(API_URL, { signal: controller.signal });
         clearTimeout(timeoutId);
         const data = await res.json();
-        appData.users = [
-            { username: 'nguyenhoangbach', role: 'admin', status: 'approved' },
-            ...(data.users || []).map(u => ({ ...u, role: 'user' }))
-        ];
+        appData.users = [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }, ...(data.users || []).map(u => ({ ...u, role: 'user' }))];
         appData.configs = data.configs || [];
         appData.logs = data.logs || [];
         localStorage.setItem('solar_app_cache', JSON.stringify(appData));
         applyBannerFromConfig();
         if (currentUser) {
             const freshUser = appData.users.find(u => u.username === currentUser.username);
-            if (freshUser) {
-                currentUser = freshUser;
-                sessionStorage.setItem('current_user', JSON.stringify(currentUser));
-            }
+            if (freshUser) { currentUser = freshUser; sessionStorage.setItem('current_user', JSON.stringify(currentUser)); }
         }
         updateTopUserBar();
     } catch (e) {}
@@ -125,7 +108,6 @@ function updateTopUserBar() {
         btnLabel.innerText = "Đăng nhập";
     }
 }
-
 function checkLimitAndRun(callbackFn) {
     if (currentUser && currentUser.status === 'approved') return callbackFn();
     if (guestCount >= 3) {
@@ -137,15 +119,17 @@ function checkLimitAndRun(callbackFn) {
     updateTopUserBar();
     callbackFn();
 }
+
 function openGlobalModal(htmlContent) {
     document.getElementById('globalModalBody').innerHTML = htmlContent;
     document.getElementById('globalModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 }
 
 function closeGlobalModal() {
     document.getElementById('globalModal').style.display = 'none';
+    document.body.style.overflow = '';
 }
-
 function openUserModal() {
     if (!currentUser) {
         openGlobalModal(`
@@ -178,7 +162,6 @@ async function processRegister() {
     closeGlobalModal();
     syncDataFromGoogleSheet();
 }
-
 async function processLogin() {
     const name = document.getElementById('modalZaloInput').value.trim();
     if (!name) return alert("Vui lòng nhập tên Zalo!");
@@ -227,7 +210,6 @@ function calculateUserStats() {
 
     return Object.values(statsMap).sort((a, b) => b[currentSortBy] - a[currentSortBy]);
 }
-
 function sortStatsTable(criteria) {
     currentSortBy = criteria;
     renderStatsTableOnly();
@@ -330,7 +312,6 @@ function renderProductsPage(page) {
     }).join('');
     pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>`).join('');
 }
-
 function openProductDetail(idx) {
     const item = getCombinedProducts()[idx];
     if (!item) return;
@@ -357,7 +338,7 @@ function getCombinedErrors() {
     const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
         const bParts = c.title.split('|');
         const cParts = c.content.split('|');
-        return { brand: (bParts || "PowerS").trim(), code: (bParts || "").trim(), desc: (cParts || "").trim(), fix: (cParts || "").trim() };
+        return { brand: (bParts[0] || "PowerS").trim(), code: (bParts[1] || "").trim(), desc: (cParts[0] || "").trim(), fix: (cParts[1] || "").trim() };
     });
     return [...realErrors, ...MOCK_ERRORS];
 }
@@ -379,7 +360,6 @@ function renderErrorsPage(page) {
     }).join('');
     pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderErrorsPage(${i + 1})">${i + 1}</button>`).join('');
 }
-
 function getCombinedKnowledge() {
     const realBlogs = appData.configs.filter(c => c.code === 'KIEN_THUC').map(c => ({ title: c.title, date: "Mới cập nhật", content: c.content, video: c.media }));
     return [...realBlogs, ...MOCK_KNOWLEDGE];
@@ -404,7 +384,7 @@ function openKnowledgeDetail(idx) {
 }
 const CALC_TOOLS_LIST = [
     { id: 'pump', icon: '💧', title: 'Tính công suất bơm', desc: 'Tính cột áp tổng, tổn thất ma sát ống và chọn công suất bơm chuẩn thủy lực.' },
-    { id: 'solar', icon: '☀️', title: 'Tính Toán Chuỗi Pin Biến Tần Bơm NLMT', desc: 'Chọn biến tần theo hãng, nhập thông số pin và xuất 3 phương án cấu hình thực chiến.' },
+    { id: 'solar', icon: '☀️', title: 'Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT', desc: 'Chọn biến tần theo hãng, nhập thông số pin và xuất 3 phương án cấu hình thực chiến.' },
     { id: 'acc', icon: '🔩', title: 'Tính phụ kiện', desc: 'Tính nhanh số lượng chân đế, kẹp biên, kẹp giữa cho hệ thống pin áp mái.' },
     { id: 'vdrop', icon: '⚡', title: 'Tính sụt áp trên đường dây', desc: 'Kiểm tra độ sụt áp dây dẫn DC/AC và khuyến nghị tiết diện cáp an toàn.' },
     { id: 'divider', icon: '🔌', title: 'Tính cầu trở phân áp', desc: 'Tính điện áp đầu ra Vout và dòng tiêu thụ cho mạch cảm biến, đo lường.' }
@@ -421,7 +401,6 @@ function renderToolsPage(page) {
     grid.innerHTML = items.map(t => `<div class="item-card" onclick="openCalcToolModal('${t.id}')" style="padding:16px; text-align:center;"><div style="font-size:32px; margin-bottom:8px;">${t.icon}</div><h3 class="card-heading" style="color:var(--primary);">${t.title}</h3><p class="card-desc-2line">${t.desc}</p></div>`).join('');
     pag.innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderToolsPage(${i + 1})">${i + 1}</button>`).join('') : '';
 }
-
 function openCalcToolModal(toolId) {
     if (toolId === 'pump') {
         openGlobalModal(`
@@ -444,7 +423,7 @@ function openCalcToolModal(toolId) {
     } else if (toolId === 'solar') {
         const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.power === 625 ? 'selected' : ''}>${p.name}</option>`).join('') + `<option value="custom">-- Tự nhập thông số tấm pin khác --</option>`;
         openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin Biến Tần Bơm NLMT (Bản Thực Chiến)</h3>
+            <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT</h3>
             <div class="solar-sec-box" style="margin-bottom:12px;">
                 <div class="solar-sec-title">0. Thông Số Máy Bơm Thực Tế (Để trống nếu muốn xem toàn bộ Biến Tần)</div>
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
@@ -457,7 +436,7 @@ function openCalcToolModal(toolId) {
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label>Công suất máy bơm (Hỗ trợ + - * /):</label>
+                        <label>Tổng công suất máy bơm:</label>
                         <div class="input-unit-group">
                             <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Để trống = xem hết" oninput="cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
                             <select id="spPumpUnit" onchange="updateInverterDropdownByBrand()">
@@ -504,9 +483,9 @@ function openCalcToolModal(toolId) {
                         <div class="form-group"><label>Áp làm việc Vmp (V):</label><input type="number" id="panVmpInput" step="0.01" value="40.90"></div>
                         <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="49.02"></div>
                     </div>
-                    <div class="solar-mini-grid" style="margin-top:4px;">
-                        <div class="form-group" style="margin-bottom:0;"><label>Dây DC 1 chiều (m):</label><input type="number" id="spDcLen" value="25"></div>
-                        <div class="form-group" style="margin-bottom:0;"><label>Dây AC xuống bơm (m):</label><input type="number" id="spAcLen" value="60"></div>
+                    <div class="form-group" style="margin-top:4px; margin-bottom:0;">
+                        <label>Chiều dài dây Cab Solar DC 1 chiều (m):</label>
+                        <input type="number" id="spDcLen" value="25">
                     </div>
                 </div>
             </div>
@@ -514,7 +493,8 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" style="margin-top:12px;"></div>
         `);
         setTimeout(() => { updateInverterDropdownByBrand(); fillPanelSpecs(); }, 50);
-    } else if (toolId === 'acc') {
+    }
+    else if (toolId === 'acc') {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
             <div class="form-group"><label>Tổng số lượng tấm pin (tấm):</label><input type="number" id="accTotalPanels" value="18"></div>
@@ -583,9 +563,7 @@ function parseSafePumpPowerKW() {
         const val = Function('"use strict";return (' + cleanExpr + ')')();
         if (typeof val !== 'number' || isNaN(val) || val <= 0) return 0;
         return unit === "HP" ? (val * 0.75) : val;
-    } catch (e) {
-        return 0;
-    }
+    } catch (e) { return 0; }
 }
 function updateInverterDropdownByBrand() {
     const brand = document.getElementById('scBrandSelect')?.value || "Power S";
@@ -651,146 +629,118 @@ function execRealCombatSolarCalc() {
 
     const pumpKW = parseSafePumpPowerKW();
     const refKW = pumpKW > 0 ? pumpKW : invKw;
-    const is1Phase = (baseInv.phase === "1 pha 220V" || vdcMax <= 500);
+    const vocColdFactor = 1.05;
 
-    const maxPerStr = Math.floor((vdcMax * 0.95) / voc);
-    const minPerStr = Math.max(1, Math.ceil(mpptMin / (vmp * 0.92)));
+    const maxPerStr = Math.floor(vdcMax / (voc * vocColdFactor));
+    const minPerStr = Math.max(1, Math.ceil(mpptMin / vmp));
     const optPerStr = Math.min(maxPerStr, Math.max(minPerStr, Math.round(((mpptMin + mpptMax) / 2) / vmp)));
 
-    let minStrings = Math.max(1, Math.ceil((refKW * 1.25 * 1000) / (minPerStr * pMax)));
-    let minPanels = minStrings * minPerStr;
-
-    let optStrings = 1;
-    let optPanelsPerStr = optPerStr;
-    if ((maxPerStr * pMax) >= (refKW * 1.35 * 1000)) {
-        optStrings = 1;
-        optPanelsPerStr = Math.min(maxPerStr, Math.max(optPerStr, Math.ceil((refKW * 1.45 * 1000) / pMax)));
+    let recStrings = 1;
+    let recPerStr = optPerStr;
+    if ((maxPerStr * pMax) >= (refKW * 1.15 * 1000)) {
+        recStrings = 1;
+        recPerStr = Math.min(maxPerStr, Math.max(optPerStr, Math.ceil((refKW * 1.25 * 1000) / pMax)));
     } else {
-        optStrings = Math.max(2, Math.ceil((refKW * 1.45 * 1000) / (optPerStr * pMax)));
-        optPanelsPerStr = Math.max(minPerStr, Math.ceil((refKW * 1.45 * 1000) / (optStrings * pMax)));
-    }
-    let optPanels = optStrings * optPanelsPerStr;
-
-    let maxStrings = Math.max(optStrings, Math.floor(idcMax / imp) || 1);
-    if (maxStrings > 3) maxStrings = 3;
-    let maxPanels = maxStrings * maxPerStr;
-    if (maxPanels <= optPanels) {
-        maxStrings = optStrings + 1;
-        maxPanels = maxStrings * optPanelsPerStr;
+        recStrings = Math.max(2, Math.ceil((refKW * 1.2 * 1000) / (optPerStr * pMax)));
+        recPerStr = Math.max(minPerStr, Math.min(maxPerStr, Math.ceil((refKW * 1.2 * 1000) / (recStrings * pMax))));
     }
 
     currentSolarPlans = [
-        { label: "Phương án tối thiểu", strings: minStrings, perStr: minPerStr, total: minPanels },
-        { label: optStrings === 1 ? "⭐ Tối ưu nhất / 1 Chuỗi" : "⭐ Tối ưu nhất (Khuyên dùng)", strings: optStrings, perStr: optPanelsPerStr, total: optPanels },
-        { label: "Mở rộng tối đa an toàn", strings: maxStrings, perStr: Math.round(maxPanels / maxStrings), total: maxPanels }
+        { label: "PHƯƠNG ÁN TỐI THIỂU", strings: 1, perStr: minPerStr, total: minPerStr },
+        { label: "⭐ TỐI ƯU NHẤT / 1 CHUỖI", strings: 1, perStr: optPerStr, total: optPerStr },
+        { label: "MỞ RỘNG TỐI ĐA AN TOÀN", strings: 1, perStr: maxPerStr, total: maxPerStr }
     ];
 
-    renderThreePlanCards(pMax, vmp, voc, imp, vdcMax, idcMax, is1Phase, refKW, baseInv);
+    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor);
 }
-function renderThreePlanCards(pMax, vmp, voc, imp, vdcMax, idcMax, is1Phase, refKW, baseInv) {
-    selectedPlanIdx = 1;
+function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor) {
     const cardsHtml = currentSolarPlans.map((pl, idx) => {
-        const kwp = ((pl.total * pMax) / 1000).toFixed(2);
-        const vmpSum = Math.round(pl.perStr * vmp);
-        const vocSum = Math.round(pl.perStr * voc);
-        const impSum = (pl.strings * imp).toFixed(1);
+        const voc25 = (pl.perStr * voc).toFixed(1);
+        const vocCold = (pl.perStr * voc * vocColdFactor).toFixed(1);
+        const vmpStr = (pl.perStr * vmp).toFixed(1);
+        const kwpStr = ((pl.perStr * pMax) / 1000).toFixed(2);
         const bestCls = idx === 1 ? 'best-plan active-plan' : '';
         return `
-            <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSolarPlan(${idx})">
+            <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSingleOrRecPlan(${idx}, ${recStrings}, ${recPerStr})">
                 <div class="plan-title">${pl.label}</div>
-                <div class="plan-panels">${pl.total} tấm</div>
+                <div class="plan-panels">${pl.perStr} tấm / chuỗi</div>
                 <div class="plan-sub">
-                    <b>${kwp} kWp</b> (${pl.strings} chuỗi × ${pl.perStr} tấm)<br>
-                    Vmp: <b>${vmpSum}V</b> | Voc: <b>${vocSum}V</b><br>
-                    Dòng DC: <b>${impSum}A</b> / ${idcMax}A
+                    Voc (25°C): <b>${voc25}V</b> | Trời lạnh (-10°C): <b>${vocCold}V</b><br>
+                    Vmp: <b>${vmpStr}V</b> | Công suất: <b>${kwpStr} kWp</b>
                 </div>
             </div>
         `;
     }).join('');
 
+    const recTotalPanels = recStrings * recPerStr;
+    const recTotalKWp = ((recTotalPanels * pMax) / 1000).toFixed(2);
+    const recTotalImp = (recStrings * imp).toFixed(2);
+
+    const forbiddenPanels = maxPerStr + 1;
+    const forbiddenVocCold = (forbiddenPanels * voc * vocColdFactor).toFixed(1);
+    let warnLines = [
+        `<b>Bảo vệ quá áp sáng sớm trời lạnh (-10°C):</b> Tuyệt đối không đấu đến <b>${forbiddenPanels} tấm/chuỗi</b> vì điện áp hở mạch lúc trời lạnh sẽ vọt lên <b>${forbiddenVocCold}V</b>, vượt ngưỡng chịu đựng <b>${vdcMax}V</b> của biến tần.`
+    ];
+    if (parseFloat(recTotalImp) > 25) {
+        warnLines.push(`<b>Cảnh báo dòng điện cao (${recTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
+    }
+
     const resBox = document.getElementById('toolModalResult');
     resBox.innerHTML = `
-        <div style="font-size:13px; color:#334155; margin-bottom:6px;"><i>👆 Chạm vào 1 trong 3 thẻ phương án dưới đây để chọn cấu hình lập báo giá:</i></div>
         <div class="solar-3cards">${cardsHtml}</div>
-        <div id="planDetailNote" style="margin-top:10px; padding:10px; background:#f8fafc; border-radius:6px; border:1px solid #e2e8f0; font-size:13px;"></div>
-        <button class="btn btn-success" style="width:100%; margin-top:10px; font-size:15px;" onclick="openEditableQuoteModal()">📄 LẬP BẢNG BÁO GIÁ THEO PHƯƠNG ÁN ĐÃ CHỌN</button>
+        <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:6px; font-size:13.5px; color:#14532d;">
+            <div style="font-weight:700; margin-bottom:4px;">💡 Cấu hình đề xuất cho biến tần ${invKw}kW:</div>
+            Ghép <b>${recStrings} chuỗi song song</b>, mỗi chuỗi <b>${recPerStr} tấm</b> (Tổng cộng <b>${recTotalPanels} tấm pin</b> — Tổng công suất dàn pin: <b>${recTotalKWp} kWp</b> | Tổng dòng làm việc: <b>${recTotalImp}A</b>).
+        </div>
+        <div style="margin-top:10px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#92400e; line-height:1.55;">
+            • ${warnLines.join('<br>• ')}
+        </div>
+        <button class="btn btn-success" style="width:100%; margin-top:12px; font-size:15px;" onclick="openEditableQuoteModal()">📄 Lập Bảng Báo Giá</button>
     `;
-    selectSolarPlan(1);
+    setQuoteDataFromCombat(recStrings, recPerStr);
 }
 
-function selectSolarPlan(idx) {
-    selectedPlanIdx = idx;
-    document.querySelectorAll('.plan-card').forEach((el, i) => {
-        el.classList.toggle('active-plan', i === idx);
-    });
+function selectSingleOrRecPlan(idx, recStrings, recPerStr) {
+    document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
+    setQuoteDataFromCombat(recStrings, currentSolarPlans[idx].perStr);
+}
 
-    const pl = currentSolarPlans[idx];
+function setQuoteDataFromCombat(strings, perStr) {
     const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 625;
-    const imp = parseFloat(document.getElementById('panImpInput').value) || 15.28;
     const invKw = parseFloat(document.getElementById('invKwInput').value) || 15;
     const dcLen = parseFloat(document.getElementById('spDcLen')?.value) || 25;
-    const acLen = parseFloat(document.getElementById('spAcLen')?.value) || 60;
     const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
-    const invObj = SOLAR_INVERTERS_DB[invIdx] || { name: `Biến tần bơm ${invKw}kW`, phase: "3 pha 380V", price: invKw * 950000 };
+    const invObj = SOLAR_INVERTERS_DB[invIdx] || { name: `Biến tần bơm ${invKw}kW`, price: invKw * 950000 };
     const panVal = document.getElementById('spPanelIdx')?.value;
     const panObj = panVal !== 'custom' ? SOLAR_PANELS_DB[parseInt(panVal)] : { name: `Tấm pin NLMT ${pMax}W`, power: pMax, priceWp: 2950 };
-
-    const totalKWp = (pl.total * pMax) / 1000;
-    const impTotal = pl.strings * imp;
-    const dcCable = impTotal <= 20 ? "Cáp Solar DC 1x4mm²" : (impTotal <= 35 ? "Cáp Solar DC 1x6mm²" : "Cáp Solar DC 1x10mm²");
-    const is1Phase = invObj.phase === "1 pha 220V";
-    const wireCores = is1Phase ? "3x" : "4x";
-    const acCable = invKw <= 4 ? `Cáp đồng ${wireCores}4mm² (Có PE)` : (invKw <= 11 ? `Cáp đồng ${wireCores}6mm² (Có PE)` : `Cáp đồng ${wireCores}10mm² (Có PE)`);
-
+    const totalPanels = strings * perStr;
+    const totalKWp = (totalPanels * pMax) / 1000;
     const pumpKW = parseSafePumpPowerKW();
     const pumpSummary = pumpKW > 0 ? `${pumpKW} kW` : `Hệ biến tần ${invKw} kW`;
-    lastSolarQuoteData = {
-        pumpKW: pumpKW || invKw,
-        pumpSummary,
-        panel: panObj,
-        inv: invObj,
-        totalPanels: pl.total,
-        totalKWp,
-        strings: pl.strings,
-        panelsPerString: pl.perStr,
-        dcLen,
-        acLen,
-        dcCable,
-        acCable
-    };
-
-    const noteEl = document.getElementById('planDetailNote');
-    if (noteEl) {
-        noteEl.innerHTML = `✅ Đang chọn: <b>${pl.label}</b> — <b>${pl.total} tấm</b> (${totalKWp.toFixed(2)} kWp) | Dây dẫn: <b>${dcCable}</b> & <b>${acCable}</b>.`;
-    }
+    lastSolarQuoteData = { pumpKW: pumpKW || invKw, pumpSummary, panel: panObj, inv: invObj, totalPanels, totalKWp, strings, panelsPerString: perStr, dcLen };
 }
-const QUOTE_ITEM_NAMES = [
-    "Tấm pin năng lượng mặt trời", "Biến tần bơm năng lượng mặt trời",
-    "Hệ khung giá đỡ nhôm & phụ kiện kẹp", "Tủ điện bảo vệ DC/AC, CB & Chống sét SPD",
-    "Cáp chuyên dụng Solar DC (Đỏ + Đen)", "Cáp động lực AC xuống máy bơm",
-    "Vật tư phụ, jack MC4 & hệ thống tiếp địa", "Nhân công lắp đặt & cài đặt vận hành"
-];
-const QUOTE_UNITS = ["Tấm", "Bộ", "kWp", "Tủ", "Mét", "Mét", "Gói", "kWp"];
-
 function openEditableQuoteModal() {
     const d = lastSolarQuoteData;
     if (!d) return;
     const rows = [
         { name: `Tấm pin NLMT ${d.panel.name}`, unit: "Tấm", qty: d.totalPanels, price: d.panel.power * d.panel.priceWp },
         { name: `Biến tần bơm ${d.inv.name}`, unit: "Bộ", qty: 1, price: d.inv.price },
-        { name: `Hệ khung giá đỡ nhôm & phụ kiện kẹp`, unit: "kWp", qty: Number(d.totalKWp.toFixed(2)), price: 1100000 },
-        { name: `Tủ điện bảo vệ DC/AC, CB & Chống sét SPD`, unit: "Tủ", qty: 1, price: 2500000 },
-        { name: `${d.dcCable} (Đỏ + Đen)`, unit: "Mét", qty: d.dcLen * 2, price: 22000 },
-        { name: `${d.acCable} xuống máy bơm`, unit: "Mét", qty: d.acLen, price: 45000 },
-        { name: `Vật tư phụ, jack MC4 & hệ thống tiếp địa`, unit: "Gói", qty: 1, price: 1500000 },
-        { name: `Nhân công lắp đặt & cài đặt vận hành`, unit: "kWp", qty: Number(d.totalKWp.toFixed(2)), price: 900000 }
+        { name: `Bát Z`, unit: "Cái", qty: (d.totalPanels + d.strings) * 2, price: 15000 },
+        { name: `Tủ điện`, unit: "Tủ", qty: 1, price: 2500000 },
+        { name: `Cab Solar DC`, unit: "Mét", qty: d.dcLen * 2 * d.strings, price: 22000 },
+        { name: `Kẹp biên`, unit: "Cái", qty: d.strings * 4, price: 12000 },
+        { name: `Kẹp giữa`, unit: "Cái", qty: Math.max(0, (d.totalPanels - d.strings) * 2), price: 12000 },
+        { name: `Kẹp U`, unit: "Cái", qty: (d.totalPanels + d.strings) * 2, price: 10000 },
+        { name: `Jack MC4`, unit: "Cái", qty: d.strings * 4, price: 25000 },
+        { name: `Nhân công lắp đặt & cài đặt vận hành`, unit: "NC", qty: 1, price: Math.round(d.totalKWp * 800000) },
+        { name: `Khác`, unit: "", qty: 0, price: 0 }
     ];
 
     const trHtml = rows.map((r, i) => `
         <tr>
             <td style="text-align:center;">${i + 1}</td>
-            <td id="qName_${i}" style="min-width:130px;"><b>${r.name}</b></td>
-            <td style="text-align:center;">${r.unit}</td>
+            <td><input type="text" id="qName_${i}" value="${r.name}" style="min-width:140px; padding:5px; font-size:13px; font-weight:600;"></td>
+            <td><input type="text" id="qUnit_${i}" value="${r.unit}" style="width:55px; text-align:center; padding:5px; font-size:13px;"></td>
             <td><input type="number" class="quote-qty" id="qQty_${i}" value="${r.qty}" oninput="recalcQuoteTotal()"></td>
             <td><input type="number" class="quote-input" id="qPrice_${i}" value="${r.price}" oninput="recalcQuoteTotal()"></td>
             <td style="text-align:right; font-weight:600; white-space:nowrap;" id="qSub_${i}">${(r.qty * r.price).toLocaleString('vi-VN')}</td>
@@ -799,7 +749,7 @@ function openEditableQuoteModal() {
 
     openGlobalModal(`
         <h3 style="margin:0 0 6px; color:var(--primary); font-size:16px;">📄 BẢNG BÁO GIÁ BƠM NĂNG LƯỢNG MẶT TRỜI</h3>
-        <p style="font-size:12px; color:#64748b; margin-top:0;">Cấu hình: Bơm <b>${d.pumpSummary}</b> | Giàn pin <b>${d.totalKWp.toFixed(2)} kWp</b> (${d.strings} chuỗi × ${d.panelsPerString} tấm). <i>Chạm vào ô SL hoặc Đơn giá để sửa:</i></p>
+        <p style="font-size:12px; color:#64748b; margin-top:0;">Cấu hình: Bơm <b>${d.pumpSummary}</b> | Giàn pin <b>${d.totalKWp.toFixed(2)} kWp</b> (${d.strings} chuỗi × ${d.panelsPerString} tấm). <i>Chạm vào ô bất kỳ để sửa tên, ĐVT, SL hoặc Đơn giá:</i></p>
         <div class="table-wrap">
             <table class="data-table">
                 <thead><tr><th>STT</th><th>Hạng mục thiết bị</th><th>ĐVT</th><th>SL</th><th>Đơn giá (đ)</th><th style="text-align:right;">Thành tiền</th></tr></thead>
@@ -818,9 +768,10 @@ function openEditableQuoteModal() {
     `);
     recalcQuoteTotal();
 }
+
 function recalcQuoteTotal() {
     let rawTotal = 0;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 11; i++) {
         const q = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
         const p = parseFloat(document.getElementById(`qPrice_${i}`)?.value) || 0;
         const sub = Math.round(q * p);
@@ -832,20 +783,21 @@ function recalcQuoteTotal() {
     document.getElementById('qTotalRaw').innerText = rawTotal.toLocaleString('vi-VN');
     document.getElementById('qFinalTotal').innerText = Math.max(0, rawTotal - discount).toLocaleString('vi-VN');
 }
-
 function buildFinalQuotePrintHtml() {
     const d = lastSolarQuoteData;
     let rowsHtml = '';
-    for (let i = 0; i < 8; i++) {
-        const name = document.getElementById(`qName_${i}`)?.innerText || QUOTE_ITEM_NAMES[i];
+    let stt = 1;
+    for (let i = 0; i < 11; i++) {
+        const name = document.getElementById(`qName_${i}`)?.value || "";
+        const unit = document.getElementById(`qUnit_${i}`)?.value || "";
         const qty = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
         const price = parseFloat(document.getElementById(`qPrice_${i}`)?.value) || 0;
         const sub = Math.round(qty * price);
         if (qty > 0) {
             rowsHtml += `<tr>
-                <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${i + 1}</td>
+                <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${stt++}</td>
                 <td style="border:1px solid #cbd5e1; padding:6px;">${name}</td>
-                <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${QUOTE_UNITS[i]}</td>
+                <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${unit}</td>
                 <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${qty}</td>
                 <td style="text-align:right; border:1px solid #cbd5e1; padding:6px;">${price.toLocaleString('vi-VN')}</td>
                 <td style="text-align:right; border:1px solid #cbd5e1; padding:6px; font-weight:bold;">${sub.toLocaleString('vi-VN')}</td>
@@ -870,16 +822,19 @@ function buildFinalQuotePrintHtml() {
         </div>
     </div>`;
 }
+
 function copyQuoteForZalo() {
     const d = lastSolarQuoteData;
     if (!d) return;
     let text = `☀️ BÁO GIÁ HỆ THỐNG BƠM NĂNG LƯỢNG MẶT TRỜI\n• Cấu hình: Bơm ${d.pumpSummary} | Giàn pin ${d.totalKWp.toFixed(2)} kWp (${d.strings} chuỗi x ${d.panelsPerString} tấm)\n--------------------------------\n`;
-    for (let i = 0; i < 8; i++) {
-        const name = document.getElementById(`qName_${i}`)?.innerText || QUOTE_ITEM_NAMES[i];
+    let stt = 1;
+    for (let i = 0; i < 11; i++) {
+        const name = document.getElementById(`qName_${i}`)?.value || "";
+        const unit = document.getElementById(`qUnit_${i}`)?.value || "";
         const qty = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
         const price = parseFloat(document.getElementById(`qPrice_${i}`)?.value) || 0;
         const sub = document.getElementById(`qSub_${i}`)?.innerText || "0";
-        if (qty > 0) text += `${i + 1}. ${name} (SL: ${qty} ${QUOTE_UNITS[i]} × ${price.toLocaleString('vi-VN')}đ): ${sub}đ\n`;
+        if (qty > 0) text += `${stt++}. ${name} (SL: ${qty} ${unit} × ${price.toLocaleString('vi-VN')}đ): ${sub}đ\n`;
     }
     const discount = parseFloat(document.getElementById('qDiscount')?.value) || 0;
     const finalTotal = document.getElementById('qFinalTotal').innerText;
@@ -906,6 +861,7 @@ function printFinalQuote() {
     printWin.focus();
     setTimeout(() => { printWin.print(); printWin.close(); }, 300);
 }
+
 function execPumpCalc() {
     const source = document.getElementById('calcSource').value;
     const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
@@ -940,6 +896,7 @@ function execAccCalc() {
     resBox.style.display = 'block';
     resBox.innerHTML = `<p>- 📐 <b>Số tấm/dãy:</b> <span class="highlight">${(panels / rows).toFixed(1)}</span> tấm | 🔩 <b>Chân đế:</b> <span class="highlight">${(panels + rows) * legType}</span> cái | 📎 <b>Kẹp biên:</b> <span class="highlight">${rows * 2 * legType}</span> cái | 🔗 <b>Kẹp giữa:</b> <span class="highlight">${(panels - rows) * legType}</span> cái</p>`;
 }
+
 function execVdropCalc() {
     const volt = parseFloat(document.getElementById('vdSystem').value) || 380;
     const rho = parseFloat(document.getElementById('vdMaterial').value) || 0.0175;
