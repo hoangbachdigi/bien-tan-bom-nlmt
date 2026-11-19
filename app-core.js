@@ -11,7 +11,6 @@ let currentUser = JSON.parse(sessionStorage.getItem('current_user')) || null;
 let currentSortBy = 'day';
 let lastSolarQuoteData = null;
 let currentSolarPlans = [];
-let selectedPlanIdx = 1;
 document.addEventListener("DOMContentLoaded", async () => {
     renderVietnamDate();
     applyBannerFromConfig();
@@ -425,11 +424,11 @@ function openCalcToolModal(toolId) {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT</h3>
             <div class="solar-sec-box" style="margin-bottom:12px;">
-                <div class="solar-sec-title">0. Thông Số Máy Bơm Thực Tế (Để trống nếu muốn xem toàn bộ Biến Tần)</div>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
+                <div class="solar-sec-title">0. Thông số máy bơm</div>
+                <div class="grid-2" style="gap:10px;">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Loại tải máy bơm:</label>
-                        <select id="scLoadType" onchange="updateInverterDropdownByBrand()">
+                        <select id="scLoadType" onchange="updateInverterDropdownAll()">
                             <option value="1" selected>Bơm hỏa tiễn / Bơm chìm (Tăng 1 cấp)</option>
                             <option value="0">Bơm đặt cạn / Ly tâm nhẹ (Bằng cấp)</option>
                             <option value="2">Bơm piston / Nén khí / Đẩy cao nặng (Tăng 2 cấp)</option>
@@ -438,21 +437,12 @@ function openCalcToolModal(toolId) {
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Tổng công suất máy bơm:</label>
                         <div class="input-unit-group">
-                            <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Để trống = xem hết" oninput="cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
-                            <select id="spPumpUnit" onchange="updateInverterDropdownByBrand()">
+                            <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Nhập công suất..." oninput="cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
+                            <select id="spPumpUnit" onchange="updateInverterDropdownAll()">
                                 <option value="kW" selected>kW</option>
                                 <option value="HP">HP</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Hãng biến tần ưu tiên:</label>
-                        <select id="scBrandSelect" onchange="updateInverterDropdownByBrand()">
-                            <option value="Power S" selected>Power S (Max 900V)</option>
-                            <option value="SAJ">SAJ (Max 900V)</option>
-                            <option value="Green Nova">Green Nova (Max 950V)</option>
-                            <option value="Voltique">Voltique (Max 950V)</option>
-                        </select>
                     </div>
                 </div>
             </div>
@@ -460,7 +450,7 @@ function openCalcToolModal(toolId) {
                 <div class="solar-sec-box">
                     <div class="solar-sec-title">1. Chọn Biến Tần Phù Hợp</div>
                     <div class="form-group">
-                        <label>Danh sách biến tần theo hãng:</label>
+                        <label>Danh sách biến tần trong kho:</label>
                         <select id="spInvIdx" onchange="fillInverterSpecs()"></select>
                     </div>
                     <div class="solar-mini-grid">
@@ -479,9 +469,9 @@ function openCalcToolModal(toolId) {
                     </div>
                     <div class="solar-mini-grid">
                         <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="panPmaxInput" value="625"></div>
-                        <div class="form-group"><label>Dòng làm việc Imp (A):</label><input type="number" id="panImpInput" step="0.01" value="15.28"></div>
+                        <div class="form-group"><label>Dòng làm việc Imp (A):</label><input type="number" id="panImpInput" step="0.01" value="15.29"></div>
                         <div class="form-group"><label>Áp làm việc Vmp (V):</label><input type="number" id="panVmpInput" step="0.01" value="40.90"></div>
-                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="49.02"></div>
+                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="49.28"></div>
                     </div>
                     <div class="form-group" style="margin-top:4px; margin-bottom:0;">
                         <label>Chiều dài dây Cab Solar DC 1 chiều (m):</label>
@@ -492,7 +482,7 @@ function openCalcToolModal(toolId) {
             <button class="btn btn-orange" style="font-size:15px;" onclick="checkLimitAndRun(execRealCombatSolarCalc)">TÍNH TOÁN CẤU HÌNH CHUỖI PIN</button>
             <div id="toolModalResult" style="margin-top:12px;"></div>
         `);
-        setTimeout(() => { updateInverterDropdownByBrand(); fillPanelSpecs(); }, 50);
+        setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 50);
     }
     else if (toolId === 'acc') {
         openGlobalModal(`
@@ -536,7 +526,7 @@ function cleanPumpExprInput() {
     if (!inputEl) return;
     const cleaned = inputEl.value.replace(/[^0-9+\-*/().,\s]/g, '');
     if (inputEl.value !== cleaned) inputEl.value = cleaned;
-    updateInverterDropdownByBrand();
+    updateInverterDropdownAll();
 }
 
 function evaluatePumpInput() {
@@ -549,7 +539,7 @@ function evaluatePumpInput() {
         const val = Function('"use strict";return (' + cleanExpr + ')')();
         if (typeof val === 'number' && !isNaN(val) && val > 0) {
             inputEl.value = Number(val.toFixed(2));
-            updateInverterDropdownByBrand();
+            updateInverterDropdownAll();
         }
     } catch (e) {}
 }
@@ -565,29 +555,44 @@ function parseSafePumpPowerKW() {
         return unit === "HP" ? (val * 0.75) : val;
     } catch (e) { return 0; }
 }
-function updateInverterDropdownByBrand() {
-    const brand = document.getElementById('scBrandSelect')?.value || "Power S";
+function updateInverterDropdownAll() {
     const stepUp = parseInt(document.getElementById('scLoadType')?.value || "1");
     const pumpKW = parseSafePumpPowerKW();
     const invSelect = document.getElementById('spInvIdx');
     if (!invSelect) return;
 
-    const brandInvs = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
-                                        .filter(inv => inv.brand === brand);
-    if (brandInvs.length === 0) return;
+    const brandsOrder = [
+        { key: "Power S", label: "Hãng Power S (Max 900V)" },
+        { key: "Voltique", label: "Hãng Voltique (Max 950V)" },
+        { key: "Green Nova", label: "Hãng Green Nova (Max 950V)" },
+        { key: "SAJ", label: "Hãng SAJ (Max 900V)" }
+    ];
 
-    let displayInvs = brandInvs;
+    let selectedOrigIdx = -1;
     if (pumpKW > 0) {
-        const distinctKWs = [...new Set(brandInvs.map(i => i.kw))].sort((a, b) => a - b);
+        const distinctKWs = [...new Set(SOLAR_INVERTERS_DB.map(i => i.kw))].sort((a, b) => a - b);
         let baseIdx = distinctKWs.findIndex(kw => kw >= pumpKW);
         if (baseIdx === -1) baseIdx = distinctKWs.length - 1;
-        const targetIdx = Math.min(baseIdx + stepUp, distinctKWs.length - 1);
-        const targetKW = distinctKWs[targetIdx];
-        const exactMatches = brandInvs.filter(inv => inv.kw === targetKW);
-        if (exactMatches.length > 0) displayInvs = exactMatches;
+        const targetKW = distinctKWs[Math.min(baseIdx + stepUp, distinctKWs.length - 1)];
+        const matchIdx = SOLAR_INVERTERS_DB.findIndex(inv => inv.kw === targetKW);
+        if (matchIdx !== -1) selectedOrigIdx = matchIdx;
     }
 
-    invSelect.innerHTML = displayInvs.map(inv => `<option value="${inv.origIdx}">${inv.name}</option>`).join('');
+    let html = "";
+    brandsOrder.forEach(b => {
+        const items = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
+                                        .filter(inv => inv.brand === b.key);
+        if (items.length > 0) {
+            html += `<optgroup label="${b.label}">`;
+            items.forEach(inv => {
+                const isSel = (inv.origIdx === selectedOrigIdx) ? "selected" : "";
+                html += `<option value="${inv.origIdx}" ${isSel}>${inv.name}</option>`;
+            });
+            html += `</optgroup>`;
+        }
+    });
+
+    invSelect.innerHTML = html;
     fillInverterSpecs();
 }
 
