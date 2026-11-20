@@ -346,7 +346,7 @@ function openProductDetail(idx) {
 
     openGlobalModal(`
         <div class="prod-slider-wrap">
-            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs[0]}"
+            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs[0]}" alt="${item.title}">
             ${sliderNavHtml}
         </div>
         ${thumbsHtml}
