@@ -19,17 +19,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     checkSharedProductUrl();
     syncDataFromGoogleSheet();
 });
+
 function renderVietnamDate() {
     const el = document.getElementById('vnDateDisplay');
     if (!el) return;
     try {
         const now = new Date();
-        const vnStr = now.toLocaleDateString('vi-VN', {
-            timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
-        });
+        const isMob = window.innerWidth <= 768;
+        const opts = isMob
+            ? { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }
+            : { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' };
+        const vnStr = now.toLocaleDateString('vi-VN', opts);
         el.innerText = "📅 " + vnStr.charAt(0).toUpperCase() + vnStr.slice(1);
     } catch (e) { el.innerText = "📅 Hôm nay"; }
 }
+
 function checkSharedProductUrl() {
     const params = new URLSearchParams(window.location.search);
     const spIdx = params.get('sp');
@@ -39,13 +43,16 @@ function checkSharedProductUrl() {
 function toggleMobileDrawer() {
     document.getElementById('mobileDrawer').classList.toggle('open');
 }
+
 function selectMobileDrawer(pageFile, labelText, el) {
     document.querySelectorAll('.drawer-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
-    document.getElementById('mobileCurrentPageLabel').innerText = labelText;
+    const lblEl = document.getElementById('mobileCurrentPageLabel');
+    if (lblEl) lblEl.innerText = labelText;
     document.getElementById('mobileDrawer').classList.remove('open');
     loadSubPage(pageFile, null);
 }
+
 async function loadSubPage(pageFile, navElement) {
     if (navElement) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -64,6 +71,7 @@ async function loadSubPage(pageFile, navElement) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
 }
+
 function applyBannerFromConfig() {
     const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
     if (bannerCfg && bannerCfg.media) {
@@ -71,6 +79,7 @@ function applyBannerFromConfig() {
         document.getElementById('bannerContainer').style.padding = "0";
     }
 }
+
 async function syncDataFromGoogleSheet() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -90,23 +99,27 @@ async function syncDataFromGoogleSheet() {
         updateTopUserBar();
     } catch (e) {}
 }
+
 function updateTopUserBar() {
     const statusText = document.getElementById('userStatusText');
     const btnLabel = document.getElementById('userBtnLabel');
+    const isMob = window.innerWidth <= 768;
     if (currentUser) {
         if (currentUser.role === 'admin') {
-            statusText.innerHTML = `😎 Admin: <b style="color:var(--primary)">${currentUser.username}</b>`;
+            statusText.innerHTML = isMob ? `😎 <b style="color:var(--primary)">${currentUser.username}</b>` : `😎 Admin: <b style="color:var(--primary)">${currentUser.username}</b>`;
             btnLabel.innerText = "Quản trị";
         } else {
-            statusText.innerHTML = `👤 Zalo: <b>${currentUser.username}</b> (${currentUser.status === 'approved' ? '<span style="color:green">Vô hạn</span>' : '<span style="color:orange">Chờ duyệt</span>'})`;
+            const st = currentUser.status === 'approved' ? '<span style="color:#4ade80">Vô hạn</span>' : '<span style="color:#fbbf24">Chờ duyệt</span>';
+            statusText.innerHTML = isMob ? `👤 <b>${currentUser.username}</b> (${st})` : `👤 Zalo: <b>${currentUser.username}</b> (${st})`;
             btnLabel.innerText = "Tài khoản";
         }
     } else {
         let left = Math.max(0, 3 - guestCount);
-        statusText.innerHTML = `🔮 Khách vãng lai (Còn <b style="color:red">${left}</b> lượt tính)`;
+        statusText.innerHTML = isMob ? `🔮 Còn <b style="color:#f87171">${left}</b> lượt` : `🔮 Khách vãng lai (Còn <b style="color:#f87171">${left}</b> lượt tính)`;
         btnLabel.innerText = "Đăng nhập";
     }
 }
+
 function checkLimitAndRun(callbackFn) {
     if (currentUser && currentUser.status === 'approved') return callbackFn();
     if (guestCount >= 3) {
@@ -744,7 +757,6 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     if (parseFloat(recTotalImp) > 25) {
         warnLines.push(`<b>Cảnh báo dòng điện cao (${recTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
     }
-
     const resBox = document.getElementById('toolModalResult');
     resBox.innerHTML = `
         <div class="solar-3cards">${cardsHtml}</div>
@@ -755,15 +767,51 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
         <div style="margin-top:10px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#92400e; line-height:1.55;">
             • ${warnLines.join('<br>• ')}
         </div>
-        <button class="btn btn-success" style="width:100%; margin-top:12px; font-size:15px;" onclick="openEditableQuoteModal()">📄 Lập Bảng Báo Giá</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px;">
+            <button class="btn" style="width:100%; background:#0068ff; font-size:14.5px;" onclick="copySolarConfigForZalo()">💬 Sao chép cấu hình</button>
+            <button class="btn btn-success" style="width:100%; font-size:14.5px;" onclick="openEditableQuoteModal()">📄 Lập Bảng Báo Giá</button>
+        </div>
     `;
+    window.lastCombatConfigSummary = {
+        invKw, pMax, recStrings, recPerStr,
+        selectedCardIdx: 1
+    };
     setQuoteDataFromCombat(recStrings, recPerStr);
 }
 
-
 function selectSingleOrRecPlan(idx, recStrings, recPerStr) {
     document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
+    if (window.lastCombatConfigSummary) window.lastCombatConfigSummary.selectedCardIdx = idx;
     setQuoteDataFromCombat(recStrings, currentSolarPlans[idx].perStr);
+}
+
+function copySolarConfigForZalo() {
+    const cfg = window.lastCombatConfigSummary;
+    if (!cfg || !currentSolarPlans.length) return;
+    const loadVal = document.getElementById('scLoadType')?.value || "1";
+    const loadNames = { "0": "máy bơm đặt cạn", "1": "máy bơm hỏa tiễn", "2": "máy bơm tải nặng" };
+    const pumpKW = parseSafePumpPowerKW();
+    const line1 = pumpKW > 0
+        ? `Cấu hình dành cho ${loadNames[loadVal]} ${pumpKW}kW`
+        : `Cấu hình dành cho hệ biến tần ${cfg.invKw}kW`;
+
+    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[1];
+    const cleanPlanName = selPlan.label.replace('⭐ ', '').replace('/ 1 CHUỖI', '/ 1 chuỗi').toLowerCase();
+    const formattedPlanTitle = cleanPlanName.charAt(0).toUpperCase() + cleanPlanName.slice(1);
+    const singleKwp = ((selPlan.perStr * cfg.pMax) / 1000).toFixed(3);
+    const line2 = `${formattedPlanTitle}: Biến tần ${cfg.invKw}kW + 1 chuỗi x ${selPlan.perStr} tấm (${cfg.pMax}W) = (${singleKwp} kWp)`;
+
+    const recTotal = cfg.recStrings * cfg.recPerStr;
+    const recKwp = ((recTotal * cfg.pMax) / 1000).toFixed(2);
+    const line3 = `Đề xuất: Biến tần ${cfg.invKw}kW + ${cfg.recStrings} chuỗi x ${cfg.recPerStr} tấm (${cfg.pMax}W) = ${recTotal} tấm (${recKwp} kWp)`;
+
+    const text = `${line1}\n${line2}\n${line3}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép cấu hình vào bộ nhớ tạm để gửi Zalo!"))
+        .catch(() => prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text));
+    } else {
+        prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text);
+    }
 }
 
 function setQuoteDataFromCombat(strings, perStr) {
@@ -780,6 +828,7 @@ function setQuoteDataFromCombat(strings, perStr) {
     const pumpSummary = pumpKW > 0 ? `${pumpKW} kW` : `Hệ biến tần ${invKw} kW`;
     lastSolarQuoteData = { pumpKW: pumpKW || invKw, pumpSummary, panel: panObj, inv: invObj, totalPanels, totalKWp, strings, panelsPerString: perStr, dcLen };
 }
+
 function openEditableQuoteModal() {
     const d = lastSolarQuoteData;
     if (!d) return;
