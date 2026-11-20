@@ -444,6 +444,7 @@ function openKnowledgeDetail(idx) {
 const CALC_TOOLS_LIST = [
     { id: 'pump', icon: '💧', title: 'Tính công suất bơm', desc: 'Tính cột áp tổng, tổn thất ma sát ống và chọn công suất bơm chuẩn thủy lực.' },
     { id: 'solar', icon: '☀️', title: 'Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT', desc: 'Chọn biến tần theo hãng, nhập thông số pin và xuất 3 phương án cấu hình thực chiến.' },
+    { id: 'health', icon: '🩺', title: 'Khám sức khỏe hệ bơm NLMT', desc: 'Chẩn đoán cấu hình bơm, biến tần, giàn pin có sẵn của khách và đề xuất nâng cấp.' },
     { id: 'acc', icon: '🔩', title: 'Tính phụ kiện', desc: 'Tính nhanh số lượng chân đế, kẹp biên, kẹp giữa cho hệ thống pin áp mái.' },
     { id: 'vdrop', icon: '⚡', title: 'Tính sụt áp trên đường dây', desc: 'Kiểm tra độ sụt áp dây dẫn DC/AC và khuyến nghị tiết diện cáp an toàn.' },
     { id: 'divider', icon: '🔌', title: 'Tính cầu trở phân áp', desc: 'Tính điện áp đầu ra Vout và dòng tiêu thụ cho mạch cảm biến, đo lường.' }
@@ -545,6 +546,67 @@ function openCalcToolModal(toolId) {
         `);
         setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 50);
     }
+        else if (toolId === 'health') {
+        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}">${p.name}</option>`).join('') + `<option value="custom" selected>-- Tự nhập thông số tấm pin của khách --</option>`;
+        let invOpts = '';
+        ["Power S", "Voltique", "Green Nova", "SAJ"].forEach(br => {
+            const list = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, idx })).filter(x => x.brand === br);
+            if (list.length) invOpts += `<optgroup label="Hãng ${br}">${list.map(x => `<option value="${x.idx}">${x.name}</option>`).join('')}</optgroup>`;
+        });
+        invOpts += `<option value="custom" selected>-- Tự nhập thông số biến tần của khách --</option>`;
+
+        openGlobalModal(`
+            <h3 style="margin-top:0; color:var(--primary); font-size:17px;">🩺 Khám sức khỏe hệ bơm NLMT</h3>
+            <div class="solar-sec-box" style="margin-bottom:12px;">
+                <div class="solar-sec-title">1. Thông số Máy bơm hiện tại</div>
+                <div class="grid-2" style="gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Loại máy bơm:</label>
+                        <select id="hlLoadType">
+                            <option value="1" selected>Bơm hỏa tiễn / Bơm chìm (Cần +1 cấp)</option>
+                            <option value="0">Bơm đặt cạn / Ly tâm nhẹ (Bằng cấp)</option>
+                            <option value="2">Bơm piston / Đẩy cao nặng (Cần +2 cấp)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Công suất máy bơm:</label>
+                        <div class="input-unit-group">
+                            <input type="number" id="hlPumpVal" step="0.1" value="7.5">
+                            <select id="hlPumpUnit"><option value="kW" selected>kW</option><option value="HP">HP</option></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="solar-calc-grid">
+                <div class="solar-sec-box">
+                    <div class="solar-sec-title">2. Biến tần hiện tại của khách</div>
+                    <div class="form-group"><label>Chọn mẫu kho hoặc tự nhập:</label><select id="hlInvSel" onchange="fillHealthInv()">${invOpts}</select></div>
+                    <div class="solar-mini-grid">
+                        <div class="form-group"><label>Công suất (kW):</label><input type="number" id="hlInvKw" step="0.1" value="11"></div>
+                        <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="hlInvVdcMax" value="900"></div>
+                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="hlInvIdcMax" value="40"></div>
+                        <div class="form-group"><label>MPPT tối ưu từ (V):</label><input type="number" id="hlInvMpptMin" value="550"></div>
+                    </div>
+                </div>
+                <div class="solar-sec-box">
+                    <div class="solar-sec-title">3. Giàn pin hiện tại của khách</div>
+                    <div class="form-group"><label>Chọn mẫu kho hoặc tự nhập:</label><select id="hlPanSel" onchange="fillHealthPan()">${panelOpts}</select></div>
+                    <div class="solar-mini-grid">
+                        <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="hlPanPmax" value="550"></div>
+                        <div class="form-group"><label>Dòng Imp (A):</label><input type="number" id="hlPanImp" step="0.01" value="13.20"></div>
+                        <div class="form-group"><label>Áp Vmp (V):</label><input type="number" id="hlPanVmp" step="0.01" value="41.70"></div>
+                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="hlPanVoc" step="0.01" value="49.80"></div>
+                    </div>
+                    <div class="solar-mini-grid" style="margin-top:4px;">
+                        <div class="form-group" style="margin-bottom:0;"><label>Số chuỗi song song:</label><input type="number" id="hlStrings" value="1" min="1"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label>Số tấm / 1 chuỗi:</label><input type="number" id="hlPerStr" value="14" min="1"></div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="font-size:15px;" onclick="checkLimitAndRun(execSolarHealthCheck)">🔍 KHÁM SỨC KHỎE HỆ THỐNG</button>
+            <div id="toolModalResult" style="margin-top:12px;"></div>
+        `);
+    }    
     else if (toolId === 'acc') {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
@@ -1032,4 +1094,110 @@ function execDividerCalc() {
     const resBox = document.getElementById('toolModalResult');
     resBox.style.display = 'block';
     resBox.innerHTML = `<p>- 🔌 <b>Điện áp ra Vout:</b> <span class="highlight">${(vin * (r2 / (r1 + r2))).toFixed(2)} V</span> | 🔋 <b>Dòng tiêu thụ:</b> <b>${(vin / (r1 + r2)).toFixed(2)} mA</b></p>`;
+}
+function fillHealthInv() {
+    const val = document.getElementById('hlInvSel')?.value;
+    if (val === 'custom') return;
+    const inv = SOLAR_INVERTERS_DB[parseInt(val)];
+    if (!inv) return;
+    document.getElementById('hlInvKw').value = inv.kw;
+    document.getElementById('hlInvVdcMax').value = inv.vdcMax;
+    document.getElementById('hlInvIdcMax').value = inv.idcMax;
+    document.getElementById('hlInvMpptMin').value = inv.mpptMin;
+}
+
+function fillHealthPan() {
+    const val = document.getElementById('hlPanSel')?.value;
+    if (val === 'custom') return;
+    const pan = SOLAR_PANELS_DB[parseInt(val)];
+    if (!pan) return;
+    document.getElementById('hlPanPmax').value = pan.power;
+    document.getElementById('hlPanImp').value = pan.imp;
+    document.getElementById('hlPanVmp').value = pan.vmp;
+    document.getElementById('hlPanVoc').value = pan.voc;
+}
+
+function execSolarHealthCheck() {
+    const stepUp = parseInt(document.getElementById('hlLoadType').value || "1");
+    const rawPump = parseFloat(document.getElementById('hlPumpVal').value) || 0;
+    const unit = document.getElementById('hlPumpUnit').value;
+    const pumpKW = unit === 'HP' ? rawPump * 0.75 : rawPump;
+
+    const invKw = parseFloat(document.getElementById('hlInvKw').value) || 0;
+    const vdcMax = parseFloat(document.getElementById('hlInvVdcMax').value) || 900;
+    const idcMax = parseFloat(document.getElementById('hlInvIdcMax').value) || 40;
+    const mpptMin = parseFloat(document.getElementById('hlInvMpptMin').value) || 550;
+
+    const pMax = parseFloat(document.getElementById('hlPanPmax').value) || 0;
+    const imp = parseFloat(document.getElementById('hlPanImp').value) || 0;
+    const vmp = parseFloat(document.getElementById('hlPanVmp').value) || 0;
+    const voc = parseFloat(document.getElementById('hlPanVoc').value) || 0;
+    const strings = parseInt(document.getElementById('hlStrings').value) || 1;
+    const perStr = parseInt(document.getElementById('hlPerStr').value) || 1;
+    if (pumpKW <= 0 || invKw <= 0 || pMax <= 0) return alert("Vui lòng nhập đầy đủ thông số hệ thống!");
+
+    const totalPanels = strings * perStr;
+    const totalKWp = (totalPanels * pMax) / 1000;
+    const vocCold = perStr * voc * 1.05;
+    const vmpTotal = perStr * vmp;
+    const impTotal = strings * imp;
+    const reqInvKw = stepUp === 0 ? pumpKW : (stepUp === 1 ? pumpKW * 1.3 : pumpKW * 1.6);
+    const reqKwp = pumpKW * 1.25;
+
+    let score = 100;
+    let issues = [];
+    let upgrades = [];
+
+    if (vocCold > vdcMax) {
+        score -= 35;
+        const safeMax = Math.floor(vdcMax / (voc * 1.05));
+        issues.push(`🔴 <b>Nguy hiểm quá áp sáng sớm trời lạnh (10°C):</b> Voc đạt <b>${vocCold.toFixed(1)}V</b> vượt ngưỡng <b>${vdcMax}V</b> của biến tần.`);
+        upgrades.push(`Giảm ngay số tấm mỗi chuỗi từ ${perStr} tấm xuống tối đa <b>${safeMax} tấm/chuỗi</b> để tránh nổ tụ/báo lỗi quá áp.`);
+    }
+    if (vmpTotal < mpptMin - 40) {
+        score -= 20;
+        const needPerStr = Math.ceil(mpptMin / vmp);
+        issues.push(`🟡 <b>Thiếu áp MPPT (Bơm chạy yếu):</b> Áp làm việc <b>${vmpTotal.toFixed(1)}V</b> thấp hơn vùng tối ưu (${mpptMin}V), bơm khó đạt đủ 50Hz.`);
+        upgrades.push(`Đấu nối tiếp thêm <b>${needPerStr - perStr} tấm/chuỗi</b> (nâng lên ${needPerStr} tấm/chuỗi) để đưa áp vào vùng ngọt MPPT.`);
+    }
+    if (impTotal > idcMax) {
+        score -= 25;
+        issues.push(`🔴 <b>Quá dòng DC đầu vào:</b> Tổng dòng <b>${impTotal.toFixed(1)}A</b> vượt mức chịu đựng <b>${idcMax}A</b> của biến tần.`);
+        upgrades.push(`Tách bớt chuỗi song song hoặc nâng cấp biến tần dòng DC lớn hơn.`);
+    }
+    if (invKw < reqInvKw - 0.5) {
+        score -= 20;
+        issues.push(`🟡 <b>Biến tần yếu so với tải bơm:</b> Bơm ${pumpKW.toFixed(1)}kW đang kéo biến tần ${invKw}kW dễ báo lỗi quá dòng (OC) khi khởi động.`);
+        upgrades.push(`Nâng cấp biến tần lên cấp <b>${Math.ceil(reqInvKw)}kW</b> (1–2 cấp trên tải bơm) để khởi động khỏe và bền máy.`);
+    }
+    if (totalKWp < pumpKW * 1.15) {
+        score -= 15;
+        const missPanels = Math.ceil(((reqKwp - totalKWp) * 1000) / pMax);
+        issues.push(`🟡 <b>Thiếu công suất giàn pin:</b> Giàn pin hiện có <b>${totalKWp.toFixed(2)} kWp</b> chưa đạt mức lý tưởng (${reqKwp.toFixed(2)} kWp) cho bơm ${pumpKW.toFixed(1)}kW.`);
+        upgrades.push(`Lắp bổ sung thêm khoảng <b>${missPanels} tấm pin (${pMax}W)</b> để bơm chạy khỏe từ sáng sớm đến chiều muộn.`);
+    }
+
+    score = Math.max(10, score);
+    const badgeColor = score >= 85 ? '#16a34a' : (score >= 60 ? '#ea580c' : '#dc2626');
+    const statusLabel = score >= 85 ? 'HỆ THỐNG HOẠT ĐỘNG TỐT' : (score >= 60 ? 'CẦN TỐI ƯU ĐỂ ĐẠT HIỆU SUẤT CAO' : 'CẢNH BÁO LỖI KỸ THUẬT - CẦN XỬ LÝ');
+    if (issues.length === 0) issues.push(`🟢 <b>Cấu hình phối ghép chuẩn xác:</b> Điện áp, dòng điện và công suất pin đều nằm trong vùng tối ưu của biến tần.`);
+    if (upgrades.length === 0) upgrades.push(`Giữ nguyên cấu hình hiện tại. Chỉ cần vệ sinh bề mặt tấm pin định kỳ và kiểm tra siết chặt các đầu cốt tủ điện.`);
+
+    window.lastHealthZaloText = `🩺 KẾT QUẢ KHÁM SỨC KHỎE HỆ BƠM NLMT\n• Hệ hiện tại: Bơm ${pumpKW.toFixed(1)}kW | Biến tần ${invKw}kW | ${strings} chuỗi x ${perStr} tấm ${pMax}W (${totalKWp.toFixed(2)} kWp)\n• Đánh giá: ${score}/100 điểm (${statusLabel})\n--------------------------------\n📋 Chẩn đoán:\n${issues.map(x => x.replace(/<[^>]+>/g, '')).join('\n')}\n--------------------------------\n💡 Phương án nâng cấp:\n${upgrades.map(x => '- ' + x.replace(/<[^>]+>/g, '')).join('\n')}`;
+
+    document.getElementById('toolModalResult').innerHTML = `
+        <div style="padding:12px; border-radius:8px; background:#f8fafc; border:1px solid #cbd5e1; border-left:5px solid ${badgeColor}; margin-bottom:10px;">
+            <div style="font-size:15px; font-weight:800; color:${badgeColor};">📊 SỨC KHỎE HỆ THỐNG: ${score}/100 ĐIỂM — ${statusLabel}</div>
+            <div style="font-size:12.5px; color:#475569; margin-top:4px;">Tổng giàn pin: <b>${totalPanels} tấm (${totalKWp.toFixed(2)} kWp)</b> | Vmp: <b>${vmpTotal.toFixed(1)}V</b> | Voc (10°C): <b>${vocCold.toFixed(1)}V</b> | Dòng Imp: <b>${impTotal.toFixed(1)}A</b></div>
+        </div>
+        <div style="padding:12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; line-height:1.6; margin-bottom:10px;">
+            <div style="font-weight:700; color:var(--dark); margin-bottom:4px;">📋 Chi tiết chẩn đoán kỹ thuật:</div>
+            ${issues.join('<br>')}
+        </div>
+        <div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:8px; font-size:13px; color:#14532d; line-height:1.6;">
+            <div style="font-weight:700; margin-bottom:4px;">💡 Phương án nâng cấp & tối ưu:</div>
+            • ${upgrades.join('<br>• ')}
+        </div>
+        <button class="btn" style="width:100%; background:#0068ff; margin-top:12px; font-size:14.5px;" onclick="navigator.clipboard.writeText(window.lastHealthZaloText).then(()=>alert('✅ Đã sao chép kết quả khám bệnh gửi Zalo!'))">💬 Sao chép kết quả gửi Zalo khách hàng</button>
+    `;
 }
