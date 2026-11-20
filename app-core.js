@@ -319,7 +319,7 @@ function renderProductsPage(page) {
     grid.innerHTML = items.map((item, idx) => {
         const globalIdx = (page - 1) * perPage + idx;
         const shortDesc = item.specs.split('|').slice(0, 2).join(' • ');
-        const coverImg = item.imgs;
+        const coverImg = item.imgs[0];
         return `<div class="item-card" onclick="openProductDetail(${globalIdx})"><img class="card-thumb" src="${coverImg}" alt="${item.title}" loading="lazy"><div class="card-body"><h3 class="card-heading">${item.title}</h3><p class="card-desc-2line">${shortDesc}</p></div></div>`;
     }).join('');
     pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>`).join('');
@@ -346,7 +346,7 @@ function openProductDetail(idx) {
 
     openGlobalModal(`
         <div class="prod-slider-wrap">
-            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs}" alt="${item.title}">
+            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs[0]}"
             ${sliderNavHtml}
         </div>
         ${thumbsHtml}
