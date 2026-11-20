@@ -112,3 +112,20 @@ input:focus, select:focus { outline: none; border-color: var(--primary); }
 .prod-thumbs-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
 .prod-thumb-item { width: 58px; height: 58px; object-fit: cover; border-radius: 6px; border: 2px solid transparent; cursor: pointer; opacity: 0.65; flex-shrink: 0; }
 .prod-thumb-item.active { border-color: var(--primary); opacity: 1; }
+
+/* Tinh chỉnh tối ưu cho giao diện Mobile */
+.solar-mini-grid, .grid-2 { align-items: end; }
+.solar-sec-box, .form-group, input, select { min-width: 0; max-width: 100%; }
+.modal-box { overflow-x: hidden; }
+
+@media (max-width: 768px) {
+    .top-user-bar { padding: 6px 8px; font-size: 11.5px; gap: 6px; white-space: nowrap; }
+    .date-badge { padding: 3px 6px; font-size: 11px; }
+    .user-actions { gap: 6px; }
+    .btn-user-pill { padding: 4px 9px; font-size: 11px; }
+    .modal-box { padding: 12px; width: 96%; }
+    .data-table th, .data-table td { padding: 6px 5px; font-size: 12px; }
+    .data-table th:nth-child(1), .data-table td:nth-child(1),
+    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 1%; white-space: nowrap; }
+}
+
