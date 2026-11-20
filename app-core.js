@@ -286,13 +286,25 @@ async function adminAction(act, username) {
     await syncDataFromGoogleSheet();
     renderStatsTableOnly();
 }
+
+let currentProdSliderImgs = [];
+let currentProdSlideIdx = 0;
+
 function getCombinedProducts() {
-    const realItems = appData.configs.filter(c => c.code === 'SAN_PHAM').map(c => ({
-        title: c.title,
-        img: c.media || "https://unsplash.com",
-        specs: c.content
+    const realItems = appData.configs.filter(c => c.code === 'SAN_PHAM').map(c => {
+        const imgList = (c.media || "").split(/\||,/).map(s => s.trim()).filter(Boolean);
+        return {
+            title: c.title,
+            imgs: imgList.length > 0 ? imgList : ["https://unsplash.com"],
+            specs: c.content
+        };
+    });
+    const mockFormatted = MOCK_PRODUCTS.map(m => ({
+        title: m.title,
+        imgs: (m.img || "").split(/\||,/).map(s => s.trim()).filter(Boolean),
+        specs: m.specs
     }));
-    return realItems.length > 0 ? [...realItems, ...MOCK_PRODUCTS] : MOCK_PRODUCTS;
+    return realItems.length > 0 ? [...realItems, ...mockFormatted] : mockFormatted;
 }
 
 function renderProductsPage(page) {
@@ -307,21 +319,54 @@ function renderProductsPage(page) {
     grid.innerHTML = items.map((item, idx) => {
         const globalIdx = (page - 1) * perPage + idx;
         const shortDesc = item.specs.split('|').slice(0, 2).join(' • ');
-        return `<div class="item-card" onclick="openProductDetail(${globalIdx})"><img class="card-thumb" src="${item.img}" alt="${item.title}" loading="lazy"><div class="card-body"><h3 class="card-heading">${item.title}</h3><p class="card-desc-2line">${shortDesc}</p></div></div>`;
+        const coverImg = item.imgs;
+        return `<div class="item-card" onclick="openProductDetail(${globalIdx})"><img class="card-thumb" src="${coverImg}" alt="${item.title}" loading="lazy"><div class="card-body"><h3 class="card-heading">${item.title}</h3><p class="card-desc-2line">${shortDesc}</p></div></div>`;
     }).join('');
     pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>`).join('');
 }
+
 function openProductDetail(idx) {
     const item = getCombinedProducts()[idx];
     if (!item) return;
+    currentProdSliderImgs = item.imgs;
+    currentProdSlideIdx = 0;
+
     const lines = item.specs.split(/\||\n/).map(s => s.trim()).filter(Boolean);
     const specListHtml = lines.map(line => `<li style="margin-bottom:6px; color:#334155;">✅ ${line}</li>`).join('');
+    const hasMulti = currentProdSliderImgs.length > 1;
+
+    const sliderNavHtml = hasMulti ? `
+        <button class="slider-nav-btn slider-prev" onclick="changeProdSlide(-1)">&#10094;</button>
+        <button class="slider-nav-btn slider-next" onclick="changeProdSlide(1)">&#10095;</button>
+    ` : '';
+
+    const thumbsHtml = hasMulti ? `<div class="prod-thumbs-row">${currentProdSliderImgs.map((src, i) => `
+        <img src="${src}" class="prod-thumb-item ${i === 0 ? 'active' : ''}" id="pThumb_${i}" onclick="goToProdSlide(${i})">
+    `).join('')}</div>` : '';
+
     openGlobalModal(`
-        <img src="${item.img}" alt="${item.title}" style="width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin-bottom:12px;">
+        <div class="prod-slider-wrap">
+            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs}" alt="${item.title}">
+            ${sliderNavHtml}
+        </div>
+        ${thumbsHtml}
         <h3 style="margin:0 0 12px; color:var(--primary); font-size:18px;">${item.title}</h3>
         <ul style="padding-left:18px; margin:0 0 16px; list-style:none;">${specListHtml}</ul>
         <button class="btn" style="width:100%; background:#0068ff; font-size:15px;" onclick="copyProductShareLink(${idx}, '${item.title.replace(/'/g, "\\'")}')">🔗 Chia Sẻ / Sao Chép Link Sản Phẩm</button>
     `);
+}
+
+function changeProdSlide(step) {
+    if (currentProdSliderImgs.length <= 1) return;
+    currentProdSlideIdx = (currentProdSlideIdx + step + currentProdSliderImgs.length) % currentProdSliderImgs.length;
+    goToProdSlide(currentProdSlideIdx);
+}
+
+function goToProdSlide(idx) {
+    currentProdSlideIdx = idx;
+    const mainImg = document.getElementById('prodSliderMainImg');
+    if (mainImg) mainImg.src = currentProdSliderImgs[idx];
+    document.querySelectorAll('.prod-thumb-item').forEach((el, i) => el.classList.toggle('active', i === idx));
 }
 
 function copyProductShareLink(idx, title) {
@@ -333,6 +378,8 @@ function copyProductShareLink(idx, title) {
         prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl);
     }
 }
+
+
 function getCombinedErrors() {
     const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
         const bParts = c.title.split('|');
