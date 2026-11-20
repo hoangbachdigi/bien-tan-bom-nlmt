@@ -4,6 +4,7 @@ const SOLAR_PANELS_DB = [
     { name: "Jinko Solar 625W (JKM625N-66HL4M-BDV)", power: 625, imp: 15.29, vmp: 40.90, voc: 49.28, priceWp: 3020 },
     { name: "Jinko Solar 630W (JKM630N-66HL4M-BDV)", power: 630, imp: 15.36, vmp: 41.02, voc: 49.48, priceWp: 3050 }
 ];
+
 const SOLAR_INVERTERS_DB = [
     { brand: "Power S", name: "Power S SG800-7K5GB-4T (7.5kW - 17A - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 900, idcMax: 30, mpptMin: 550, mpptMax: 680, price: 8200000 },
     { brand: "Power S", name: "Power S SG800-011GB-4T (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 900, idcMax: 40, mpptMin: 550, mpptMax: 680, price: 10500000 },
@@ -18,29 +19,88 @@ const SOLAR_INVERTERS_DB = [
     { brand: "Green Nova", name: "Green Nova AC600-011G-4 (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 950, idcMax: 42, mpptMin: 540, mpptMax: 720, price: 11200000 },
     { brand: "Voltique", name: "Voltique YK500-15KW-T4 (15kW - 32A - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 950, idcMax: 52, mpptMin: 540, mpptMax: 750, price: 14200000 }
 ];
-const MOCK_PRODUCTS = Array.from({ length: 24 }, (_, i) => {
-    const idx = i + 1;
-    const isPanel = idx % 3 === 0;
-    const isPump = idx % 3 === 2;
-    if (isPanel) {
-        return {
-            title: `Tấm Pin Năng Lượng Mặt Trời Công Suất Cao Mẫu #${idx}`,
-            img: "https://unsplash.com",
-            specs: "Công nghệ tế bào quang điện N-Type TOPCon thế hệ mới | Hiệu suất chuyển đổi module đạt trên 22.5% | Chịu tải trọng gió bão 2400Pa và tuyết 5400Pa | Kính cường lực 2 mặt chống phản xạ ánh sáng | Suy giảm công suất cực thấp dưới 0.4% mỗi năm | Bảo hành vật lý 12 năm chính hãng | Bảo hành hiệu suất tuyến tính 25 năm"
-        };
-    } else if (isPump) {
-        return {
-            title: `Máy Bơm Hỏa Tiễn & Bơm Trục Đứng Chuyên Dụng #${idx}`,
-            img: "https://unsplash.com",
-            specs: "Thân bơm chế tạo từ Inox 304 chống gỉ sét tuyệt đối | Cánh bơm đa tầng chịu áp lực cột áp đẩy cao vượt trội | Động cơ dây đồng 100% tản nhiệt bằng dầu/nước | Tích hợp van một chiều chống tụt áp đường ống | Lưu lượng ổn định phục vụ tưới sầu riêng, cà phê đồi dốc | Bảo hành kỹ thuật 12 tháng"
-        };
-    }
-    return {
-        title: `Biến Tần Bơm Năng Lượng Mặt Trời Chuyên Dụng #${idx}`,
+const MOCK_PRODUCTS = [
+    {
+        title: "Biến Tần Bơm NLMT Power S SG800-7K5GB-4T (7.5kW - 3P 380V)",
         img: "https://unsplash.com",
-        specs: "Tích hợp thuật toán dò điểm công suất cực đại MPPT đạt 99.5% | Tự động khởi động khi có nắng và ngủ đông khi mây mù | Hỗ trợ chuyển đổi linh hoạt giữa điện mặt trời DC và điện lưới AC | Bảo vệ toàn diện: chạy khô, mất pha, quá áp, quá dòng, ngắn mạch | Dải điện áp hoạt động DC rộng từ 250V đến 950V | Bảo hành chính hãng 24 tháng"
-    };
-});
+        specs: "Model: Power S SG800-7K5GB-4T | Công suất định mức: 7.5kW (10HP) - Dòng ra 17A | Điện áp đầu vào DC: 250V – 900VDC | Điện áp đầu vào/ra AC: 3 Pha 380V–440V | Thuật toán dò điểm công suất cực đại MPPT 99.5% | Bảo vệ chạy khô, mất pha, quá áp, quá dòng | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT Power S SG800-011GB-4T (11kW - 3P 380V)",
+        img: "https://unsplash.com",
+        specs: "Model: Power S SG800-011GB-4T | Công suất định mức: 11kW (15HP) - Dòng ra 25A | Điện áp đầu vào DC: 250V – 900VDC | Điện áp đầu vào/ra AC: 3 Pha 380V–440V | Chuyên trị bơm hỏa tiễn 7.5kW (10HP) đẩy dốc cao | Tự động chạy khi có nắng và ngủ đông khi mây mù | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT Power S SG800-015GB-4T (15kW - 3P 380V)",
+        img: "https://unsplash.com",
+        specs: "Model: Power S SG800-015GB-4T | Công suất định mức: 15kW (20HP) - Dòng ra 32A | Điện áp đầu vào DC: 250V – 900VDC | Điện áp đầu vào/ra AC: 3 Pha 380V–440V | Chuyên trị bơm hỏa tiễn 11kW (15HP) giếng sâu | Tản nhiệt nhôm đúc nguyên khối kèm quạt làm mát | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT Power S SG800-022GB-4T (22kW - 3P 380V)",
+        img: "https://unsplash.com",
+        specs: "Model: Power S SG800-022GB-4T | Công suất định mức: 22kW (30HP) - Dòng ra 45A | Điện áp đầu vào DC: 250V – 900VDC | Điện áp đầu vào/ra AC: 3 Pha 380V–440V | Chuyên trị bơm công suất lớn 15kW – 18.5kW tưới đồi dốc | Hỗ trợ chuyển đổi linh hoạt nguồn Solar DC và lưới AC | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT SAJ PDS33-4T011B-EH (11kW - 3P 380V)",
+        img: "https://unsplash.com",
+        specs: "Model: SAJ PDS33-4T011B-EH | Công suất định mức: 11kW (15HP) - Dòng ra 25A | Điện áp đầu vào DC: 220V – 900VDC | Điện áp đầu vào/ra AC: 3 Pha 380V–440V | Thương hiệu SAJ tiêu chuẩn công nghiệp độ bền vượt trội | Bảo vệ toàn diện quá áp, thấp áp, kẹt cánh bơm | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT SAJ PDS33-4T015B-EH (15kW - 3P 380V)",
+        img: "https://unsplash.com",
+        specs: "Model: SAJ PDS33-4T015B-EH | Công suất định mức: 15kW (20HP) - Dòng ra 32A | Điện áp đầu vào DC: 220V – 900VDC | Điện áp đầu vào/ra AC: 3 Pha 380V–440V | Vận hành ổn định trong môi trường nhiệt độ cao Tây Nguyên | Tích hợp chức năng bảo vệ giếng cạn nước thông minh | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT SAJ SC10-4T011-EH (11kW - 3P 380V)",
+        img: "https://unsplash.com",
+        specs: "Model: SAJ SC10-4T011-EH | Công suất định mức: 11kW (15HP) - Dòng ra Max 25A | Dải MPPT: 200V – 900VDC (Max 900VDC, Dòng PV Max 16A×2) | Dòng chuyên dụng Solar Pump Controller thế hệ mới của SAJ | Khởi động cực nhạy ngay từ sáng sớm nắng nhẹ | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT SAJ SC10-4T022-EH (22kW - 3P 380V)",
+        img: "https://unsplash.com",
+        specs: "Model: SAJ SC10-4T022-EH | Công suất định mức: 22kW (30HP) - Dòng ra Max 45A | Dải MPPT: 200V – 900VDC (Max 900VDC, Dòng PV Max 14.4A×4) | Chuyên trị bơm công suất lớn tưới quy mô trang trại | Hỗ trợ giám sát từ xa và bảo vệ toàn diện động cơ | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT Green Nova AC600-5R5G-4 (5.5kW - Max 950V)",
+        img: "https://unsplash.com",
+        specs: "Model: Green Nova AC600-5R5G-4 | Công suất định mức: 5.5kW (7.5HP) - Dòng ra 13A/17A | Điện áp đầu vào DC rộng: 250V – 950VDC | Chịu điện áp cao lên tới 950VDC an toàn tuyệt đối buổi sáng lạnh | Chuyên trị bơm 3kW – 4kW (4HP – 5.5HP) | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT Green Nova AC600-7R5G-4 (7.5kW - Max 950V)",
+        img: "https://unsplash.com",
+        specs: "Model: Green Nova AC600-7R5G-4 | Công suất định mức: 7.5kW (10HP) - Dòng ra 17A/25A | Điện áp đầu vào DC rộng: 250V – 950VDC | Dải điện áp hoạt động cao giúp giảm số chuỗi đấu song song | Chuyên trị bơm hỏa tiễn 5.5kW (7.5HP) | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT Green Nova AC600-011G-4 (11kW - Max 950V)",
+        img: "https://unsplash.com",
+        specs: "Model: Green Nova AC600-011G-4 | Công suất định mức: 11kW (15HP) - Dòng ra 25A/32A | Điện áp đầu vào DC rộng: 250V – 950VDC | Chuyên trị bơm hỏa tiễn 7.5kW (10HP) giếng sâu, đồi dốc | Vận hành êm ái, hiệu suất MPPT 99.5% | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Biến Tần Bơm NLMT Voltique YK500-15KW-T4 (15kW - Max 950V)",
+        img: "https://unsplash.com",
+        specs: "Model: Voltique YK500-15KW-T4 | Công suất định mức: 15kW (20HP) - Dòng ra 32A/37A | Ngưỡng chịu áp DC tối đa lên đến 950VDC | Đấu nối linh hoạt chuỗi pin dài không lo báo lỗi quá áp sáng sớm | Chuyên trị bơm 11kW (15HP) đẩy cao | Bảo hành chính hãng 24 tháng"
+    },
+    {
+        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 580W (JKM580N-72HL4-BDV)",
+        img: "https://unsplash.com",
+        specs: "Công suất cực đại (Pmax): 580W | Điện áp làm việc (Vmp): 43.88V — Dòng làm việc (Imp): 13.22A | Điện áp hở mạch (Voc): 52.50V — Dòng ngắn mạch (Isc): 13.95A | Công nghệ N-Type TOPCon 2 mặt kính cường lực | Hàng chính hãng sản xuất tại Việt Nam | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+    },
+    {
+        title: "Tấm Pin Năng Lượng Mặt Trời Astronergy 595W (CHSM72N/F-BH-595)",
+        img: "https://unsplash.com",
+        specs: "Công suất cực đại (Pmax): 595W (Hai mặt kính Bifacial) | Điện áp làm việc (Vmp): 44.21V — Dòng làm việc (Imp): 13.46A | Điện áp hở mạch (Voc): 52.81V — Dòng ngắn mạch (Isc): 14.20A | Công nghệ tế bào N-Type TOPCon hiệu suất cao | Khung nhôm chịu lực gió bão 3600Pa | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+    },
+    {
+        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 625W (JKM625N-66HL4M-BDV)",
+        img: "https://unsplash.com",
+        specs: "Công suất cực đại (Pmax): 625W | Điện áp làm việc (Vmp): 40.90V — Dòng làm việc (Imp): 15.29A | Điện áp hở mạch (Voc): 49.28V — Dòng ngắn mạch (Isc): 16.14A | Dòng pin công suất lớn tối ưu cho hệ bơm 1 chuỗi | Hàng chính hãng sản xuất tại Việt Nam | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+    },
+    {
+        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 630W (JKM630N-66HL4M-BDV)",
+        img: "https://unsplash.com",
+        specs: "Công suất cực đại (Pmax): 630W | Điện áp làm việc (Vmp): 41.02V — Dòng làm việc (Imp): 15.36A | Điện áp hở mạch (Voc): 49.48V — Dòng ngắn mạch (Isc): 16.20A | Công nghệ N-Type TOPCon 2 mặt kính siêu bền | Suy giảm công suất cực thấp dưới 0.4%/năm | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+    }
+];
 const MOCK_ERRORS = [
     { brand: "PowerS", code: "E.OC1", desc: "Quá dòng trong quá trình tăng tốc động cơ", fix: "Tăng thời gian tăng tốc (F0.11), kiểm tra kẹt cánh bơm hoặc chạm chập dây cáp động lực." },
     { brand: "PowerS", code: "E.OC2", desc: "Quá dòng trong quá trình giảm tốc", fix: "Tăng thời gian giảm tốc hoặc chuyển sang chế độ dừng tự do (Coast to stop)." },
@@ -76,7 +136,7 @@ const MOCK_KNOWLEDGE = [
     {
         title: "Cách tính số tấm pin năng lượng mặt trời mắc nối tiếp (String) không lo quá áp buổi sáng",
         date: "12/11/2026",
-        content: "Nhiều anh em thợ khi đấu nối giàn pin chỉ nhìn vào điện áp định mức ghi trên tem mà quên mất hiệu ứng nhiệt độ. Vào buổi sáng sớm trời lạnh tại vùng cao, điện áp hở mạch Voc của tấm pin có thể tăng thêm 10% so với tiêu chuẩn. Vì vậy, công thức an toàn bắt buộc là: Tổng Voc x 1.1 phải luôn nhỏ hơn điện áp DC tối đa (Vdc_max) của biến tần."
+        content: "Nhiều anh em thợ khi đấu nối giàn pin chỉ nhìn vào điện áp định mức ghi trên tem mà quên mất hiệu ứng nhiệt độ. Vào buổi sáng sớm trời lạnh tại vùng cao, điện áp hở mạch Voc của tấm pin có thể tăng thêm 5% so với tiêu chuẩn. Vì vậy, công thức an toàn bắt buộc là: Tổng Voc x 1.05 phải luôn nhỏ hơn điện áp DC tối đa (Vdc_max) của biến tần."
     },
     {
         title: "Tại sao hệ thống bơm nước đẩy đồi dốc không cần lắp thêm điện trở hãm ngoài?",
