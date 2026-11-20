@@ -540,7 +540,7 @@ function openCalcToolModal(toolId) {
                     </div>
                 </div>
             </div>
-            <button class="btn btn-orange" style="font-size:15px;" onclick="checkLimitAndRun(execRealCombatSolarCalc)">TÍNH TOÁN CẤU HÌNH CHUỖI PIN</button>
+            <button class="btn btn-primary" style="font-size:15px;" onclick="checkLimitAndRun(execRealCombatSolarCalc)">TÍNH TOÁN CẤU HÌNH CHUỖI PIN</button>
             <div id="toolModalResult" style="margin-top:12px;"></div>
         `);
         setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 50);
