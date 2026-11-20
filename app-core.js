@@ -337,7 +337,7 @@ function getCombinedErrors() {
     const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
         const bParts = c.title.split('|');
         const cParts = c.content.split('|');
-        return { brand: (bParts[0] || "PowerS").trim(), code: (bParts[1] || "").trim(), desc: (cParts[0] || "").trim(), fix: (cParts[1] || "").trim() };
+        return { brand: (bParts || "PowerS").trim(), code: (bParts || "").trim(), desc: (cParts || "").trim(), fix: (cParts || "").trim() };
     });
     return [...realErrors, ...MOCK_ERRORS];
 }
@@ -445,6 +445,7 @@ function openCalcToolModal(toolId) {
                         </div>
                     </div>
                 </div>
+                <div id="pumpSuggestNote" style="margin-top:8px; font-size:12.5px; color:#15803d; font-weight:600; display:none;"></div>
             </div>
             <div class="solar-calc-grid">
                 <div class="solar-sec-box">
@@ -559,6 +560,7 @@ function updateInverterDropdownAll() {
     const stepUp = parseInt(document.getElementById('scLoadType')?.value || "1");
     const pumpKW = parseSafePumpPowerKW();
     const invSelect = document.getElementById('spInvIdx');
+    const suggestEl = document.getElementById('pumpSuggestNote');
     if (!invSelect) return;
 
     const brandsOrder = [
@@ -568,37 +570,43 @@ function updateInverterDropdownAll() {
         { key: "SAJ", label: "Hãng SAJ (Max 900V)" }
     ];
 
-    let selectedOrigIdx = -1;
+    let targetKW = null;
     if (pumpKW > 0) {
         const distinctKWs = [...new Set(SOLAR_INVERTERS_DB.map(i => i.kw))].sort((a, b) => a - b);
         let baseIdx = distinctKWs.findIndex(kw => kw >= pumpKW);
         if (baseIdx === -1) baseIdx = distinctKWs.length - 1;
-        const targetKW = distinctKWs[Math.min(baseIdx + stepUp, distinctKWs.length - 1)];
-        const matchIdx = SOLAR_INVERTERS_DB.findIndex(inv => inv.kw === targetKW);
-        if (matchIdx !== -1) selectedOrigIdx = matchIdx;
+        targetKW = distinctKWs[Math.min(baseIdx + stepUp, distinctKWs.length - 1)];
+        if (suggestEl) {
+            const loadNames = { "0": "Bơm đặt cạn", "1": "Bơm hỏa tiễn", "2": "Bơm tải nặng" };
+            suggestEl.style.display = 'block';
+            suggestEl.innerHTML = `👉 Đề xuất: ${loadNames[stepUp]} <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> ➔ Chọn biến tần cấp <b>${targetKW}kW (${Math.round(targetKW/0.75)}HP)</b>.`;
+        }
+    } else if (suggestEl) {
+        suggestEl.style.display = 'none';
     }
 
     let html = "";
     brandsOrder.forEach(b => {
         const items = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
-                                        .filter(inv => inv.brand === b.key);
+            .filter(inv => inv.brand === b.key && (targetKW === null || inv.kw === targetKW));
         if (items.length > 0) {
             html += `<optgroup label="${b.label}">`;
             items.forEach(inv => {
-                const isSel = (inv.origIdx === selectedOrigIdx) ? "selected" : "";
-                html += `<option value="${inv.origIdx}" ${isSel}>${inv.name}</option>`;
+                html += `<option value="${inv.origIdx}">${inv.name}</option>`;
             });
             html += `</optgroup>`;
         }
     });
+    html += `<option value="custom">-- Tự nhập thông số biến tần khác --</option>`;
 
     invSelect.innerHTML = html;
     fillInverterSpecs();
 }
 
 function fillInverterSpecs() {
-    const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
-    const inv = SOLAR_INVERTERS_DB[invIdx];
+    const val = document.getElementById('spInvIdx')?.value;
+    if (val === 'custom') return;
+    const inv = SOLAR_INVERTERS_DB[parseInt(val)];
     if (!inv) return;
     document.getElementById('invKwInput').value = inv.kw;
     document.getElementById('invVdcMaxInput').value = inv.vdcMax;
@@ -618,8 +626,8 @@ function fillPanelSpecs() {
     document.getElementById('panVocInput').value = pan.voc;
 }
 function execRealCombatSolarCalc() {
-    const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
-    const baseInv = SOLAR_INVERTERS_DB[invIdx] || { name: "Biến tần tùy chỉnh", phase: "3 pha 380V", price: 10000000 };
+    const invVal = document.getElementById('spInvIdx')?.value;
+    const baseInv = invVal !== 'custom' ? SOLAR_INVERTERS_DB[parseInt(invVal)] : { name: "Biến tần tùy chỉnh", phase: "3 pha 380V", price: 10000000 };
     const invKw = parseFloat(document.getElementById('invKwInput').value) || 0;
     const vdcMax = parseFloat(document.getElementById('invVdcMaxInput').value) || 900;
     const idcMax = parseFloat(document.getElementById('invIdcMaxInput').value) || 40;
@@ -714,8 +722,8 @@ function setQuoteDataFromCombat(strings, perStr) {
     const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 625;
     const invKw = parseFloat(document.getElementById('invKwInput').value) || 15;
     const dcLen = parseFloat(document.getElementById('spDcLen')?.value) || 25;
-    const invIdx = parseInt(document.getElementById('spInvIdx')?.value);
-    const invObj = SOLAR_INVERTERS_DB[invIdx] || { name: `Biến tần bơm ${invKw}kW`, price: invKw * 950000 };
+    const invVal = document.getElementById('spInvIdx')?.value;
+    const invObj = invVal !== 'custom' ? SOLAR_INVERTERS_DB[parseInt(invVal)] : { name: `Biến tần bơm ${invKw}kW`, price: invKw * 950000 };
     const panVal = document.getElementById('spPanelIdx')?.value;
     const panObj = panVal !== 'custom' ? SOLAR_PANELS_DB[parseInt(panVal)] : { name: `Tấm pin NLMT ${pMax}W`, power: pMax, priceWp: 2950 };
     const totalPanels = strings * perStr;
