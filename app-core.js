@@ -725,7 +725,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
                 <div class="plan-title">${pl.label}</div>
                 <div class="plan-panels">${pl.perStr} tấm / chuỗi</div>
                 <div class="plan-sub">
-                    Voc (25°C): <b>${voc25}V</b> | Trời lạnh (-10°C): <b>${vocCold}V</b><br>
+                    Voc (25°C): <b>${voc25}V</b> | Sáng sớm trời lạnh (10°C): <b>${vocCold}V</b><br>
                     Vmp: <b>${vmpStr}V</b> | Công suất: <b>${kwpStr} kWp</b>
                 </div>
             </div>
@@ -739,7 +739,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     const forbiddenPanels = maxPerStr + 1;
     const forbiddenVocCold = (forbiddenPanels * voc * vocColdFactor).toFixed(1);
     let warnLines = [
-        `<b>Bảo vệ quá áp sáng sớm trời lạnh (-10°C):</b> Tuyệt đối không đấu đến <b>${forbiddenPanels} tấm/chuỗi</b> vì điện áp hở mạch lúc trời lạnh sẽ vọt lên <b>${forbiddenVocCold}V</b>, vượt ngưỡng chịu đựng <b>${vdcMax}V</b> của biến tần.`
+        `<b>Bảo vệ quá áp sáng sớm trời lạnh (10°C):</b> Tuyệt đối không đấu đến <b>${forbiddenPanels} tấm/chuỗi</b> vì điện áp hở mạch lúc sáng sớm trời lạnh có thể vọt lên <b>${forbiddenVocCold}V</b>, vượt ngưỡng chịu đựng <b>${vdcMax}V</b> của biến tần.`
     ];
     if (parseFloat(recTotalImp) > 25) {
         warnLines.push(`<b>Cảnh báo dòng điện cao (${recTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
@@ -759,6 +759,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     `;
     setQuoteDataFromCombat(recStrings, recPerStr);
 }
+
 
 function selectSingleOrRecPlan(idx, recStrings, recPerStr) {
     document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
