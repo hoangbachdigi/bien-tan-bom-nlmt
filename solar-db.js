@@ -227,7 +227,7 @@ const MOCK_ERRORS = [
     { brand: "Green Nova", code: "PIDE", desc: "Lỗi phản hồi PID", fix: "1. Mất tín hiệu phản hồi PID -> Kiểm tra dây tín hiệu phản hồi PID. 2. Mất nguồn phản hồi PID -> Kiểm tra nguồn phản hồi PID." },
     { brand: "Green Nova", code: "bCE", desc: "Lỗi mạch hãm", fix: "1. Lỗi mạch hãm hoặc đứt ống dẫn hãm -> Kiểm tra bộ hãm và thay ống hãm nếu cần. 2. Điện trở hãm ngoài có giá trị quá thấp -> Tăng giá trị điện trở hãm." },
     { brand: "Green Nova", code: "END", desc: "Hết thời gian cài đặt thử nghiệm", fix: "Đã đến thời gian chạy thử -> Liên hệ bảo hành hoặc kỹ thuật viên." },
-    { brand: "Green Nova", code: "OL3", desc: "Quá moment", fix: "1. Tăng thời gian tăng tốc (ACC). 2. Tránh khởi động lại ngay sau khi dừng. 3. Kiểm tra công suất nguồn cấp. 4. Chọn biến tần công suất lớn hơn. 5. Điều chỉnh Pb.11 đến giá trị phù hợp." }
+    { brand: "Green Nova", code: "OL3", desc: "Quá moment", fix: "1. Tăng thời gian tăng tốc (ACC). 2. Tránh khởi động lại ngay sau khi dừng. 3. Kiểm tra công suất nguồn cấp. 4. Chọn biến tần công suất lớn hơn. 5. Điều chỉnh Pb.11 đến giá trị phù hợp." },
         // === HÃNG LUMENTREE (HYBRID INVERTER - TRỌN BỘ 21 MÃ LỖI) ===
     { brand: "Lumentree", code: "E07", desc: "Lỗi mạch tăng áp DC-DC (DC-DC voltage boost failure)", fix: "1. Khởi động lại biến tần (Restart). 2. Liên hệ nhà cung cấp để được hỗ trợ kỹ thuật." },
     { brand: "Lumentree", code: "E10", desc: "Lỗi khối công suất (Power module fault)", fix: "Kiểm tra điện áp ắc quy / pin lưu trữ xem có nằm trong ngưỡng bình thường không." },
