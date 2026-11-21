@@ -11,8 +11,6 @@ let currentUser = JSON.parse(sessionStorage.getItem('current_user')) || null;
 let currentSortBy = 'day';
 let lastSolarQuoteData = null;
 let currentSolarPlans = [];
-let currentProdSliderImgs = [];
-let currentProdSlideIdx = 0;
 document.addEventListener("DOMContentLoaded", async () => {
     renderVietnamDate();
     applyBannerFromConfig();
@@ -21,6 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     checkSharedProductUrl();
     syncDataFromGoogleSheet();
 });
+
 function renderVietnamDate() {
     const el = document.getElementById('vnDateDisplay');
     if (!el) return;
@@ -34,6 +33,7 @@ function renderVietnamDate() {
         el.innerText = "📅 " + vnStr.charAt(0).toUpperCase() + vnStr.slice(1);
     } catch (e) { el.innerText = "📅 Hôm nay"; }
 }
+
 function checkSharedProductUrl() {
     const params = new URLSearchParams(window.location.search);
     const spIdx = params.get('sp');
@@ -43,6 +43,7 @@ function checkSharedProductUrl() {
 function toggleMobileDrawer() {
     document.getElementById('mobileDrawer').classList.toggle('open');
 }
+
 function selectMobileDrawer(pageFile, labelText, el) {
     document.querySelectorAll('.drawer-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
@@ -51,6 +52,7 @@ function selectMobileDrawer(pageFile, labelText, el) {
     document.getElementById('mobileDrawer').classList.remove('open');
     loadSubPage(pageFile, null);
 }
+
 async function loadSubPage(pageFile, navElement) {
     if (navElement) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -69,6 +71,7 @@ async function loadSubPage(pageFile, navElement) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
 }
+
 function applyBannerFromConfig() {
     const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
     if (bannerCfg && bannerCfg.media) {
@@ -76,6 +79,7 @@ function applyBannerFromConfig() {
         document.getElementById('bannerContainer').style.padding = "0";
     }
 }
+
 async function syncDataFromGoogleSheet() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -95,6 +99,7 @@ async function syncDataFromGoogleSheet() {
         updateTopUserBar();
     } catch (e) {}
 }
+
 function updateTopUserBar() {
     const statusText = document.getElementById('userStatusText');
     const btnLabel = document.getElementById('userBtnLabel');
@@ -114,6 +119,7 @@ function updateTopUserBar() {
         btnLabel.innerText = "Đăng nhập";
     }
 }
+
 function checkLimitAndRun(callbackFn) {
     if (currentUser && currentUser.status === 'approved') return callbackFn();
     if (guestCount >= 3) {
@@ -293,6 +299,10 @@ async function adminAction(act, username) {
     await syncDataFromGoogleSheet();
     renderStatsTableOnly();
 }
+
+let currentProdSliderImgs = [];
+let currentProdSlideIdx = 0;
+
 function getCombinedProducts() {
     const realItems = appData.configs.filter(c => c.code === 'SAN_PHAM').map(c => {
         const imgList = (c.media || "").split(/\||,/).map(s => s.trim()).filter(Boolean);
@@ -309,6 +319,7 @@ function getCombinedProducts() {
     }));
     return realItems.length > 0 ? [...realItems, ...mockFormatted] : mockFormatted;
 }
+
 function renderProductsPage(page) {
     const grid = document.getElementById('productGridArea');
     const pag = document.getElementById('productPagination');
@@ -321,11 +332,12 @@ function renderProductsPage(page) {
     grid.innerHTML = items.map((item, idx) => {
         const globalIdx = (page - 1) * perPage + idx;
         const shortDesc = item.specs.split('|').slice(0, 2).join(' • ');
-        const coverImg = item.imgs;
+        const coverImg = item.imgs[0];
         return `<div class="item-card" onclick="openProductDetail(${globalIdx})"><img class="card-thumb" src="${coverImg}" alt="${item.title}" loading="lazy"><div class="card-body"><h3 class="card-heading">${item.title}</h3><p class="card-desc-2line">${shortDesc}</p></div></div>`;
     }).join('');
     pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>`).join('');
 }
+
 function openProductDetail(idx) {
     const item = getCombinedProducts()[idx];
     if (!item) return;
@@ -337,8 +349,8 @@ function openProductDetail(idx) {
     const hasMulti = currentProdSliderImgs.length > 1;
 
     const sliderNavHtml = hasMulti ? `
-        <button type="button" class="slider-nav-btn slider-prev" onclick="changeProdSlide(-1)">&#10094;</button>
-        <button type="button" class="slider-nav-btn slider-next" onclick="changeProdSlide(1)">&#10095;</button>
+        <button class="slider-nav-btn slider-prev" onclick="changeProdSlide(-1)">&#10094;</button>
+        <button class="slider-nav-btn slider-next" onclick="changeProdSlide(1)">&#10095;</button>
     ` : '';
 
     const thumbsHtml = hasMulti ? `<div class="prod-thumbs-row">${currentProdSliderImgs.map((src, i) => `
@@ -347,7 +359,7 @@ function openProductDetail(idx) {
 
     openGlobalModal(`
         <div class="prod-slider-wrap">
-            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs}" alt="${item.title}">
+            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs[0]}" alt="${item.title}">
             ${sliderNavHtml}
         </div>
         ${thumbsHtml}
@@ -356,6 +368,7 @@ function openProductDetail(idx) {
         <button class="btn" style="width:100%; background:#0068ff; font-size:15px;" onclick="copyProductShareLink(${idx}, '${item.title.replace(/'/g, "\\'")}')">🔗 Chia Sẻ / Sao Chép Link Sản Phẩm</button>
     `);
 }
+
 function changeProdSlide(step) {
     if (currentProdSliderImgs.length <= 1) return;
     currentProdSlideIdx = (currentProdSlideIdx + step + currentProdSliderImgs.length) % currentProdSliderImgs.length;
@@ -378,14 +391,17 @@ function copyProductShareLink(idx, title) {
         prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl);
     }
 }
+
+
 function getCombinedErrors() {
     const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
         const bParts = c.title.split('|');
         const cParts = c.content.split('|');
-        return { brand: (bParts[0] || "PowerS").trim(), code: (bParts[1] || "").trim(), desc: (cParts[0] || "").trim(), fix: (cParts[1] || "").trim() };
+        return { brand: (bParts || "PowerS").trim(), code: (bParts || "").trim(), desc: (cParts || "").trim(), fix: (cParts || "").trim() };
     });
     return [...realErrors, ...MOCK_ERRORS];
 }
+
 function renderErrorsPage(page) {
     const tbody = document.getElementById('errorTableBody');
     const pag = document.getElementById('errorPagination');
@@ -413,6 +429,7 @@ function renderKnowledgePage() {
     if (!listArea) return;
     listArea.innerHTML = getCombinedKnowledge().map((b, idx) => `<div class="blog-row" onclick="openKnowledgeDetail(${idx})"><div style="font-weight:600; color:var(--dark);">📄 ${b.title}</div><span style="font-size:12px; color:#64748b; white-space:nowrap;">${b.date} ➔</span></div>`).join('');
 }
+
 function openKnowledgeDetail(idx) {
     const b = getCombinedKnowledge()[idx];
     if (!b) return;
@@ -432,6 +449,7 @@ const CALC_TOOLS_LIST = [
     { id: 'vdrop', icon: '⚡', title: 'Tính sụt áp trên đường dây', desc: 'Kiểm tra độ sụt áp dây dẫn DC/AC và khuyến nghị tiết diện cáp an toàn.' },
     { id: 'divider', icon: '🔌', title: 'Tính cầu trở phân áp', desc: 'Tính điện áp đầu ra Vout và dòng tiêu thụ cho mạch cảm biến, đo lường.' }
 ];
+
 function renderToolsPage(page) {
     const grid = document.getElementById('toolsGridArea');
     const pag = document.getElementById('toolsPagination');
@@ -442,25 +460,6 @@ function renderToolsPage(page) {
 
     grid.innerHTML = items.map(t => `<div class="item-card" onclick="openCalcToolModal('${t.id}')" style="padding:16px; text-align:center;"><div style="font-size:32px; margin-bottom:8px;">${t.icon}</div><h3 class="card-heading" style="color:var(--primary);">${t.title}</h3><p class="card-desc-2line">${t.desc}</p></div>`).join('');
     pag.innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderToolsPage(${i + 1})">${i + 1}</button>`).join('') : '';
-}
-function buildGroupedPanelOptions(defaultPower, addCustomSelected) {
-    const brands = ["Jinko Solar", "Astronergy"];
-    let html = "";
-    brands.forEach(br => {
-        const items = SOLAR_PANELS_DB.map((p, idx) => ({ ...p, origIdx: idx }))
-            .filter(p => p.brand === br)
-            .sort((a, b) => a.power - b.power);
-        if (items.length > 0) {
-            html += `<optgroup label="Hãng ${br}">`;
-            items.forEach(p => {
-                const isSel = (!addCustomSelected && defaultPower && p.power === defaultPower && p.name.includes("2 mặt kính")) ? "selected" : "";
-                html += `<option value="${p.origIdx}" ${isSel}>${p.name}</option>`;
-            });
-            html += `</optgroup>`;
-        }
-    });
-    html += `<option value="custom" ${addCustomSelected ? 'selected' : ''}>-- Tự nhập thông số tấm pin khác --</option>`;
-    return html;
 }
 function openCalcToolModal(toolId) {
     if (toolId === 'pump') {
@@ -481,9 +480,8 @@ function openCalcToolModal(toolId) {
             <button class="btn btn-primary" onclick="checkLimitAndRun(execPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
             <div id="toolModalResult" class="result-box"></div>
         `);
-    }
-    else if (toolId === 'solar') {
-        const panelOpts = buildGroupedPanelOptions(625, false);
+    } else if (toolId === 'solar') {
+        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.power === 625 ? 'selected' : ''}>${p.name}</option>`).join('') + `<option value="custom">-- Tự nhập thông số tấm pin khác --</option>`;
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT</h3>
             <div class="solar-sec-box" style="margin-bottom:12px;">
@@ -548,8 +546,8 @@ function openCalcToolModal(toolId) {
         `);
         setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 50);
     }
-    else if (toolId === 'health') {
-        const panelOpts = buildGroupedPanelOptions(null, true);
+        else if (toolId === 'health') {
+        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}">${p.name}</option>`).join('') + `<option value="custom" selected>-- Tự nhập thông số tấm pin của khách --</option>`;
         let invOpts = '';
         ["Power S", "Voltique", "Green Nova", "SAJ"].forEach(br => {
             const list = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, idx })).filter(x => x.brand === br);
@@ -608,7 +606,7 @@ function openCalcToolModal(toolId) {
             <button class="btn btn-primary" style="font-size:15px;" onclick="checkLimitAndRun(execSolarHealthCheck)">🔍 KHÁM SỨC KHỎE HỆ THỐNG</button>
             <div id="toolModalResult" style="margin-top:12px;"></div>
         `);
-    }
+    }    
     else if (toolId === 'acc') {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
@@ -680,6 +678,7 @@ function parseSafePumpPowerKW() {
         return unit === "HP" ? (val * 0.75) : val;
     } catch (e) { return 0; }
 }
+
 function updateInverterDropdownAll() {
     const stepUp = parseInt(document.getElementById('scLoadType')?.value || "1");
     const pumpKW = parseSafePumpPowerKW();
@@ -720,6 +719,7 @@ function updateInverterDropdownAll() {
     } else if (suggestEl) {
         suggestEl.style.display = 'none';
     }
+
     let html = "";
     brandsOrder.forEach(b => {
         const items = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
@@ -777,7 +777,7 @@ function execRealCombatSolarCalc() {
 
     const pumpKW = parseSafePumpPowerKW();
     if (pumpKW > invKw) {
-        return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.25)}kW trước khi tính.`);
+    return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.25)}kW trước khi tính.`);
     }
     const refKW = pumpKW > 0 ? pumpKW : invKw;
     const vocColdFactor = 1.05;
@@ -822,6 +822,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
             </div>
         `;
     }).join('');
+
     const recTotalPanels = recStrings * recPerStr;
     const recTotalKWp = ((recTotalPanels * pMax) / 1000).toFixed(2);
     const recTotalImp = (recStrings * imp).toFixed(2);
@@ -834,7 +835,6 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     if (parseFloat(recTotalImp) > 25) {
         warnLines.push(`<b>Cảnh báo dòng điện cao (${recTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
     }
-
     const resBox = document.getElementById('toolModalResult');
     resBox.innerHTML = `
         <div class="solar-3cards">${cardsHtml}</div>
@@ -856,6 +856,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     };
     setQuoteDataFromCombat(recStrings, recPerStr);
 }
+
 function selectSingleOrRecPlan(idx, recStrings, recPerStr) {
     document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
     if (window.lastCombatConfigSummary) window.lastCombatConfigSummary.selectedCardIdx = idx;
@@ -872,7 +873,7 @@ function copySolarConfigForZalo() {
         ? `Cấu hình dành cho ${loadNames[loadVal]} ${pumpKW}kW`
         : `Cấu hình dành cho hệ biến tần ${cfg.invKw}kW`;
 
-    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans;
+    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[1];
     const cleanPlanName = selPlan.label.replace('⭐ ', '').replace('/ 1 CHUỖI', '/ 1 chuỗi').toLowerCase();
     const formattedPlanTitle = cleanPlanName.charAt(0).toUpperCase() + cleanPlanName.slice(1);
     const singleKwp = ((selPlan.perStr * cfg.pMax) / 1000).toFixed(3);
@@ -890,6 +891,7 @@ function copySolarConfigForZalo() {
         prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text);
     }
 }
+
 function setQuoteDataFromCombat(strings, perStr) {
     const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 625;
     const invKw = parseFloat(document.getElementById('invKwInput').value) || 15;
@@ -904,6 +906,7 @@ function setQuoteDataFromCombat(strings, perStr) {
     const pumpSummary = pumpKW > 0 ? `${pumpKW} kW` : `Hệ biến tần ${invKw} kW`;
     lastSolarQuoteData = { pumpKW: pumpKW || invKw, pumpSummary, panel: panObj, inv: invObj, totalPanels, totalKWp, strings, panelsPerString: perStr, dcLen };
 }
+
 function openEditableQuoteModal() {
     const d = lastSolarQuoteData;
     if (!d) return;
@@ -920,6 +923,7 @@ function openEditableQuoteModal() {
         { name: `Nhân công lắp đặt & cài đặt vận hành`, unit: "NC", qty: 1, price: Math.round(d.totalKWp * 800000) },
         { name: `Khác`, unit: "", qty: 0, price: 0 }
     ];
+
     const trHtml = rows.map((r, i) => `
         <tr>
             <td style="text-align:center;">${i + 1}</td>
@@ -1006,6 +1010,7 @@ function buildFinalQuotePrintHtml() {
         </div>
     </div>`;
 }
+
 function copyQuoteForZalo() {
     const d = lastSolarQuoteData;
     if (!d) return;
@@ -1044,110 +1049,7 @@ function printFinalQuote() {
     printWin.focus();
     setTimeout(() => { printWin.print(); printWin.close(); }, 300);
 }
-function fillHealthInv() {
-    const val = document.getElementById('hlInvSel')?.value;
-    if (val === 'custom') return;
-    const inv = SOLAR_INVERTERS_DB[parseInt(val)];
-    if (!inv) return;
-    document.getElementById('hlInvKw').value = inv.kw;
-    document.getElementById('hlInvVdcMax').value = inv.vdcMax;
-    document.getElementById('hlInvIdcMax').value = inv.idcMax;
-    document.getElementById('hlInvMpptMin').value = inv.mpptMin;
-}
 
-function fillHealthPan() {
-    const val = document.getElementById('hlPanSel')?.value;
-    if (val === 'custom') return;
-    const pan = SOLAR_PANELS_DB[parseInt(val)];
-    if (!pan) return;
-    document.getElementById('hlPanPmax').value = pan.power;
-    document.getElementById('hlPanImp').value = pan.imp;
-    document.getElementById('hlPanVmp').value = pan.vmp;
-    document.getElementById('hlPanVoc').value = pan.voc;
-}
-function execSolarHealthCheck() {
-    const stepUp = parseInt(document.getElementById('hlLoadType').value || "1");
-    const rawPump = parseFloat(document.getElementById('hlPumpVal').value) || 0;
-    const unit = document.getElementById('hlPumpUnit').value;
-    const pumpKW = unit === 'HP' ? rawPump * 0.75 : rawPump;
-
-    const invKw = parseFloat(document.getElementById('hlInvKw').value) || 0;
-    const vdcMax = parseFloat(document.getElementById('hlInvVdcMax').value) || 900;
-    const idcMax = parseFloat(document.getElementById('hlInvIdcMax').value) || 40;
-    const mpptMin = parseFloat(document.getElementById('hlInvMpptMin').value) || 550;
-
-    const pMax = parseFloat(document.getElementById('hlPanPmax').value) || 0;
-    const imp = parseFloat(document.getElementById('hlPanImp').value) || 0;
-    const vmp = parseFloat(document.getElementById('hlPanVmp').value) || 0;
-    const voc = parseFloat(document.getElementById('hlPanVoc').value) || 0;
-    const strings = parseInt(document.getElementById('hlStrings').value) || 1;
-    const perStr = parseInt(document.getElementById('hlPerStr').value) || 1;
-    if (pumpKW <= 0 || invKw <= 0 || pMax <= 0) return alert("Vui lòng nhập đầy đủ thông số hệ thống!");
-
-    const totalPanels = strings * perStr;
-    const totalKWp = (totalPanels * pMax) / 1000;
-    const vocCold = perStr * voc * 1.05;
-    const vmpTotal = perStr * vmp;
-    const impTotal = strings * imp;
-    const reqInvKw = stepUp === 0 ? pumpKW : (stepUp === 1 ? pumpKW * 1.3 : pumpKW * 1.6);
-    const reqKwp = pumpKW * 1.25;
-
-    let score = 100;
-    let issues = [];
-    let upgrades = [];
-
-    if (vocCold > vdcMax) {
-        score -= 35;
-        const safeMax = Math.floor(vdcMax / (voc * 1.05));
-        issues.push(`🔴 <b>Nguy hiểm quá áp sáng sớm trời lạnh (10°C):</b> Voc đạt <b>${vocCold.toFixed(1)}V</b> vượt ngưỡng <b>${vdcMax}V</b> của biến tần.`);
-        upgrades.push(`Giảm ngay số tấm mỗi chuỗi từ ${perStr} tấm xuống tối đa <b>${safeMax} tấm/chuỗi</b> để tránh nổ tụ/báo lỗi quá áp.`);
-    }
-    if (vmpTotal < mpptMin - 40) {
-        score -= 20;
-        const needPerStr = Math.ceil(mpptMin / vmp);
-        issues.push(`🟡 <b>Thiếu áp MPPT (Bơm chạy yếu):</b> Áp làm việc <b>${vmpTotal.toFixed(1)}V</b> thấp hơn vùng tối ưu (${mpptMin}V), bơm khó đạt đủ 50Hz.`);
-        upgrades.push(`Đấu nối tiếp thêm <b>${needPerStr - perStr} tấm/chuỗi</b> (nâng lên ${needPerStr} tấm/chuỗi) để đưa áp vào vùng ngọt MPPT.`);
-    }
-    if (impTotal > idcMax) {
-        score -= 25;
-        issues.push(`🔴 <b>Quá dòng DC đầu vào:</b> Tổng dòng <b>${impTotal.toFixed(1)}A</b> vượt mức chịu đựng <b>${idcMax}A</b> của biến tần.`);
-        upgrades.push(`Tách bớt chuỗi song song hoặc nâng cấp biến tần dòng DC lớn hơn.`);
-    }
-    if (invKw < reqInvKw - 0.5) {
-        score -= 20;
-        issues.push(`🟡 <b>Biến tần yếu so với tải bơm:</b> Bơm ${pumpKW.toFixed(1)}kW đang kéo biến tần ${invKw}kW dễ báo lỗi quá dòng (OC) khi khởi động.`);
-        upgrades.push(`Nâng cấp biến tần lên cấp <b>${Math.ceil(reqInvKw)}kW</b> (1–2 cấp trên tải bơm) để khởi động khỏe và bền máy.`);
-    }
-    if (totalKWp < pumpKW * 1.15) {
-        score -= 15;
-        const missPanels = Math.ceil(((reqKwp - totalKWp) * 1000) / pMax);
-        issues.push(`🟡 <b>Thiếu công suất giàn pin:</b> Giàn pin hiện có <b>${totalKWp.toFixed(2)} kWp</b> chưa đạt mức lý tưởng (${reqKwp.toFixed(2)} kWp) cho bơm ${pumpKW.toFixed(1)}kW.`);
-        upgrades.push(`Lắp bổ sung thêm khoảng <b>${missPanels} tấm pin (${pMax}W)</b> để bơm chạy khỏe từ sáng sớm đến chiều muộn.`);
-    }
-    score = Math.max(10, score);
-    const badgeColor = score >= 85 ? '#16a34a' : (score >= 60 ? '#ea580c' : '#dc2626');
-    const statusLabel = score >= 85 ? 'HỆ THỐNG HOẠT ĐỘNG TỐT' : (score >= 60 ? 'CẦN TỐI ƯU ĐỂ ĐẠT HIỆU SUẤT CAO' : 'CẢNH BÁO LỖI KỸ THUẬT - CẦN XỬ LÝ');
-    if (issues.length === 0) issues.push(`🟢 <b>Cấu hình phối ghép chuẩn xác:</b> Điện áp, dòng điện và công suất pin đều nằm trong vùng tối ưu của biến tần.`);
-    if (upgrades.length === 0) upgrades.push(`Giữ nguyên cấu hình hiện tại. Chỉ cần vệ sinh bề mặt tấm pin định kỳ và kiểm tra siết chặt các đầu cốt tủ điện.`);
-
-    window.lastHealthZaloText = `🩺 KẾT QUẢ KHÁM SỨC KHỎE HỆ BƠM NLMT\n• Hệ hiện tại: Bơm ${pumpKW.toFixed(1)}kW | Biến tần ${invKw}kW | ${strings} chuỗi x ${perStr} tấm ${pMax}W (${totalKWp.toFixed(2)} kWp)\n• Đánh giá: ${score}/100 điểm (${statusLabel})\n--------------------------------\n📋 Chẩn đoán:\n${issues.map(x => x.replace(/<[^>]+>/g, '')).join('\n')}\n--------------------------------\n💡 Phương án nâng cấp:\n${upgrades.map(x => '- ' + x.replace(/<[^>]+>/g, '')).join('\n')}`;
-
-    document.getElementById('toolModalResult').innerHTML = `
-        <div style="padding:12px; border-radius:8px; background:#f8fafc; border:1px solid #cbd5e1; border-left:5px solid ${badgeColor}; margin-bottom:10px;">
-            <div style="font-size:15px; font-weight:800; color:${badgeColor};">📊 SỨC KHỎE HỆ THỐNG: ${score}/100 ĐIỂM — ${statusLabel}</div>
-            <div style="font-size:12.5px; color:#475569; margin-top:4px;">Tổng giàn pin: <b>${totalPanels} tấm (${totalKWp.toFixed(2)} kWp)</b> | Vmp: <b>${vmpTotal.toFixed(1)}V</b> | Voc (10°C): <b>${vocCold.toFixed(1)}V</b> | Dòng Imp: <b>${impTotal.toFixed(1)}A</b></div>
-        </div>
-        <div style="padding:12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; line-height:1.6; margin-bottom:10px;">
-            <div style="font-weight:700; color:var(--dark); margin-bottom:4px;">📋 Chi tiết chẩn đoán kỹ thuật:</div>
-            ${issues.join('<br>')}
-        </div>
-        <div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:8px; font-size:13px; color:#14532d; line-height:1.6;">
-            <div style="font-weight:700; margin-bottom:4px;">💡 Phương án nâng cấp & tối ưu:</div>
-            • ${upgrades.join('<br>• ')}
-        </div>
-        <button class="btn" style="width:100%; background:#0068ff; margin-top:12px; font-size:14.5px;" onclick="navigator.clipboard.writeText(window.lastHealthZaloText).then(()=>alert('✅ Đã sao chép kết quả khám bệnh gửi Zalo!'))">💬 Sao chép kết quả gửi Zalo khách hàng</button>
-    `;
-}
 function execPumpCalc() {
     const source = document.getElementById('calcSource').value;
     const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
@@ -1208,4 +1110,110 @@ function execDividerCalc() {
     const resBox = document.getElementById('toolModalResult');
     resBox.style.display = 'block';
     resBox.innerHTML = `<p>- 🔌 <b>Điện áp ra Vout:</b> <span class="highlight">${(vin * (r2 / (r1 + r2))).toFixed(2)} V</span> | 🔋 <b>Dòng tiêu thụ:</b> <b>${(vin / (r1 + r2)).toFixed(2)} mA</b></p>`;
+}
+function fillHealthInv() {
+    const val = document.getElementById('hlInvSel')?.value;
+    if (val === 'custom') return;
+    const inv = SOLAR_INVERTERS_DB[parseInt(val)];
+    if (!inv) return;
+    document.getElementById('hlInvKw').value = inv.kw;
+    document.getElementById('hlInvVdcMax').value = inv.vdcMax;
+    document.getElementById('hlInvIdcMax').value = inv.idcMax;
+    document.getElementById('hlInvMpptMin').value = inv.mpptMin;
+}
+
+function fillHealthPan() {
+    const val = document.getElementById('hlPanSel')?.value;
+    if (val === 'custom') return;
+    const pan = SOLAR_PANELS_DB[parseInt(val)];
+    if (!pan) return;
+    document.getElementById('hlPanPmax').value = pan.power;
+    document.getElementById('hlPanImp').value = pan.imp;
+    document.getElementById('hlPanVmp').value = pan.vmp;
+    document.getElementById('hlPanVoc').value = pan.voc;
+}
+
+function execSolarHealthCheck() {
+    const stepUp = parseInt(document.getElementById('hlLoadType').value || "1");
+    const rawPump = parseFloat(document.getElementById('hlPumpVal').value) || 0;
+    const unit = document.getElementById('hlPumpUnit').value;
+    const pumpKW = unit === 'HP' ? rawPump * 0.75 : rawPump;
+
+    const invKw = parseFloat(document.getElementById('hlInvKw').value) || 0;
+    const vdcMax = parseFloat(document.getElementById('hlInvVdcMax').value) || 900;
+    const idcMax = parseFloat(document.getElementById('hlInvIdcMax').value) || 40;
+    const mpptMin = parseFloat(document.getElementById('hlInvMpptMin').value) || 550;
+
+    const pMax = parseFloat(document.getElementById('hlPanPmax').value) || 0;
+    const imp = parseFloat(document.getElementById('hlPanImp').value) || 0;
+    const vmp = parseFloat(document.getElementById('hlPanVmp').value) || 0;
+    const voc = parseFloat(document.getElementById('hlPanVoc').value) || 0;
+    const strings = parseInt(document.getElementById('hlStrings').value) || 1;
+    const perStr = parseInt(document.getElementById('hlPerStr').value) || 1;
+    if (pumpKW <= 0 || invKw <= 0 || pMax <= 0) return alert("Vui lòng nhập đầy đủ thông số hệ thống!");
+
+    const totalPanels = strings * perStr;
+    const totalKWp = (totalPanels * pMax) / 1000;
+    const vocCold = perStr * voc * 1.05;
+    const vmpTotal = perStr * vmp;
+    const impTotal = strings * imp;
+    const reqInvKw = stepUp === 0 ? pumpKW : (stepUp === 1 ? pumpKW * 1.3 : pumpKW * 1.6);
+    const reqKwp = pumpKW * 1.25;
+
+    let score = 100;
+    let issues = [];
+    let upgrades = [];
+
+    if (vocCold > vdcMax) {
+        score -= 35;
+        const safeMax = Math.floor(vdcMax / (voc * 1.05));
+        issues.push(`🔴 <b>Nguy hiểm quá áp sáng sớm trời lạnh (10°C):</b> Voc đạt <b>${vocCold.toFixed(1)}V</b> vượt ngưỡng <b>${vdcMax}V</b> của biến tần.`);
+        upgrades.push(`Giảm ngay số tấm mỗi chuỗi từ ${perStr} tấm xuống tối đa <b>${safeMax} tấm/chuỗi</b> để tránh nổ tụ/báo lỗi quá áp.`);
+    }
+    if (vmpTotal < mpptMin - 40) {
+        score -= 20;
+        const needPerStr = Math.ceil(mpptMin / vmp);
+        issues.push(`🟡 <b>Thiếu áp MPPT (Bơm chạy yếu):</b> Áp làm việc <b>${vmpTotal.toFixed(1)}V</b> thấp hơn vùng tối ưu (${mpptMin}V), bơm khó đạt đủ 50Hz.`);
+        upgrades.push(`Đấu nối tiếp thêm <b>${needPerStr - perStr} tấm/chuỗi</b> (nâng lên ${needPerStr} tấm/chuỗi) để đưa áp vào vùng ngọt MPPT.`);
+    }
+    if (impTotal > idcMax) {
+        score -= 25;
+        issues.push(`🔴 <b>Quá dòng DC đầu vào:</b> Tổng dòng <b>${impTotal.toFixed(1)}A</b> vượt mức chịu đựng <b>${idcMax}A</b> của biến tần.`);
+        upgrades.push(`Tách bớt chuỗi song song hoặc nâng cấp biến tần dòng DC lớn hơn.`);
+    }
+    if (invKw < reqInvKw - 0.5) {
+        score -= 20;
+        issues.push(`🟡 <b>Biến tần yếu so với tải bơm:</b> Bơm ${pumpKW.toFixed(1)}kW đang kéo biến tần ${invKw}kW dễ báo lỗi quá dòng (OC) khi khởi động.`);
+        upgrades.push(`Nâng cấp biến tần lên cấp <b>${Math.ceil(reqInvKw)}kW</b> (1–2 cấp trên tải bơm) để khởi động khỏe và bền máy.`);
+    }
+    if (totalKWp < pumpKW * 1.15) {
+        score -= 15;
+        const missPanels = Math.ceil(((reqKwp - totalKWp) * 1000) / pMax);
+        issues.push(`🟡 <b>Thiếu công suất giàn pin:</b> Giàn pin hiện có <b>${totalKWp.toFixed(2)} kWp</b> chưa đạt mức lý tưởng (${reqKwp.toFixed(2)} kWp) cho bơm ${pumpKW.toFixed(1)}kW.`);
+        upgrades.push(`Lắp bổ sung thêm khoảng <b>${missPanels} tấm pin (${pMax}W)</b> để bơm chạy khỏe từ sáng sớm đến chiều muộn.`);
+    }
+
+    score = Math.max(10, score);
+    const badgeColor = score >= 85 ? '#16a34a' : (score >= 60 ? '#ea580c' : '#dc2626');
+    const statusLabel = score >= 85 ? 'HỆ THỐNG HOẠT ĐỘNG TỐT' : (score >= 60 ? 'CẦN TỐI ƯU ĐỂ ĐẠT HIỆU SUẤT CAO' : 'CẢNH BÁO LỖI KỸ THUẬT - CẦN XỬ LÝ');
+    if (issues.length === 0) issues.push(`🟢 <b>Cấu hình phối ghép chuẩn xác:</b> Điện áp, dòng điện và công suất pin đều nằm trong vùng tối ưu của biến tần.`);
+    if (upgrades.length === 0) upgrades.push(`Giữ nguyên cấu hình hiện tại. Chỉ cần vệ sinh bề mặt tấm pin định kỳ và kiểm tra siết chặt các đầu cốt tủ điện.`);
+
+    window.lastHealthZaloText = `🩺 KẾT QUẢ KHÁM SỨC KHỎE HỆ BƠM NLMT\n• Hệ hiện tại: Bơm ${pumpKW.toFixed(1)}kW | Biến tần ${invKw}kW | ${strings} chuỗi x ${perStr} tấm ${pMax}W (${totalKWp.toFixed(2)} kWp)\n• Đánh giá: ${score}/100 điểm (${statusLabel})\n--------------------------------\n📋 Chẩn đoán:\n${issues.map(x => x.replace(/<[^>]+>/g, '')).join('\n')}\n--------------------------------\n💡 Phương án nâng cấp:\n${upgrades.map(x => '- ' + x.replace(/<[^>]+>/g, '')).join('\n')}`;
+
+    document.getElementById('toolModalResult').innerHTML = `
+        <div style="padding:12px; border-radius:8px; background:#f8fafc; border:1px solid #cbd5e1; border-left:5px solid ${badgeColor}; margin-bottom:10px;">
+            <div style="font-size:15px; font-weight:800; color:${badgeColor};">📊 SỨC KHỎE HỆ THỐNG: ${score}/100 ĐIỂM — ${statusLabel}</div>
+            <div style="font-size:12.5px; color:#475569; margin-top:4px;">Tổng giàn pin: <b>${totalPanels} tấm (${totalKWp.toFixed(2)} kWp)</b> | Vmp: <b>${vmpTotal.toFixed(1)}V</b> | Voc (10°C): <b>${vocCold.toFixed(1)}V</b> | Dòng Imp: <b>${impTotal.toFixed(1)}A</b></div>
+        </div>
+        <div style="padding:12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; line-height:1.6; margin-bottom:10px;">
+            <div style="font-weight:700; color:var(--dark); margin-bottom:4px;">📋 Chi tiết chẩn đoán kỹ thuật:</div>
+            ${issues.join('<br>')}
+        </div>
+        <div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:8px; font-size:13px; color:#14532d; line-height:1.6;">
+            <div style="font-weight:700; margin-bottom:4px;">💡 Phương án nâng cấp & tối ưu:</div>
+            • ${upgrades.join('<br>• ')}
+        </div>
+        <button class="btn" style="width:100%; background:#0068ff; margin-top:12px; font-size:14.5px;" onclick="navigator.clipboard.writeText(window.lastHealthZaloText).then(()=>alert('✅ Đã sao chép kết quả khám bệnh gửi Zalo!'))">💬 Sao chép kết quả gửi Zalo khách hàng</button>
+    `;
 }
