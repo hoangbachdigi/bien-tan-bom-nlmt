@@ -461,6 +461,26 @@ function renderToolsPage(page) {
     grid.innerHTML = items.map(t => `<div class="item-card" onclick="openCalcToolModal('${t.id}')" style="padding:16px; text-align:center;"><div style="font-size:32px; margin-bottom:8px;">${t.icon}</div><h3 class="card-heading" style="color:var(--primary);">${t.title}</h3><p class="card-desc-2line">${t.desc}</p></div>`).join('');
     pag.innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderToolsPage(${i + 1})">${i + 1}</button>`).join('') : '';
 }
+function buildGroupedPanelOptions(defaultPower, addCustomSelected) {
+    const brands = ["Jinko Solar", "Astronergy", "Trina Solar", "TCL Solar"];
+    let html = "";
+    brands.forEach(br => {
+        const items = SOLAR_PANELS_DB.map((p, idx) => ({ ...p, origIdx: idx }))
+            .filter(p => (p.brand || (p.name.includes("Astronergy") ? "Astronergy" : "Jinko Solar")) === br)
+            .sort((a, b) => a.power - b.power);
+        if (items.length > 0) {
+            html += `<optgroup label="Hãng ${br}">`;
+            items.forEach(p => {
+                const isSel = (!addCustomSelected && defaultPower && br === "Jinko Solar" && p.power === defaultPower) ? "selected" : "";
+                html += `<option value="${p.origIdx}" ${isSel}>${p.name}</option>`;
+            });
+            html += `</optgroup>`;
+        }
+    });
+    html += `<option value="custom" ${addCustomSelected ? 'selected' : ''}>-- Tự nhập thông số tấm pin khác --</option>`;
+    return html;
+}
+
 function openCalcToolModal(toolId) {
     if (toolId === 'pump') {
         openGlobalModal(`
@@ -481,7 +501,7 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" class="result-box"></div>
         `);
     } else if (toolId === 'solar') {
-        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}" ${p.power === 625 ? 'selected' : ''}>${p.name}</option>`).join('') + `<option value="custom">-- Tự nhập thông số tấm pin khác --</option>`;
+        const panelOpts = buildGroupedPanelOptions(580, false);
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT</h3>
             <div class="solar-sec-box" style="margin-bottom:12px;">
@@ -547,7 +567,7 @@ function openCalcToolModal(toolId) {
         setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 50);
     }
         else if (toolId === 'health') {
-        const panelOpts = SOLAR_PANELS_DB.map((p, i) => `<option value="${i}">${p.name}</option>`).join('') + `<option value="custom" selected>-- Tự nhập thông số tấm pin của khách --</option>`;
+        const panelOpts = buildGroupedPanelOptions(null, true);
         let invOpts = '';
         ["Power S", "Voltique", "Green Nova", "SAJ"].forEach(br => {
             const list = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, idx })).filter(x => x.brand === br);
