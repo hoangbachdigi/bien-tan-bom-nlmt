@@ -140,14 +140,39 @@ const MOCK_PRODUCTS = [
     }
 ];
 const MOCK_ERRORS = [
-    { brand: "PowerS", code: "E.OC1", desc: "Quá dòng trong quá trình tăng tốc động cơ", fix: "Tăng thời gian tăng tốc (F0.11), kiểm tra kẹt cánh bơm hoặc chạm chập dây cáp động lực." },
-    { brand: "PowerS", code: "E.OC2", desc: "Quá dòng trong quá trình giảm tốc", fix: "Tăng thời gian giảm tốc hoặc chuyển sang chế độ dừng tự do (Coast to stop)." },
-    { brand: "PowerS", code: "E.OC3", desc: "Quá dòng khi chạy ở tốc độ ổn định", fix: "Kiểm tra tải bơm có bị kẹt rác/cát không, kiểm tra điện áp giàn pin có bị sụt đột ngột." },
-    { brand: "PowerS", code: "E.OU1", desc: "Quá áp DC Bus khi tăng tốc", fix: "Kiểm tra tổng điện áp hở mạch Voc của chuỗi pin, giảm bớt số tấm pin nối tiếp." },
-    { brand: "PowerS", code: "E.LU", desc: "Thấp áp DC Bus (Yếu nắng hoặc sụt áp nguồn)", fix: "Trạng thái bình thường khi trời mây mù, biến tần sẽ tự chạy lại khi nắng lên." },
-    { brand: "PowerS", code: "E.OH1", desc: "Quá nhiệt module tản nhiệt IGBT", fix: "Vệ sinh bụi bẩn quạt làm mát, kiểm tra thông gió tủ điện ngoài trời." },
-    { brand: "PowerS", code: "E.OL1", desc: "Quá tải động cơ máy bơm", fix: "Kiểm tra dòng định mức motor cài đặt trong biến tần, kiểm tra kẹt cơ khí bơm." },
-    { brand: "PowerS", code: "E.SPI", desc: "Mất pha đầu vào (Khi chạy nguồn lưới AC)", fix: "Kiểm tra lại CB nguồn và các đầu cốt dây pha R, S, T cấp vào biến tần." },
+    // === HÃNG POWER S (SG600 / SG800 SERIES - TRỌN BỘ 30 MÃ LỖI & CẢNH BÁO) ===
+    { brand: "PowerS", code: "A.SLP (81)", desc: "Chế độ ngủ đông (Yếu nắng / Thiếu áp)", fix: "1. Kiểm tra công suất dàn pin (cần >= 1.3 lần công suất bơm). 2. Kiểm tra áp Vmp (khuyến nghị >= 1.41 x áp AC bơm). 3. Tăng độ lợi MPPT tại PE-04, PE-05. 4. Kiểm tra ngưỡng áp ngủ đông PE-16." },
+    { brand: "PowerS", code: "A.LFr (82)", desc: "Bảo vệ chạy tần số thấp", fix: "Tần số ngõ ra thấp hơn mức cài đặt tại PE-19. Hãy giảm giá trị cài đặt tại tham số PE-19 nếu cần thiết." },
+    { brand: "PowerS", code: "A.LLd (83)", desc: "Bảo vệ chạy khô / non tải (Cạn nước)", fix: "Giảm giá trị cài đặt tại tham số PE-22 để tắt hoặc hạ ngưỡng cảnh báo chạy khô này." },
+    { brand: "PowerS", code: "A.OLd (84)", desc: "Bảo vệ quá dòng / quá tải bơm", fix: "Tăng ngưỡng bảo vệ quá dòng tại tham số PE-25 (nếu cài quá thấp) hoặc cài về 0 để tắt." },
+    { brand: "PowerS", code: "A.LPr (85)", desc: "Cảnh báo công suất đầu vào tối thiểu", fix: "Cài đặt ngưỡng bảo vệ công suất đầu vào tối thiểu tại tham số PE-28 xuống mức thấp hơn." },
+    { brand: "PowerS", code: "A.FuL (86)", desc: "Cảnh báo đầy bồn / bể chứa nước", fix: "Kiểm tra phao báo mức xem bồn chứa nước đã đầy chưa." },
+    { brand: "PowerS", code: "A.Prb (87)", desc: "Lỗi cảm biến tín hiệu tương tự (Analog)", fix: "Kiểm tra dây dẫn và đầu cảm biến xem có bị đứt/hỏng không, hoặc giảm giá trị cài đặt tại PE-35." },
+    { brand: "PowerS", code: "Err.98", desc: "Hết thời gian vận hành của nhà phân phối", fix: "Liên hệ nhà phân phối thiết bị để cấp mã mở khóa thời gian." },
+    { brand: "PowerS", code: "Err.99", desc: "Hết thời gian vận hành của nhà sản xuất", fix: "Liên hệ trực tiếp nhà sản xuất để được hỗ trợ mở khóa." },
+    { brand: "PowerS", code: "Err01 / Er.OC1", desc: "Bảo vệ khối công suất (IGBT)", fix: "1. Loại trừ ngắn mạch ngõ ra. 2. Lắp thêm cuộn kháng đầu ra hoặc bộ lọc nếu dây motor quá dài. 3. Vệ sinh khe tản nhiệt. 4. Cắm chặt lại toàn bộ giắc cáp bên trong. 5. Liên hệ kỹ thuật kiểm tra bo mạch/IGBT." },
+    { brand: "PowerS", code: "Err02 / Er.OC1", desc: "Quá dòng khi tăng tốc", fix: "1. Kiểm tra chạm vỏ/ngắn mạch motor. 2. Chạy dò thông số động cơ (Auto-tuning). 3. Tăng thời gian tăng tốc. 4. Chỉnh lại bù momen xoắn (Torque boost) hoặc đặc tuyến V/F. 5. Kiểm tra áp nguồn, giảm tải hoặc nâng cấp biến tần công suất lớn hơn." },
+    { brand: "PowerS", code: "Err03 / Er.OC2", desc: "Quá dòng khi giảm tốc", fix: "1. Kiểm tra ngắn mạch ngõ ra/chạm đất. 2. Chạy Auto-tuning motor. 3. Tăng thời gian giảm tốc. 4. Kiểm tra điện áp nguồn ổn định. 5. Không đóng tải đột ngột lúc giảm tốc hoặc lắp thêm bộ hãm/điện trở xả." },
+    { brand: "PowerS", code: "Err04 / Er.OC3", desc: "Quá dòng khi chạy ở tốc độ ổn định", fix: "1. Loại trừ ngắn mạch pha-pha/pha-đất ngõ ra. 2. Chạy Auto-tuning motor. 3. Kiểm tra sụt áp nguồn đột ngột. 4. Kiểm tra kẹt rác/cát buồng bơm. 5. Chọn biến tần công suất lớn hơn." },
+    { brand: "PowerS", code: "Err05 / Er.OU1", desc: "Quá áp DC khi tăng tốc", fix: "1. Điều chỉnh điện áp đầu vào về dải cho phép. 2. Triệt tiêu ngoại lực kéo ngược motor hoặc lắp điện trở xả. 3. Tăng thời gian tăng tốc lên." },
+    { brand: "PowerS", code: "Err06 / Er.OU2", desc: "Quá áp DC khi giảm tốc", fix: "1. Điều chỉnh điện áp đầu vào về dải bình thường. 2. Tăng thời gian giảm tốc hoặc chuyển sang chế độ dừng tự do (Coast to stop). 3. Lắp bộ hãm và điện trở xả nếu tải quán tính lớn." },
+    { brand: "PowerS", code: "Err07 / Er.OU3", desc: "Quá áp DC khi chạy tốc độ ổn định", fix: "1. Hạ điện áp đầu vào về mức chuẩn (kiểm tra lại số tấm pin nối tiếp). 2. Triệt tiêu ngoại lực kéo motor từ bên ngoài." },
+    { brand: "PowerS", code: "Err08 / Er.oHr", desc: "Lỗi nguồn cấp bo mạch điều khiển", fix: "Kiểm tra và điều chỉnh điện áp nguồn cấp vào biến tần về dải bình thường." },
+    { brand: "PowerS", code: "Err09 / Er.LU1", desc: "Lỗi thấp áp DC Bus (Yếu nắng / Sụt áp)", fix: "1. Nhấn Reset xóa lỗi. 2. Kiểm tra điện áp giàn pin/lưới về dải bình thường. 3. Nếu vẫn lỗi khi đủ áp, kiểm tra cầu chỉnh lưu và điện trở nạp mềm." },
+    { brand: "PowerS", code: "Err10 / Er.oL1", desc: "Quá tải biến tần", fix: "1. Giảm tải và kiểm tra kẹt cơ khí máy bơm. 2. Chọn biến tần công suất lớn hơn phù hợp với công suất bơm." },
+    { brand: "PowerS", code: "Err11 / Er.oL2", desc: "Quá tải động cơ (Motor)", fix: "1. Cài đặt lại đúng tham số dòng định mức motor tại P9-01. 2. Kiểm tra kẹt cánh bơm. 3. Chọn biến tần công suất lớn hơn." },
+    { brand: "PowerS", code: "Err12 / Er.ILF", desc: "Mất pha đầu vào (Nguồn lưới AC)", fix: "1. Kiểm tra CB và đường dây nguồn 3 pha R, S, T bên ngoài xem có mất pha/lỏng cốt không. 2. Kiểm tra bo kích, bo chống sét và bo điều khiển chính." },
+    { brand: "PowerS", code: "Err13 / Er.oLF", desc: "Mất pha ngõ ra (Ra motor)", fix: "1. Kiểm tra dây cáp từ biến tần xuống bơm có bị đứt ngầm/lỏng mối nối không. 2. Đo kiểm tra cân bằng điện trở 3 cuộn dây motor. 3. Kiểm tra bo kích và IGBT." },
+    { brand: "PowerS", code: "Err14 / Er.oH1", desc: "Quá nhiệt module IGBT", fix: "1. Che nắng, giảm nhiệt độ tủ điện ngoài trời. 2. Vệ sinh bụi bẩn khe tản nhiệt. 3. Thay quạt làm mát mới. 4. Kiểm tra cảm biến nhiệt IGBT." },
+    { brand: "PowerS", code: "Err18 / Er.HAL", desc: "Lỗi mạch cảm biến dòng điện (Hall)", fix: "1. Thay thế cảm biến dòng Hall. 2. Thay bo mạch kích (Driving board)." },
+    { brand: "PowerS", code: "Err19 / Er.TUn", desc: "Lỗi dò thông số động cơ (Auto-tuning)", fix: "Nhập chính xác các thông số ghi trên tem máy bơm (kW, V, A, Hz, RPM) vào biến tần rồi thực hiện lại." },
+    { brand: "PowerS", code: "Err22 / Er.22", desc: "Lỗi phần cứng biến tần (Quá áp/Quá dòng cứng)", fix: "1. Kiểm tra và xử lý theo hướng dẫn lỗi quá áp. 2. Kiểm tra và xử lý theo hướng dẫn lỗi quá dòng." },
+    { brand: "PowerS", code: "Err23 / Er.SGd", desc: "Lỗi chạm vỏ / ngắn mạch xuống đất", fix: "Đo kiểm tra cách điện (Megohm), thay dây cáp thả giếng bị tróc vỏ hoặc sửa chữa cuộn dây motor." },
+    { brand: "PowerS", code: "Err26 (Runtime)", desc: "Đạt giới hạn thời gian chạy tích lũy", fix: "Thực hiện khởi tạo lại tham số (Parameter initialization) để xóa bộ đếm thời gian chạy." },
+    { brand: "PowerS", code: "Err26 / Er.ort", desc: "Đạt giới hạn thời gian cấp nguồn tích lũy", fix: "Thực hiện khởi tạo lại tham số (Parameter initialization) để xóa bộ đếm thời gian cấp nguồn." },
+    { brand: "PowerS", code: "Err30", desc: "Lỗi mất tải / đứt tải (Load missing)", fix: "Dòng chạy nhỏ hơn ngưỡng P9-64. Kiểm tra tình trạng tải bơm (gãy trục, tuột khớp nối hoặc bơm chạy không tải)." },
+
+    // === HÃNG VOLTIQUE & SAJ ===
     { brand: "Voltique", code: "Err02", desc: "Quá dòng khi tăng tốc (Overcurrent during acceleration)", fix: "Kéo dài thời gian tăng tốc, kiểm tra cách điện dây cáp thả giếng khoan." },
     { brand: "Voltique", code: "Err05", desc: "Quá áp khi tăng tốc (Overvoltage during acceleration)", fix: "Đo lại điện áp hở mạch DC từ giàn pin, đảm bảo không vượt quá 950V." },
     { brand: "Voltique", code: "Err09", desc: "Cảnh báo thấp áp mạch trung gian DC", fix: "Kiểm tra cầu chì DC, CB DC từ giàn pin xuống hoặc đợi cường độ nắng tăng lên." },
@@ -165,6 +190,7 @@ const MOCK_ERRORS = [
     { brand: "SAJ", code: "A01", desc: "Cảnh báo yếu nắng (Weak light sleep)", fix: "Biến tần tự động tạm dừng bảo vệ bơm khi bức xạ thấp, không phải lỗi hỏng." },
     { brand: "SAJ", code: "A02", desc: "Cảnh báo giếng cạn nước (Dry run)", fix: "Hệ thống tự dừng chống cháy bơm khi hết nước, tự chạy lại sau thời gian trễ." }
 ];
+
 
 const MOCK_KNOWLEDGE = [
     {
