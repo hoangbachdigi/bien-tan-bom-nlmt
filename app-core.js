@@ -414,7 +414,8 @@ function renderErrorsPage(page) {
     const items = filtered.slice((page - 1) * perPage, page * perPage);
 
     tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" style="text-align:center; padding:20px;">Không tìm thấy mã lỗi phù hợp.</td></tr>` : items.map(e => {
-        let badgeCls = e.brand.toLowerCase() === 'voltique' ? 'badge-voltique' : (e.brand.toLowerCase() === 'saj' ? 'badge-saj' : 'badge-powers');
+        const bLow = e.brand.toLowerCase();
+        let badgeCls = bLow === 'saj' ? 'badge-saj' : (bLow === 'green nova' ? 'badge-greennova' : (bLow === 'lumentree' ? 'badge-lumentree' : 'badge-powers'));
         return `<tr><td><span class="badge ${badgeCls}">${e.brand}</span></td><td><b style="color:var(--danger);">${e.code}</b></td><td>${e.desc}</td><td>${e.fix}</td></tr>`;
     }).join('');
     pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderErrorsPage(${i + 1})">${i + 1}</button>`).join('');
