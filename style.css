@@ -66,10 +66,15 @@ input:focus, select:focus { outline: none; border-color: var(--primary); }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .data-table th, .data-table td { border: 1px solid #e2e8f0; padding: 9px 10px; text-align: left; }
 .data-table th { background: #f8fafc; font-weight: 700; white-space: nowrap; }
+
+/* Màu nhãn riêng cho 4 hãng biến tần trong bảng mã lỗi */
 .badge { padding: 3px 7px; border-radius: 4px; font-size: 11.5px; font-weight: 700; color: #fff; }
 .badge-powers { background: #0284c7; }
 .badge-voltique { background: #7c3aed; }
 .badge-saj { background: #ea580c; }
+.badge-greennova { background: #dcfce7; color: #15803d; }
+.badge-lumentree { background: #f3e8ff; color: #7e22ce; }
+
 .quote-input { width: 95px; padding: 5px; font-size: 13px; text-align: right; font-weight: 600; }
 .quote-qty { width: 65px; padding: 5px; font-size: 13px; text-align: center; font-weight: 600; }
 .blog-row { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
