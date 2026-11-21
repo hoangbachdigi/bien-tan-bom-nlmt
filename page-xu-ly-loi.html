@@ -4,12 +4,13 @@
 </div>
 <div class="filter-bar">
     <input type="text" id="errSearchInput" placeholder="🔍 Nhập mã lỗi (VD: E.OC1, Err02, E04)..." oninput="renderErrorsPage(1)">
-    <select id="errBrandSelect" onchange="renderErrorsPage(1)">
-        <option value="ALL">Tất cả dòng biến tần</option>
-        <option value="PowerS">Biến tần PowerS</option>
-        <option value="Voltique">Biến tần Voltique</option>
-        <option value="SAJ">Biến tần SAJ</option>
-    </select>
+        <select id="errBrandSelect" onchange="renderErrorsPage(1)">
+            <option value="ALL">Tất cả dòng biến tần</option>
+            <option value="PowerS">Hãng Power S</option>
+            <option value="SAJ">Hãng SAJ</option>
+            <option value="Green Nova">Hãng Green Nova</option>
+            <option value="Lumentree">Hãng Lumentree</option>
+        </select>
 </div>
 <div class="table-wrap">
     <table class="data-table">
