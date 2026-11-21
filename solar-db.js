@@ -1,10 +1,37 @@
 const SOLAR_PANELS_DB = [
+    { name: "Jinko Solar 530W (JKM530M-72HL4-BDVP)", power: 530, imp: 13.09, vmp: 40.49, voc: 48.99, priceWp: 2800 },
+    { name: "Jinko Solar 535W (JKM535M-72HL4-BDVP)", power: 535, imp: 13.17, vmp: 40.63, voc: 49.13, priceWp: 2820 },
+    { name: "Jinko Solar 540W (JKM540M-72HL4-BDVP)", power: 540, imp: 13.25, vmp: 40.76, voc: 49.26, priceWp: 2840 },
+    { name: "Jinko Solar 545W (JKM545M-72HL4-BDVP)", power: 545, imp: 13.33, vmp: 40.89, voc: 49.39, priceWp: 2860 },
+    { name: "Jinko Solar 550W (JKM550M-72HL4-BDVP)", power: 550, imp: 13.41, vmp: 41.02, voc: 49.52, priceWp: 2880 },
+    { name: "Jinko Solar 560W (JKM560N-72HL4-BDV)", power: 560, imp: 13.35, vmp: 41.95, voc: 50.67, priceWp: 2900 },
+    { name: "Jinko Solar 565W (JKM565N-72HL4-BDV)", power: 565, imp: 13.41, vmp: 42.14, voc: 50.87, priceWp: 2910 },
+    { name: "Jinko Solar 565W Eagle (JKM565N-72HL4-BDV)", power: 565, imp: 13.01, vmp: 43.43, voc: 51.90, priceWp: 2910 },
+    { name: "Astronergy 570W (CHSM72N(DG)/F-BH-570)", power: 570, imp: 13.33, vmp: 42.77, voc: 50.90, priceWp: 2820 },
+    { name: "Jinko Solar 570W (JKM570N-72HL4-BDV)", power: 570, imp: 13.48, vmp: 42.29, voc: 51.07, priceWp: 2920 },
+    { name: "Jinko Solar 570W Eagle (JKM570N-72HL4-BDV)", power: 570, imp: 13.08, vmp: 43.58, voc: 52.10, priceWp: 2920 },
+    { name: "Astronergy 575W (CHSM72N(DG)/F-BH-575)", power: 575, imp: 13.39, vmp: 42.94, voc: 51.10, priceWp: 2830 },
+    { name: "Jinko Solar 575W (JKM575N-72HL4-BDV)", power: 575, imp: 13.55, vmp: 42.44, voc: 51.27, priceWp: 2930 },
+    { name: "Jinko Solar 575W Eagle (JKM575N-72HL4-BDV)", power: 575, imp: 13.15, vmp: 43.73, voc: 52.30, priceWp: 2930 },
+    { name: "Astronergy 580W (CHSM72N(DG)/F-BH-580)", power: 580, imp: 13.45, vmp: 43.11, voc: 51.30, priceWp: 2840 },
     { name: "Jinko Solar 580W (JKM580N-72HL4-BDV)", power: 580, imp: 13.22, vmp: 43.88, voc: 52.50, priceWp: 2950 },
+    { name: "Astronergy 585W (CHSM72N(DG)/F-BH-585)", power: 585, imp: 13.52, vmp: 43.27, voc: 51.50, priceWp: 2850 },
+    { name: "Jinko Solar 585W Eagle (JKM585N-72HL4-BDV)", power: 585, imp: 13.29, vmp: 44.02, voc: 52.70, priceWp: 2960 },
+    { name: "Astronergy 590W (CHSM72N(DG)/F-BH-590)", power: 590, imp: 13.58, vmp: 43.45, voc: 51.70, priceWp: 2860 },
     { name: "Astronergy 595W (CHSM72N/F-BH-595)", power: 595, imp: 13.46, vmp: 44.21, voc: 52.81, priceWp: 2880 },
-    { name: "Jinko Solar 625W (JKM625N-66HL4M-BDV)", power: 625, imp: 15.29, vmp: 40.90, voc: 49.28, priceWp: 3020 },
-    { name: "Jinko Solar 630W (JKM630N-66HL4M-BDV)", power: 630, imp: 15.36, vmp: 41.02, voc: 49.48, priceWp: 3050 }
+    { name: "Jinko Solar 600W (JKM600N-66HL4M-BDV)", power: 600, imp: 14.89, vmp: 40.30, voc: 48.43, priceWp: 2970 },
+    { name: "Jinko Solar 605W (JKM605N-66HL4M-BDV)", power: 605, imp: 14.95, vmp: 40.47, voc: 48.61, priceWp: 2980 },
+    { name: "Jinko Solar 610W 2 mặt kính (JKM610N-66HL4M-BDV)", power: 610, imp: 15.01, vmp: 40.64, voc: 48.79, priceWp: 2990 },
+    { name: "Jinko Solar 610W 1 mặt kính (JKM610N-66HL4M-V)", power: 610, imp: 15.04, vmp: 40.56, voc: 48.63, priceWp: 2960 },
+    { name: "Jinko Solar 615W 2 mặt kính (JKM615N-66HL4M-BDV)", power: 615, imp: 15.07, vmp: 40.81, voc: 48.97, priceWp: 3000 },
+    { name: "Jinko Solar 615W 1 mặt kính (JKM615N-66HL4M-V)", power: 615, imp: 15.10, vmp: 40.73, voc: 48.79, priceWp: 2970 },
+    { name: "Jinko Solar 620W 2 mặt kính (JKM620N-66HL4M-BDV)", power: 620, imp: 15.13, vmp: 40.98, voc: 49.15, priceWp: 3010 },
+    { name: "Jinko Solar 620W 1 mặt kính (JKM620N-66HL4M-V)", power: 620, imp: 15.16, vmp: 40.90, voc: 48.95, priceWp: 2980 },
+    { name: "Jinko Solar 625W 2 mặt kính (JKM625N-66HL4M-BDV)", power: 625, imp: 15.29, vmp: 40.90, voc: 49.28, priceWp: 3020 },
+    { name: "Jinko Solar 625W 1 mặt kính (JKM625N-66HL4M-V)", power: 625, imp: 15.22, vmp: 41.07, voc: 49.11, priceWp: 2990 },
+    { name: "Jinko Solar 630W 1 mặt kính (JKM630N-66HL4M-V)", power: 630, imp: 15.36, vmp: 41.02, voc: 49.48, priceWp: 3050 },
+    { name: "Jinko Solar 635W 1 mặt kính (JKM635N-66HL4M-V)", power: 635, imp: 15.34, vmp: 41.39, voc: 49.43, priceWp: 3070 }
 ];
-
 const SOLAR_INVERTERS_DB = [
     { brand: "Power S", name: "Power S SG800-7K5GB-4T (7.5kW - 17A - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 900, idcMax: 30, mpptMin: 550, mpptMax: 680, price: 8200000 },
     { brand: "Power S", name: "Power S SG800-011GB-4T (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 900, idcMax: 40, mpptMin: 550, mpptMax: 680, price: 10500000 },
@@ -17,6 +44,7 @@ const SOLAR_INVERTERS_DB = [
     { brand: "Green Nova", name: "Green Nova AC600-5R5G-4 (5.5kW - 13A - 3P 380V)", kw: 5.5, phase: "3 pha 380V", iOut: 13, vdcMax: 950, idcMax: 25, mpptMin: 540, mpptMax: 720, price: 7300000 },
     { brand: "Green Nova", name: "Green Nova AC600-7R5G-4 (7.5kW - 17A - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 950, idcMax: 32, mpptMin: 540, mpptMax: 720, price: 8600000 },
     { brand: "Green Nova", name: "Green Nova AC600-011G-4 (11kW - 25A - 3P 380V)", kw: 11, phase: "3 pha 380V", iOut: 25, vdcMax: 950, idcMax: 42, mpptMin: 540, mpptMax: 720, price: 11200000 },
+    { brand: "Voltique", name: "Voltique YK500-7.5KW-T4 (7.5kW - 17A - 3P 380V)", kw: 7.5, phase: "3 pha 380V", iOut: 17, vdcMax: 950, idcMax: 26, mpptMin: 540, mpptMax: 750, price: 8900000 },
     { brand: "Voltique", name: "Voltique YK500-15KW-T4 (15kW - 32A - 3P 380V)", kw: 15, phase: "3 pha 380V", iOut: 32, vdcMax: 950, idcMax: 52, mpptMin: 540, mpptMax: 750, price: 14200000 }
 ];
 const MOCK_PRODUCTS = [
@@ -76,29 +104,34 @@ const MOCK_PRODUCTS = [
         specs: "Model: Green Nova AC600-011G-4 | Công suất định mức: 11kW (15HP) - Dòng ra 25A/32A | Điện áp đầu vào DC rộng: 250V – 950VDC | Chuyên trị bơm hỏa tiễn 7.5kW (10HP) giếng sâu, đồi dốc | Vận hành êm ái, hiệu suất MPPT 99.5% | Bảo hành chính hãng 24 tháng"
     },
     {
+        title: "Biến Tần Bơm NLMT Voltique YK500-7.5KW-T4 (7.5kW - Max 950V)",
+        img: "https://unsplash.com",
+        specs: "Model: Voltique YK500-7.5KW-T4 | Công suất định mức: 7.5kW (10HP) - Dòng ra 17A/25A | Ngưỡng chịu áp DC tối đa lên đến 950VDC | Chuyên trị bơm hỏa tiễn 5.5kW (7.5HP) giếng sâu, đồi dốc | Đấu nối linh hoạt chuỗi pin dài không lo báo lỗi quá áp sáng sớm | Bảo hành chính hãng 24 tháng"
+    },
+    {
         title: "Biến Tần Bơm NLMT Voltique YK500-15KW-T4 (15kW - Max 950V)",
         img: "https://unsplash.com",
         specs: "Model: Voltique YK500-15KW-T4 | Công suất định mức: 15kW (20HP) - Dòng ra 32A/37A | Ngưỡng chịu áp DC tối đa lên đến 950VDC | Đấu nối linh hoạt chuỗi pin dài không lo báo lỗi quá áp sáng sớm | Chuyên trị bơm 11kW (15HP) đẩy cao | Bảo hành chính hãng 24 tháng"
     },
     {
-        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 580W (JKM580N-72HL4-BDV)",
+        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 530W–550W (Tiger Pro 72HC)",
         img: "https://unsplash.com",
-        specs: "Công suất cực đại (Pmax): 580W | Điện áp làm việc (Vmp): 43.88V — Dòng làm việc (Imp): 13.22A | Điện áp hở mạch (Voc): 52.50V — Dòng ngắn mạch (Isc): 13.95A | Công nghệ N-Type TOPCon 2 mặt kính cường lực | Hàng chính hãng sản xuất tại Việt Nam | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+        specs: "Dải công suất sẵn kho: 530W, 535W, 540W, 545W, 550W | Công nghệ Mono P-Type 2 mặt kính cường lực (Bifacial) | Điện áp làm việc Vmp: 40.49V – 41.02V | Điện áp hở mạch Voc: 48.99V – 49.52V | Bảo hành vật lý 12 năm, hiệu suất 30 năm"
     },
     {
-        title: "Tấm Pin Năng Lượng Mặt Trời Astronergy 595W (CHSM72N/F-BH-595)",
+        title: "Tấm Pin Năng Lượng Mặt Trời Astronergy 570W–595W (ASTRO N5)",
         img: "https://unsplash.com",
-        specs: "Công suất cực đại (Pmax): 595W (Hai mặt kính Bifacial) | Điện áp làm việc (Vmp): 44.21V — Dòng làm việc (Imp): 13.46A | Điện áp hở mạch (Voc): 52.81V — Dòng ngắn mạch (Isc): 14.20A | Công nghệ tế bào N-Type TOPCon hiệu suất cao | Khung nhôm chịu lực gió bão 3600Pa | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+        specs: "Dải công suất sẵn kho: 570W, 575W, 580W, 585W, 590W, 595W | Công nghệ N-Type TOPCon 2 mặt kính cường lực | Điện áp làm việc Vmp: 42.77V – 44.21V | Điện áp hở mạch Voc: 50.90V – 52.81V | Bảo hành vật lý 15 năm, hiệu suất 30 năm"
     },
     {
-        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 625W (JKM625N-66HL4M-BDV)",
+        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 560W–585W (Tiger Neo / Eagle)",
         img: "https://unsplash.com",
-        specs: "Công suất cực đại (Pmax): 625W | Điện áp làm việc (Vmp): 40.90V — Dòng làm việc (Imp): 15.29A | Điện áp hở mạch (Voc): 49.28V — Dòng ngắn mạch (Isc): 16.14A | Dòng pin công suất lớn tối ưu cho hệ bơm 1 chuỗi | Hàng chính hãng sản xuất tại Việt Nam | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+        specs: "Dải công suất sẵn kho: 560W, 565W, 570W, 575W, 580W, 585W | Công nghệ N-Type TOPCon 2 mặt kính cường lực (Bifacial) | Điện áp hở mạch Voc: 50.67V – 52.70V | Hiệu suất cao tới 22.65%, chống suy giảm PID | Bảo hành vật lý 12 năm, hiệu suất 30 năm"
     },
     {
-        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 630W (JKM630N-66HL4M-BDV)",
+        title: "Tấm Pin Năng Lượng Mặt Trời Jinko Solar 600W–635W (Tiger Neo 66HL4M)",
         img: "https://unsplash.com",
-        specs: "Công suất cực đại (Pmax): 630W | Điện áp làm việc (Vmp): 41.02V — Dòng làm việc (Imp): 15.36A | Điện áp hở mạch (Voc): 49.48V — Dòng ngắn mạch (Isc): 16.20A | Công nghệ N-Type TOPCon 2 mặt kính siêu bền | Suy giảm công suất cực thấp dưới 0.4%/năm | Bảo hành vật lý 12 năm, hiệu suất 25 năm"
+        specs: "Dải công suất sẵn kho: 600W, 605W, 610W, 615W, 620W, 625W, 630W, 635W | Có đủ phiên bản 2 mặt kính (BDV) và 1 mặt kính (V) | Dòng làm việc Imp cao ~15.0A – 15.36A tối ưu cho hệ bơm 1 chuỗi | Bảo hành vật lý 12 năm, hiệu suất 30 năm"
     }
 ];
 const MOCK_ERRORS = [
@@ -127,6 +160,7 @@ const MOCK_ERRORS = [
     { brand: "SAJ", code: "A01", desc: "Cảnh báo yếu nắng (Weak light sleep)", fix: "Biến tần tự động tạm dừng bảo vệ bơm khi bức xạ thấp, không phải lỗi hỏng." },
     { brand: "SAJ", code: "A02", desc: "Cảnh báo giếng cạn nước (Dry run)", fix: "Hệ thống tự dừng chống cháy bơm khi hết nước, tự chạy lại sau thời gian trễ." }
 ];
+
 const MOCK_KNOWLEDGE = [
     {
         title: "Kinh nghiệm chọn công suất biến tần bơm hỏa tiễn đẩy dốc cao ở Tây Nguyên",
