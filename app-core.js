@@ -678,6 +678,7 @@ function parseSafePumpPowerKW() {
         return unit === "HP" ? (val * 0.75) : val;
     } catch (e) { return 0; }
 }
+
 function updateInverterDropdownAll() {
     const stepUp = parseInt(document.getElementById('scLoadType')?.value || "1");
     const pumpKW = parseSafePumpPowerKW();
@@ -693,15 +694,27 @@ function updateInverterDropdownAll() {
     ];
 
     let targetKW = null;
+    let isOverMax = false;
+    const distinctKWs = [...new Set(SOLAR_INVERTERS_DB.map(i => i.kw))].sort((a, b) => a - b);
+    const maxKhoKW = distinctKWs[distinctKWs.length - 1] || 22;
+
     if (pumpKW > 0) {
-        const distinctKWs = [...new Set(SOLAR_INVERTERS_DB.map(i => i.kw))].sort((a, b) => a - b);
         let baseIdx = distinctKWs.findIndex(kw => kw >= pumpKW);
-        if (baseIdx === -1) baseIdx = distinctKWs.length - 1;
-        targetKW = distinctKWs[Math.min(baseIdx + stepUp, distinctKWs.length - 1)];
-        if (suggestEl) {
-            const loadNames = { "0": "Bơm đặt cạn", "1": "Bơm hỏa tiễn", "2": "Bơm tải nặng" };
-            suggestEl.style.display = 'block';
-            suggestEl.innerHTML = `👉 Đề xuất: ${loadNames[stepUp]} <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> ➔ Chọn biến tần cấp <b>${targetKW}kW (${Math.round(targetKW/0.75)}HP)</b>.`;
+        if (baseIdx === -1 || (baseIdx + stepUp) >= distinctKWs.length) {
+            isOverMax = true;
+            if (suggestEl) {
+                suggestEl.style.display = 'block';
+                suggestEl.style.color = '#dc2626';
+                suggestEl.innerHTML = `⚠️ Bơm <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> vượt quá công suất biến tần lớn nhất trong kho (<b>${maxKhoKW}kW</b>). Vui lòng tự nhập thông số biến tần công suất lớn bên dưới!`;
+            }
+        } else {
+            targetKW = distinctKWs[baseIdx + stepUp];
+            if (suggestEl) {
+                const loadNames = { "0": "Bơm đặt cạn", "1": "Bơm hỏa tiễn", "2": "Bơm tải nặng" };
+                suggestEl.style.display = 'block';
+                suggestEl.style.color = '#15803d';
+                suggestEl.innerHTML = `👉 Đề xuất: ${loadNames[stepUp]} <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> ➔ Chọn biến tần cấp <b>${targetKW}kW (${Math.round(targetKW/0.75)}HP)</b>.`;
+            }
         }
     } else if (suggestEl) {
         suggestEl.style.display = 'none';
@@ -719,10 +732,10 @@ function updateInverterDropdownAll() {
             html += `</optgroup>`;
         }
     });
-    html += `<option value="custom">-- Tự nhập thông số biến tần khác --</option>`;
+    html += `<option value="custom" ${isOverMax ? 'selected' : ''}>-- Tự nhập thông số biến tần khác --</option>`;
 
     invSelect.innerHTML = html;
-    fillInverterSpecs();
+    if (!isOverMax) fillInverterSpecs();
 }
 
 function fillInverterSpecs() {
@@ -763,6 +776,9 @@ function execRealCombatSolarCalc() {
     if (invKw <= 0 || pMax <= 0 || vmp <= 0 || voc <= 0) return alert("Vui lòng kiểm tra lại thông số biến tần và tấm pin!");
 
     const pumpKW = parseSafePumpPowerKW();
+    if (pumpKW > invKw) {
+    return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.25)}kW trước khi tính.`);
+    }
     const refKW = pumpKW > 0 ? pumpKW : invKw;
     const vocColdFactor = 1.05;
 
