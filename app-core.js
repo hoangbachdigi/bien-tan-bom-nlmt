@@ -1238,3 +1238,53 @@ function execSolarHealthCheck() {
         <button class="btn" style="width:100%; background:#0068ff; margin-top:12px; font-size:14.5px;" onclick="navigator.clipboard.writeText(window.lastHealthZaloText).then(()=>alert('✅ Đã sao chép kết quả khám bệnh gửi Zalo!'))">💬 Sao chép kết quả gửi Zalo khách hàng</button>
     `;
 }
+/* === ĐIỀU KHIỂN TRỢ LÝ KỸ THUẬT SOLAR AI === */
+function toggleSolarAiBox() {
+    const box = document.getElementById('solarAiBox');
+    if (box) box.classList.toggle('open');
+}
+
+function aiQuickAction(type) {
+    if (type === 'solar') {
+        toggleSolarAiBox();
+        openCalcToolModal('solar');
+    } else if (type === 'health') {
+        toggleSolarAiBox();
+        openCalcToolModal('health');
+    } else if (type === 'error') {
+        toggleSolarAiBox();
+        loadSubPage('page-xu-ly-loi.html', document.querySelectorAll('.nav-item')[1] || null);
+    } else if (type === 'zalo') {
+        const zaloLink = document.querySelector('a[href*="zalo.me"]')?.href;
+        if (zaloLink) window.open(zaloLink, '_blank');
+        else alert("Vui lòng liên hệ Zalo Quang Nguyen để được hỗ trợ trực tiếp!");
+    }
+}
+
+async function sendSolarAiQuestion(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('solarAiInput');
+    const msgs = document.getElementById('solarAiMsgs');
+    const q = (input?.value || "").trim();
+    if (!q || !msgs) return;
+
+    msgs.innerHTML += `<div class="ai-msg-user">${q.replace(/</g, "&lt;")}</div>`;
+    input.value = "";
+    const waitId = "aiWait_" + Date.now();
+    msgs.innerHTML += `<div class="ai-msg-bot" id="${waitId}">⏳ Đang phân tích kỹ thuật...</div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'ask_ai', question: q })
+        });
+        const data = await res.json();
+        const waitEl = document.getElementById(waitId);
+        if (waitEl) waitEl.innerText = data.answer || "Xin lỗi, trợ lý AI chưa nhận được phản hồi. Bạn thử lại hoặc nhắn Zalo Quang Nguyen nhé!";
+    } catch (err) {
+        const waitEl = document.getElementById(waitId);
+        if (waitEl) waitEl.innerText = "⚠️ Kết nối tạm gián đoạn. Bạn bấm nút Nhắn Zalo Quang Nguyen bên trên để được hỗ trợ ngay nhé!";
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+}
