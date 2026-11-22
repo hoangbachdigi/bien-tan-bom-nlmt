@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwc8ubrISUq3A7Z1lgQImJkXrAAlKLOg_MpbrMgFTAfa80IAvhWVXvNvsH6NW9Wr1LY-g/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby96Sz0PADdUFFoSpzws8_H61WuoVlfba77otpa1s7gJCwKuOuklqjXAB9FWejCX61MGQ/exec";
 
 let cachedData = JSON.parse(localStorage.getItem('solar_app_cache')) || null;
 let appData = cachedData || {
@@ -164,12 +164,12 @@ function closeGlobalModal() {
 function openUserModal() {
     if (!currentUser) {
         openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">👤 Đăng Nhập / Đăng Ký Thành Viên Zalo</h3>
+            <h3 style="margin-top:0; color:var(--primary);">👤 Đăng Nhập / Đăng Ký</h3>
             <p style="font-size:13.5px; color:#555;">Đăng ký lần đầu bằng Tên Zalo để được <b>tặng ngay 60 ngày sử dụng</b> công cụ tính toán!</p>
             <div class="form-group"><label>Nhập chính xác Tên tài khoản Zalo:</label><input type="text" id="modalZaloInput" placeholder="Ví dụ: Nguyen Van A"></div>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-primary" onclick="processLogin()">Đăng Nhập</button>
-                <button class="btn btn-success" style="width:100%;" onclick="processRegister()">Đăng Ký Mới (+60 ngày)</button>
+                <button class="btn btn-success" style="width:100%;" onclick="processRegister()">Đăng Ký</button>
             </div>
         `);
     } else if (currentUser.role === 'admin') {
@@ -177,9 +177,12 @@ function openUserModal() {
     } else {
         const now = Date.now();
         const exp = Number(currentUser.expiry) || 0;
+        const isLifetime = exp >= 9000000000000;
         let daysLeftText = "";
         if (currentUser.status !== 'approved') {
-            daysLeftText = `<span style="color:#d97706;">Đang chờ Admin Quang Nguyen duyệt (Có sẵn 60 ngày dùng thử)</span>`;
+            daysLeftText = `<span style="color:#d97706;">Đang chờ Admin duyệt</span>`;
+        } else if (isLifetime) {
+            daysLeftText = `<span style="color:#0284c7; font-weight:700;">Vĩnh viễn</span>`;
         } else if (exp === 0) {
             daysLeftText = `<span style="color:#16a34a;">Đang hoạt động (60 ngày ưu đãi)</span>`;
         } else if (exp > now) {
@@ -190,42 +193,52 @@ function openUserModal() {
             daysLeftText = `<span style="color:#dc2626;">Đã hết hạn sử dụng!</span>`;
         }
 
-        const pendingNote = currentUser.pendingOrder
-            ? `<div style="padding:8px 10px; background:#fef3c7; border-radius:6px; font-size:12.5px; color:#92400e; margin-bottom:10px;">⏳ Mã đơn <b>${currentUser.pendingOrder}</b> đang chờ Admin duyệt cộng +10 ngày.</div>`
+        const pendingList = (currentUser.pendingOrder || "").split(",").map(s => s.trim()).filter(Boolean);
+        const pendingNote = pendingList.length > 0
+            ? `<div style="padding:8px 10px; background:#fef3c7; border-radius:6px; font-size:12.5px; color:#92400e; margin-bottom:10px;">⏳ Đang chờ duyệt <b>${pendingList.length} đơn</b>: <b>${pendingList.join(', ')}</b> (+${pendingList.length * 10} ngày)</div>`
             : "";
 
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">👤 Thông Tin Tài Khoản Thành Viên</h3>
-            <p style="margin:6px 0;">- Tên Zalo: <b>${currentUser.username}</b></p>
-            <p style="margin:6px 0 12px;">- Thời hạn sử dụng: ${daysLeftText}</p>
+        const renewBlock = isLifetime ? "" : `
             <div style="padding:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:14px;">
                 <div style="font-weight:700; font-size:13.5px; color:var(--dark); margin-bottom:6px;">🎁 Gia hạn thêm (+10 ngày / 1 đơn hàng)</div>
                 ${pendingNote}
                 <div class="form-group" style="margin-bottom:8px;">
-                    <label style="font-size:12.5px;">Nhập Mã đơn hàng đã mua tại Solar Quang Nguyen:</label>
-                    <input type="text" id="userOrderCodeInput" placeholder="Ví dụ: DH1025 hoặc SĐT đặt hàng...">
+                    <label style="font-size:12.5px;">Nhập Mã đơn hàng đã mua (có thể nhập nhiều mã cách nhau dấu phẩy):</label>
+                    <input type="text" id="userOrderCodeInput" placeholder="Ví dụ: DH1025, DH1026...">
                 </div>
-                <button class="btn btn-success" style="width:100%;" onclick="submitUserOrderCode()">Gửi Mã Đơn Hàng Xin Gia Hạn (+10 ngày)</button>
+                <button class="btn btn-success" style="width:100%;" onclick="submitUserOrderCode()">Gửi</button>
             </div>
+        `;
+
+        openGlobalModal(`
+            <h3 style="margin-top:0; color:var(--primary);">Thông Tin Tài Khoản</h3>
+            <p style="margin:6px 0;">- Tên Zalo: <b>${currentUser.username}</b></p>
+            <p style="margin:6px 0 12px;">- Thời hạn sử dụng: ${daysLeftText}</p>
+            ${renewBlock}
             <button class="btn btn-danger" style="width:100%;" onclick="processLogout()">Đăng Xuất</button>
         `);
     }
 }
 
 async function submitUserOrderCode() {
-    const code = (document.getElementById('userOrderCodeInput')?.value || "").trim();
-    if (!code) return alert("Vui lòng nhập mã đơn hàng đã mua!");
+    const raw = (document.getElementById('userOrderCodeInput')?.value || "").trim();
+    if (!raw) return alert("Vui lòng nhập mã đơn hàng đã mua!");
     alert("Đang gửi mã đơn hàng lên hệ thống...");
     await fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'submit_order', username: currentUser.username, orderCode: code })
+        body: JSON.stringify({ action: 'submit_order', username: currentUser.username, orderCode: raw })
     });
-    currentUser.pendingOrder = code;
+    const oldList = (currentUser.pendingOrder || "").split(",").map(s => s.trim()).filter(Boolean);
+    raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).forEach(c => {
+        if (!oldList.includes(c)) oldList.push(c);
+    });
+    currentUser.pendingOrder = oldList.join(", ");
     sessionStorage.setItem('current_user', JSON.stringify(currentUser));
-    alert("✅ Đã gửi mã đơn hàng! Sau khi Admin Quang Nguyen kiểm tra và duyệt, tài khoản của bạn sẽ tự động cộng thêm 10 ngày sử dụng.");
+    alert("✅ Đã gửi mã đơn hàng! Sau khi Admin duyệt, tài khoản của bạn sẽ tự động cộng thêm ngày sử dụng");
     openUserModal();
     syncDataFromGoogleSheet();
 }
+
 
 async function processRegister() {
     const name = document.getElementById('modalZaloInput').value.trim();
@@ -301,24 +314,39 @@ function renderStatsTableOnly() {
     tbody.innerHTML = sorted.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Chưa có dữ liệu thành viên</td></tr>` : sorted.map((u, idx) => {
         const fullU = appData.users.find(x => x.username === u.username) || {};
         const exp = Number(fullU.expiry) || 0;
+        const isLifetime = exp >= 9000000000000;
         const daysLeft = exp > Date.now() ? Math.ceil((exp - Date.now()) / 86400000) : (exp === 0 ? 60 : 0);
-        const orderBadge = fullU.pendingOrder
-            ? `<div style="margin-top:3px;"><span style="background:#fef3c7;color:#b45309;padding:2px 5px;border-radius:4px;font-size:11px;font-weight:700;">Đơn: ${fullU.pendingOrder}</span> <button class="btn btn-primary" style="padding:2px 6px;font-size:11px;" onclick="adminAction('approve_order', '${u.username}')">+10 ngày</button></div>`
+        const timeBadge = isLifetime
+            ? `<span style="font-size:11px;color:#0284c7;font-weight:700;">(Vĩnh viễn)</span>`
+            : `<span style="font-size:11px;color:#16a34a;">(Còn ${daysLeft}d)</span>`;
+
+        const orderCodes = (fullU.pendingOrder || "").split(",").map(s => s.trim()).filter(Boolean);
+        const orderListHtml = orderCodes.length > 0
+            ? `<div style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">` + orderCodes.map(c => `
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <span style="background:#fef3c7;color:#b45309;padding:2px 5px;border-radius:4px;font-size:11px;font-weight:700;">📦 ${c}</span>
+                    <button class="btn btn-primary" style="padding:2px 6px;font-size:10.5px;" onclick="adminOrderAction('approve_order', '${u.username}', '${c.replace(/'/g, "\\'")}')">+10d</button>
+                    <button class="btn btn-outline" style="padding:1px 5px;font-size:10.5px;color:#dc2626;border-color:#fca5a5;" onclick="adminOrderAction('reject_order', '${u.username}', '${c.replace(/'/g, "\\'")}')" title="Xóa mã sai">&times;</button>
+                </div>
+            `).join('') + `</div>`
             : "";
+
         return `
         <tr>
-            <td><b>#${idx + 1} ${u.username}</b> <span style="font-size:11px;color:#16a34a;">(Còn ${daysLeft}d)</span>${orderBadge}</td>
+            <td><b>#${idx + 1} ${u.username}</b> ${timeBadge}${orderListHtml}</td>
             <td style="text-align:center; font-weight:bold; color:var(--primary);">${u.day}</td>
             <td style="text-align:center; font-weight:bold;">${u.week}</td>
             <td style="text-align:center; font-weight:bold;">${u.month}</td>
             <td style="text-align:center; font-weight:bold; color:var(--secondary);">${u.year}</td>
-            <td>
+            <td style="white-space:nowrap;">
                 ${u.status === 'pending' ? `<button class="btn btn-success" style="padding:3px 6px; font-size:11px;" onclick="adminAction('approve', '${u.username}')">Duyệt</button>` : ''}
+                ${!isLifetime ? `<button class="btn" style="padding:3px 6px; font-size:11px; background:#0284c7;" onclick="adminAction('set_lifetime', '${u.username}')" title="Cấp quyền vĩnh viễn">Vĩnh viễn</button>` : ''}
                 <button class="btn btn-danger" style="padding:3px 6px; font-size:11px;" onclick="adminAction('delete', '${u.username}')">Xóa</button>
             </td>
         </tr>`;
     }).join('');
 }
+
 async function renderAdminDashboard() {
     const currentBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
     openGlobalModal(`
@@ -366,6 +394,12 @@ async function saveBannerUrl() {
 async function adminAction(act, username) {
     if (act === 'delete' && !confirm(`Xóa tài khoản ${username}?`)) return;
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username: username }) });
+    await syncDataFromGoogleSheet();
+    renderStatsTableOnly();
+}
+async function adminOrderAction(act, username, orderCode) {
+    if (act === 'reject_order' && !confirm(`Xóa mã đơn "${orderCode}" của ${username}?`)) return;
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username: username, orderCode: orderCode }) });
     await syncDataFromGoogleSheet();
     renderStatsTableOnly();
 }
