@@ -1356,15 +1356,59 @@ function execSolarHealthCheck() {
     `;
 }
 /* === ĐIỀU KHIỂN TRỢ LÝ KỸ THUẬT SOLAR AI === */
+let aiTypingTimer = null;
+
 function toggleSolarAiBox() {
     const box = document.getElementById('solarAiBox');
-    if (box) box.classList.toggle('open');
+    if (!box) return;
+    const isOpening = !box.classList.contains('open');
+    box.classList.toggle('open');
+    if (isOpening) {
+        playSolarAiIntro();
+    } else if (aiTypingTimer) {
+        clearInterval(aiTypingTimer);
+    }
+}
+
+function playSolarAiIntro() {
+    const greetEl = document.getElementById('solarAiGreeting');
+    const btns = document.querySelectorAll('#solarAiMenu .seq-item');
+    if (!greetEl) return;
+
+    if (aiTypingTimer) clearInterval(aiTypingTimer);
+    btns.forEach(b => b.classList.remove('show'));
+    greetEl.innerHTML = "";
+
+    const userName = currentUser ? currentUser.username : "bạn";
+    const fullText = `Chào ${userName}, chúc bạn một ngày bứt phá, chốt được nhiều đơn. Bạn cần hỗ trợ gì không?`;
+    let idx = 0;
+
+    aiTypingTimer = setInterval(() => {
+        idx++;
+        const currentSlice = fullText.slice(0, idx);
+        greetEl.innerHTML = currentUser
+            ? currentSlice.replace(`Chào ${userName}`, `Chào <b>${userName}</b>`)
+            : currentSlice;
+
+        if (idx >= fullText.length) {
+            clearInterval(aiTypingTimer);
+            btns.forEach((btn, bIdx) => {
+                setTimeout(() => {
+                    btn.classList.add('show');
+                }, bIdx * 160);
+            });
+        }
+    }, 24);
 }
 
 function aiQuickAction(type) {
     toggleSolarAiBox();
     if (type === 'solar') openCalcToolModal('solar');
     else if (type === 'health') openCalcToolModal('health');
-    else if (type === 'error') loadSubPage('page-xu-ly-loi.html', document.querySelectorAll('.nav-item') || null);
+    else if (type === 'error') {
+        const navItems = document.querySelectorAll('.nav-item');
+        loadSubPage('page-xu-ly-loi.html', navItems || null);
+    }
 }
+
 
