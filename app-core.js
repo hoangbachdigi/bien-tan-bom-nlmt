@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwKH7H55os_F6qqPv3W2tU2DEw9wQUIQ9PmiymxfbBcN9exnDy_611lZtQ2hKnH0UCzCQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwc8ubrISUq3A7Z1lgQImJkXrAAlKLOg_MpbrMgFTAfa80IAvhWVXvNvsH6NW9Wr1LY-g/exec";
 
 let cachedData = JSON.parse(localStorage.getItem('solar_app_cache')) || null;
 let appData = cachedData || {
