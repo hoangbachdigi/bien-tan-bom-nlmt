@@ -74,32 +74,27 @@
 
 <script src="solar-db.js"></script>
 <script src="app-core.js"></script>
-    
-<!-- === LINH VẬT TRỢ LÝ KỸ THUẬT SOLAR AI === -->
+    <!-- === LINH VẬT TRỢ LÝ KỸ THUẬT SOLAR AI === -->
 <div class="solar-ai-widget" id="solarAiWidget">
     <div class="solar-ai-box" id="solarAiBox">
         <div class="solar-ai-head">
-            <span>🤖 Trợ Lý Kỹ Thuật Solar AI</span>
+            <span>🤖 Trợ Lý Kỹ Thuật Solar</span>
             <button type="button" onclick="toggleSolarAiBox()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;">&times;</button>
         </div>
-        <div class="solar-ai-quick">
-            <button type="button" class="solar-ai-qbtn" onclick="aiQuickAction('solar')">☀️ Tính chuỗi pin bơm</button>
-            <button type="button" class="solar-ai-qbtn" onclick="aiQuickAction('health')">🩺 Khám sức khỏe hệ</button>
-            <button type="button" class="solar-ai-qbtn" onclick="aiQuickAction('error')">🔧 Tra mã lỗi biến tần</button>
-            <button type="button" class="solar-ai-qbtn" style="background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;" onclick="aiQuickAction('zalo')">💬 Nhắn Zalo Quang Nguyen</button>
+        <div class="solar-ai-greet" id="solarAiGreeting">
+            Chào bạn, chúc bạn một ngày bứt phá, chốt được nhiều đơn. Bạn cần hỗ trợ gì không?
         </div>
-        <div class="solar-ai-msgs" id="solarAiMsgs">
-            <div class="ai-msg-bot">Xin chào! Mình là <b>Trợ lý Kỹ thuật Solar AI</b>. Bạn cần tính cấu hình biến tần bơm, tra mã lỗi hay tư vấn tấm pin cứ chọn nhanh bên trên hoặc gõ câu hỏi bên dưới nhé!</div>
+        <div class="solar-ai-menu">
+            <button type="button" class="solar-ai-mbtn" onclick="aiQuickAction('solar')">Tính công suất chuỗi pin và biến tần</button>
+            <button type="button" class="solar-ai-mbtn" onclick="aiQuickAction('health')">Khám sức khỏe hệ bơm</button>
+            <button type="button" class="solar-ai-mbtn" onclick="aiQuickAction('error')">Tra mã lỗi biến tần</button>
+            <button type="button" class="solar-ai-mbtn zalo-btn" onclick="aiQuickAction('0859653338')">Zalo Quang Nguyen</button>
+            <button type="button" class="solar-ai-mbtn zalo-btn" onclick="aiQuickAction('zalo_nham')">Zalo Thanh Nham</button>
         </div>
-        <form class="solar-ai-foot" onsubmit="sendSolarAiQuestion(event)">
-            <input type="text" id="solarAiInput" placeholder="Hỏi kỹ thuật bơm NLMT...">
-            <button type="submit">Gửi</button>
-        </form>
     </div>
 
-    <div class="solar-ai-launcher" onclick="toggleSolarAiBox()" title="Hỏi Trợ lý Kỹ thuật Solar AI">
+    <div class="solar-ai-launcher" onclick="toggleSolarAiBox()" title="Trợ lý Kỹ thuật Solar">
         <button type="button" class="solar-ai-hide-btn" onclick="event.stopPropagation();document.getElementById('solarAiWidget').style.display='none';" title="Ẩn trợ lý">&times;</button>
-        <!-- Hình vẽ SVG em bé kỹ thuật viên Solar sắc nét -->
         <svg width="42" height="42" viewBox="0 0 64 64" fill="none" xmlns="http://w3.org">
             <circle cx="32" cy="34" r="18" fill="#FDE68A"/>
             <path d="M13 28C13 17 21 10 32 10C43 10 51 17 51 28H13Z" fill="#F59E0B"/>
@@ -116,7 +111,7 @@
         <span class="solar-ai-badge">AI</span>
     </div>
 </div>
-    
+
 </body>
 </html>
     
