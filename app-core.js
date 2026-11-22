@@ -118,12 +118,30 @@ function updateTopUserBar() {
         statusText.innerHTML = isMob ? `🔮 Còn <b style="color:#f87171">${left}</b> lượt` : `🔮 Khách vãng lai (Còn <b style="color:#f87171">${left}</b> lượt tính)`;
         btnLabel.innerText = "Đăng nhập";
     }
+    const aiGreetEl = document.getElementById('solarAiGreeting');
+    if (aiGreetEl) {
+        const displayName = currentUser ? `<b>${currentUser.username}</b>` : "bạn";
+        aiGreetEl.innerHTML = `Chào ${displayName}, chúc bạn một ngày bứt phá, chốt được nhiều đơn. Bạn cần hỗ trợ gì không?`;
+    }
 }
 
 function checkLimitAndRun(callbackFn) {
-    if (currentUser && currentUser.status === 'approved') return callbackFn();
+    if (currentUser) {
+        if (currentUser.role === 'admin') return callbackFn();
+        if (currentUser.status !== 'approved') {
+            alert("Tài khoản Zalo của bạn đang chờ Admin duyệt kích hoạt!");
+            return openUserModal();
+        }
+        const now = Date.now();
+        const exp = Number(currentUser.expiry) || 0;
+        if (exp > 0 && exp < now) {
+            alert("Tài khoản của bạn đã hết thời hạn sử dụng! Vui lòng nhập Mã đơn hàng đã mua để được cộng thêm 10 ngày sử dụng.");
+            return openUserModal();
+        }
+        return callbackFn();
+    }
     if (guestCount >= 3) {
-        alert("Bạn đã dùng hết 3 lượt tính miễn phí! Vui lòng đăng ký bằng Tên Zalo và liên hệ Zalo Quang Nguyen để mở khóa vô hạn.");
+        alert("Bạn đã dùng hết 3 lượt tính miễn phí! Vui lòng đăng ký bằng Tên Zalo để nhận ngay 60 ngày sử dụng.");
         return openUserModal();
     }
     guestCount++;
@@ -131,6 +149,7 @@ function checkLimitAndRun(callbackFn) {
     updateTopUserBar();
     callbackFn();
 }
+
 
 function openGlobalModal(htmlContent) {
     document.getElementById('globalModalBody').innerHTML = htmlContent;
@@ -146,24 +165,68 @@ function openUserModal() {
     if (!currentUser) {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">👤 Đăng Nhập / Đăng Ký Thành Viên Zalo</h3>
-            <p style="font-size:13.5px; color:#555;">Đăng ký bằng Tên Zalo của bạn để sử dụng công cụ tính toán không giới hạn.</p>
+            <p style="font-size:13.5px; color:#555;">Đăng ký lần đầu bằng Tên Zalo để được <b>tặng ngay 60 ngày sử dụng</b> công cụ tính toán!</p>
             <div class="form-group"><label>Nhập chính xác Tên tài khoản Zalo:</label><input type="text" id="modalZaloInput" placeholder="Ví dụ: Nguyen Van A"></div>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-primary" onclick="processLogin()">Đăng Nhập</button>
-                <button class="btn btn-success" style="width:100%;" onclick="processRegister()">Đăng Ký Mới</button>
+                <button class="btn btn-success" style="width:100%;" onclick="processRegister()">Đăng Ký Mới (+60 ngày)</button>
             </div>
         `);
     } else if (currentUser.role === 'admin') {
         renderAdminDashboard();
     } else {
+        const now = Date.now();
+        const exp = Number(currentUser.expiry) || 0;
+        let daysLeftText = "";
+        if (currentUser.status !== 'approved') {
+            daysLeftText = `<span style="color:#d97706;">Đang chờ Admin Quang Nguyen duyệt (Có sẵn 60 ngày dùng thử)</span>`;
+        } else if (exp === 0) {
+            daysLeftText = `<span style="color:#16a34a;">Đang hoạt động (60 ngày ưu đãi)</span>`;
+        } else if (exp > now) {
+            const daysLeft = Math.ceil((exp - now) / 86400000);
+            const expDateStr = new Date(exp).toLocaleDateString('vi-VN');
+            daysLeftText = `<span style="color:#16a34a;">Còn <b>${daysLeft} ngày</b> (Hết hạn: ${expDateStr})</span>`;
+        } else {
+            daysLeftText = `<span style="color:#dc2626;">Đã hết hạn sử dụng!</span>`;
+        }
+
+        const pendingNote = currentUser.pendingOrder
+            ? `<div style="padding:8px 10px; background:#fef3c7; border-radius:6px; font-size:12.5px; color:#92400e; margin-bottom:10px;">⏳ Mã đơn <b>${currentUser.pendingOrder}</b> đang chờ Admin duyệt cộng +10 ngày.</div>`
+            : "";
+
         openGlobalModal(`
-            <h3 style="margin-top:0;">👤 Thông Tin Tài Khoản</h3>
-            <p>- Tên Zalo: <b>${currentUser.username}</b></p>
-            <p>- Trạng thái: <b>${currentUser.status === 'approved' ? 'Đã kích hoạt vô hạn' : 'Đang chờ Admin Quang Nguyen duyệt'}</b></p>
+            <h3 style="margin-top:0; color:var(--primary);">👤 Thông Tin Tài Khoản Thành Viên</h3>
+            <p style="margin:6px 0;">- Tên Zalo: <b>${currentUser.username}</b></p>
+            <p style="margin:6px 0 12px;">- Thời hạn sử dụng: ${daysLeftText}</p>
+            <div style="padding:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:14px;">
+                <div style="font-weight:700; font-size:13.5px; color:var(--dark); margin-bottom:6px;">🎁 Gia hạn thêm (+10 ngày / 1 đơn hàng)</div>
+                ${pendingNote}
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label style="font-size:12.5px;">Nhập Mã đơn hàng đã mua tại Solar Quang Nguyen:</label>
+                    <input type="text" id="userOrderCodeInput" placeholder="Ví dụ: DH1025 hoặc SĐT đặt hàng...">
+                </div>
+                <button class="btn btn-success" style="width:100%;" onclick="submitUserOrderCode()">Gửi Mã Đơn Hàng Xin Gia Hạn (+10 ngày)</button>
+            </div>
             <button class="btn btn-danger" style="width:100%;" onclick="processLogout()">Đăng Xuất</button>
         `);
     }
 }
+
+async function submitUserOrderCode() {
+    const code = (document.getElementById('userOrderCodeInput')?.value || "").trim();
+    if (!code) return alert("Vui lòng nhập mã đơn hàng đã mua!");
+    alert("Đang gửi mã đơn hàng lên hệ thống...");
+    await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'submit_order', username: currentUser.username, orderCode: code })
+    });
+    currentUser.pendingOrder = code;
+    sessionStorage.setItem('current_user', JSON.stringify(currentUser));
+    alert("✅ Đã gửi mã đơn hàng! Sau khi Admin Quang Nguyen kiểm tra và duyệt, tài khoản của bạn sẽ tự động cộng thêm 10 ngày sử dụng.");
+    openUserModal();
+    syncDataFromGoogleSheet();
+}
+
 async function processRegister() {
     const name = document.getElementById('modalZaloInput').value.trim();
     if (!name) return alert("Vui lòng nhập tên Zalo!");
@@ -236,8 +299,16 @@ function renderStatsTableOnly() {
 
     const sorted = calculateUserStats();
     tbody.innerHTML = sorted.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Chưa có dữ liệu thành viên</td></tr>` : sorted.map((u, idx) => `
+    tbody.innerHTML = sorted.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Chưa có dữ liệu thành viên</td></tr>` : sorted.map((u, idx) => {
+        const fullU = appData.users.find(x => x.username === u.username) || {};
+        const exp = Number(fullU.expiry) || 0;
+        const daysLeft = exp > Date.now() ? Math.ceil((exp - Date.now()) / 86400000) : (exp === 0 ? 60 : 0);
+        const orderBadge = fullU.pendingOrder
+            ? `<div style="margin-top:3px;"><span style="background:#fef3c7;color:#b45309;padding:2px 5px;border-radius:4px;font-size:11px;font-weight:700;">Đơn: ${fullU.pendingOrder}</span> <button class="btn btn-primary" style="padding:2px 6px;font-size:11px;" onclick="adminAction('approve_order', '${u.username}')">+10 ngày</button></div>`
+            : "";
+        return `
         <tr>
-            <td><b>#${idx + 1} ${u.username}</b></td>
+            <td><b>#${idx + 1} ${u.username}</b> <span style="font-size:11px;color:#16a34a;">(Còn ${daysLeft}d)</span>${orderBadge}</td>
             <td style="text-align:center; font-weight:bold; color:var(--primary);">${u.day}</td>
             <td style="text-align:center; font-weight:bold;">${u.week}</td>
             <td style="text-align:center; font-weight:bold;">${u.month}</td>
@@ -246,7 +317,9 @@ function renderStatsTableOnly() {
                 ${u.status === 'pending' ? `<button class="btn btn-success" style="padding:3px 6px; font-size:11px;" onclick="adminAction('approve', '${u.username}')">Duyệt</button>` : ''}
                 <button class="btn btn-danger" style="padding:3px 6px; font-size:11px;" onclick="adminAction('delete', '${u.username}')">Xóa</button>
             </td>
-        </tr>
+        </tr>`;
+    }).join('');
+
     `).join('');
 }
 async function renderAdminDashboard() {
@@ -1245,46 +1318,9 @@ function toggleSolarAiBox() {
 }
 
 function aiQuickAction(type) {
-    if (type === 'solar') {
-        toggleSolarAiBox();
-        openCalcToolModal('solar');
-    } else if (type === 'health') {
-        toggleSolarAiBox();
-        openCalcToolModal('health');
-    } else if (type === 'error') {
-        toggleSolarAiBox();
-        loadSubPage('page-xu-ly-loi.html', document.querySelectorAll('.nav-item')[1] || null);
-    } else if (type === 'zalo') {
-        const zaloLink = document.querySelector('a[href*="zalo.me"]')?.href;
-        if (zaloLink) window.open(zaloLink, '_blank');
-        else alert("Vui lòng liên hệ Zalo Quang Nguyen để được hỗ trợ trực tiếp!");
-    }
+    toggleSolarAiBox();
+    if (type === 'solar') openCalcToolModal('solar');
+    else if (type === 'health') openCalcToolModal('health');
+    else if (type === 'error') loadSubPage('page-xu-ly-loi.html', document.querySelectorAll('.nav-item') || null);
 }
 
-async function sendSolarAiQuestion(e) {
-    if (e) e.preventDefault();
-    const input = document.getElementById('solarAiInput');
-    const msgs = document.getElementById('solarAiMsgs');
-    const q = (input?.value || "").trim();
-    if (!q || !msgs) return;
-
-    msgs.innerHTML += `<div class="ai-msg-user">${q.replace(/</g, "&lt;")}</div>`;
-    input.value = "";
-    const waitId = "aiWait_" + Date.now();
-    msgs.innerHTML += `<div class="ai-msg-bot" id="${waitId}">⏳ Đang phân tích kỹ thuật...</div>`;
-    msgs.scrollTop = msgs.scrollHeight;
-
-    try {
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'ask_ai', question: q })
-        });
-        const data = await res.json();
-        const waitEl = document.getElementById(waitId);
-        if (waitEl) waitEl.innerText = data.answer || "Xin lỗi, trợ lý AI chưa nhận được phản hồi. Bạn thử lại hoặc nhắn Zalo Quang Nguyen nhé!";
-    } catch (err) {
-        const waitEl = document.getElementById(waitId);
-        if (waitEl) waitEl.innerText = "⚠️ Kết nối tạm gián đoạn. Bạn bấm nút Nhắn Zalo Quang Nguyen bên trên để được hỗ trợ ngay nhé!";
-    }
-    msgs.scrollTop = msgs.scrollHeight;
-}
