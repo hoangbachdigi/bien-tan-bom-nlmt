@@ -74,6 +74,49 @@
 
 <script src="solar-db.js"></script>
 <script src="app-core.js"></script>
+    
+<!-- === LINH VẬT TRỢ LÝ KỸ THUẬT SOLAR AI === -->
+<div class="solar-ai-widget" id="solarAiWidget">
+    <div class="solar-ai-box" id="solarAiBox">
+        <div class="solar-ai-head">
+            <span>🤖 Trợ Lý Kỹ Thuật Solar AI</span>
+            <button type="button" onclick="toggleSolarAiBox()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div class="solar-ai-quick">
+            <button type="button" class="solar-ai-qbtn" onclick="aiQuickAction('solar')">☀️ Tính chuỗi pin bơm</button>
+            <button type="button" class="solar-ai-qbtn" onclick="aiQuickAction('health')">🩺 Khám sức khỏe hệ</button>
+            <button type="button" class="solar-ai-qbtn" onclick="aiQuickAction('error')">🔧 Tra mã lỗi biến tần</button>
+            <button type="button" class="solar-ai-qbtn" style="background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;" onclick="aiQuickAction('zalo')">💬 Nhắn Zalo Quang Nguyen</button>
+        </div>
+        <div class="solar-ai-msgs" id="solarAiMsgs">
+            <div class="ai-msg-bot">Xin chào! Mình là <b>Trợ lý Kỹ thuật Solar AI</b>. Bạn cần tính cấu hình biến tần bơm, tra mã lỗi hay tư vấn tấm pin cứ chọn nhanh bên trên hoặc gõ câu hỏi bên dưới nhé!</div>
+        </div>
+        <form class="solar-ai-foot" onsubmit="sendSolarAiQuestion(event)">
+            <input type="text" id="solarAiInput" placeholder="Hỏi kỹ thuật bơm NLMT...">
+            <button type="submit">Gửi</button>
+        </form>
+    </div>
+
+    <div class="solar-ai-launcher" onclick="toggleSolarAiBox()" title="Hỏi Trợ lý Kỹ thuật Solar AI">
+        <button type="button" class="solar-ai-hide-btn" onclick="event.stopPropagation();document.getElementById('solarAiWidget').style.display='none';" title="Ẩn trợ lý">&times;</button>
+        <!-- Hình vẽ SVG em bé kỹ thuật viên Solar sắc nét -->
+        <svg width="42" height="42" viewBox="0 0 64 64" fill="none" xmlns="http://w3.org">
+            <circle cx="32" cy="34" r="18" fill="#FDE68A"/>
+            <path d="M13 28C13 17 21 10 32 10C43 10 51 17 51 28H13Z" fill="#F59E0B"/>
+            <rect x="10" y="26" width="44" height="4" rx="2" fill="#D97706"/>
+            <rect x="27" y="13" width="10" height="8" rx="2" fill="#FEF3C7"/>
+            <path d="M32 14L29.5 17.5H32L31 20.5L34.5 16.5H32L32 14Z" fill="#0284C7"/>
+            <circle cx="25" cy="34" r="2.3" fill="#1E293B"/>
+            <circle cx="39" cy="34" r="2.3" fill="#1E293B"/>
+            <circle cx="25.7" cy="33.3" r="0.8" fill="#FFFFFF"/>
+            <circle cx="39.7" cy="33.3" r="0.8" fill="#FFFFFF"/>
+            <path d="M26 41C28 43.5 36 43.5 38 41" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M16 56C18 49 24 47 32 47C40 47 46 49 48 56" fill="#0284C7"/>
+        </svg>
+        <span class="solar-ai-badge">AI</span>
+    </div>
+</div>
+    
 </body>
 </html>
     
