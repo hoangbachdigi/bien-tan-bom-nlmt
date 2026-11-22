@@ -106,10 +106,23 @@ function updateTopUserBar() {
     const isMob = window.innerWidth <= 768;
     if (currentUser) {
         if (currentUser.role === 'admin') {
-            statusText.innerHTML = isMob ? `😎 <b style="color:var(--primary)">${currentUser.username}</b>` : `😎 Admin: <b style="color:var(--primary)">${currentUser.username}</b>`;
+            statusText.innerHTML = isMob ? ` <b style="color:var(--primary)">${currentUser.username}</b>` : `Admin: <b style="color:var(--primary)">${currentUser.username}</b>`;
             btnLabel.innerText = "Quản trị";
         } else {
-            const st = currentUser.status === 'approved' ? '<span style="color:#4ade80">Vô hạn</span>' : '<span style="color:#fbbf24">Chờ duyệt</span>';
+            let st = '<span style="color:#fbbf24">Chờ duyệt</span>';
+            if (currentUser.status === 'approved') {
+                const exp = Number(currentUser.expiry) || 0;
+                if (exp >= 9000000000000) {
+                    st = '<span style="color:#38bdf8">Vĩnh viễn</span>';
+                } else if (exp === 0) {
+                    st = '<span style="color:#4ade80">Còn 60 ngày</span>';
+                } else if (exp > Date.now()) {
+                    const daysLeft = Math.ceil((exp - Date.now()) / 86400000);
+                    st = `<span style="color:#4ade80">Còn ${daysLeft} ngày</span>`;
+                } else {
+                    st = '<span style="color:#f87171">Hết hạn</span>';
+                }
+            }
             statusText.innerHTML = isMob ? `👤 <b>${currentUser.username}</b> (${st})` : `👤 Zalo: <b>${currentUser.username}</b> (${st})`;
             btnLabel.innerText = "Tài khoản";
         }
