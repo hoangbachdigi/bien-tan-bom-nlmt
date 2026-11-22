@@ -298,7 +298,6 @@ function renderStatsTableOnly() {
     if (activeBtn) activeBtn.classList.add('active-sort');
 
     const sorted = calculateUserStats();
-    tbody.innerHTML = sorted.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Chưa có dữ liệu thành viên</td></tr>` : sorted.map((u, idx) => `
     tbody.innerHTML = sorted.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Chưa có dữ liệu thành viên</td></tr>` : sorted.map((u, idx) => {
         const fullU = appData.users.find(x => x.username === u.username) || {};
         const exp = Number(fullU.expiry) || 0;
@@ -319,8 +318,6 @@ function renderStatsTableOnly() {
             </td>
         </tr>`;
     }).join('');
-
-    `).join('');
 }
 async function renderAdminDashboard() {
     const currentBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
