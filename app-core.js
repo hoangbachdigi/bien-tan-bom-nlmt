@@ -1407,8 +1407,12 @@ function aiQuickAction(type) {
     else if (type === 'health') openCalcToolModal('health');
     else if (type === 'error') {
         const navItems = document.querySelectorAll('.nav-item');
-        loadSubPage('page-xu-ly-loi.html', navItems || null);
+        const errTab = navItems.length > 1 ? navItems[1] : null;
+        const lblEl = document.getElementById('mobileCurrentPageLabel');
+        if (lblEl) lblEl.innerText = 'Xử lý lỗi';
+        loadSubPage('page-xu-ly-loi.html', errTab);
     }
 }
+
 
 
