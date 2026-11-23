@@ -655,11 +655,12 @@ function openCalcToolModal(toolId) {
                     </div>
                     <div style="font-size:12px; font-weight:700; color:#0284c7; margin:6px 0 4px;">📥 Thông số đầu vào DC (Từ giàn pin):</div>
                     <div class="solar-mini-grid">
-                        <div class="form-group"><label>Công suất (kW):</label><input type="number" id="hlInvKw" step="0.1" value="11"></div>
-                        <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="hlInvVdcMax" value="900"></div>
-                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="hlInvIdcMax" value="40"></div>
-                        <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="hlInvMpptMin" value="486"></div>
+                        <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="invVdcMaxInput" value="900"></div>
+                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="invIdcMaxInput" value="30"></div>
+                        <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="invMpptMinInput" value="486" oninput="updateMpptOptField()"></div>
+                        <div class="form-group"><label>MPPT Max (V):</label><input type="number" id="invMpptMaxInput" value="750" oninput="updateMpptOptField()"></div>
                     </div>
+
                     <div class="form-group" style="margin-bottom:0;">
                         <label>MPPT Max (V):</label>
                         <input type="number" id="hlInvMpptMax" value="750">
@@ -748,11 +749,16 @@ function openCalcToolModal(toolId) {
                     <div class="solar-sec-title">3. Giàn pin hiện tại của khách</div>
                     <div class="form-group"><label>Chọn mẫu kho hoặc tự nhập:</label><select id="hlPanSel" onchange="fillHealthPan()">${panelOpts}</select></div>
                     <div class="solar-mini-grid">
-                        <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="hlPanPmax" value="550"></div>
-                        <div class="form-group"><label>Dòng Imp (A):</label><input type="number" id="hlPanImp" step="0.01" value="13.20"></div>
-                        <div class="form-group"><label>Áp Vmp (V):</label><input type="number" id="hlPanVmp" step="0.01" value="41.70"></div>
-                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="hlPanVoc" step="0.01" value="49.80"></div>
+                        <div class="form-group"><label>Công suất (kW):</label><input type="number" id="hlInvKw" step="0.1" value="11"></div>
+                        <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="hlInvVdcMax" value="900"></div>
+                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="hlInvIdcMax" value="40"></div>
+                        <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="hlInvMpptMin" value="486"></div>
                     </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>MPPT Max (V):</label>
+                        <input type="number" id="hlInvMpptMax" value="750">
+                    </div>
+
                     <div class="solar-mini-grid" style="margin-top:4px;">
                         <div class="form-group" style="margin-bottom:0;"><label>Số chuỗi song song:</label><input type="number" id="hlStrings" value="1" min="1"></div>
                         <div class="form-group" style="margin-bottom:0;"><label>Số tấm / 1 chuỗi:</label><input type="number" id="hlPerStr" value="14" min="1"></div>
