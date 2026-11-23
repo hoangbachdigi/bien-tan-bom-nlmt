@@ -84,7 +84,8 @@ async function syncDataFromGoogleSheet() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-        const res = await fetch(API_URL, { signal: controller.signal });
+        const noCacheUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+        const res = await fetch(noCacheUrl, { signal: controller.signal, cache: 'no-store' });
         clearTimeout(timeoutId);
         const data = await res.json();
         appData.users = [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }, ...(data.users || []).map(u => ({ ...u, role: 'user' }))];
@@ -97,6 +98,9 @@ async function syncDataFromGoogleSheet() {
             if (freshUser) { currentUser = freshUser; sessionStorage.setItem('current_user', JSON.stringify(currentUser)); }
         }
         updateTopUserBar();
+        if (document.getElementById('productGridArea')) renderProductsPage(1);
+        if (document.getElementById('errorTableBody')) renderErrorsPage(1);
+        if (document.getElementById('knowledgeListArea')) renderKnowledgePage();
     } catch (e) {}
 }
 
