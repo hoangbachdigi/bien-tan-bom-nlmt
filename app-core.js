@@ -961,7 +961,7 @@ function execRealCombatSolarCalc() {
     // 2. PHƯƠNG ÁN LÝ TƯỞNG (Điện áp vùng ngọt ~650V, công suất khỏe ~1.6x tải bơm)
     const targetIdealVolt = mpptMin + (mpptMax - mpptMin) * 0.62;
     let idealPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.round(targetIdealVolt / vmp)));
-    const idealTargetPanels = Math.ceil((pumpKW * 1.6 * 1000) / pMax);
+    const idealTargetPanels = Math.ceil((pumpKW * 1.55 * 1000) / pMax);
     let idealStrings = Math.max(optStrings, Math.ceil(idealTargetPanels / idealPerStr));
 
     if (idealStrings === optStrings && (idealStrings * idealPerStr) <= (optStrings * optPerStr)) {
