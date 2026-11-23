@@ -950,36 +950,37 @@ function execRealCombatSolarCalc() {
     }
 
     const vocColdFactor = 1.05;
-    const maxPerStr = Math.floor(vdcMax / (voc * vocColdFactor));
+    // Giới hạn cứng: Voc lúc sáng sớm trời lạnh (10°C) luôn nhỏ hơn Vdc Max
+    const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
     const minVoltPerStr = Math.max(1, Math.ceil(mpptMin / vmp));
-    const optVoltPerStr = Math.min(maxPerStr, Math.max(minVoltPerStr, Math.round(((mpptMin + mpptMax) / 2) / vmp)));
+    const optVoltPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.round(((mpptMin + mpptMax) / 2) / vmp)));
 
-    // Bắt buộc tổng công suất dàn pin tối thiểu >= 1.3 lần công suất máy bơm
-    const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
+    // Công suất dàn pin chạy khỏe ổn định (>= 1.35 lần công suất máy bơm)
+    const healthyPanels = Math.ceil((pumpKW * 1.35 * 1000) / pMax);
 
     let recStrings = 1;
-    let minPerStr = minVoltPerStr;
     let optPerStr = optVoltPerStr;
 
-    if (minRequiredPanels <= maxPerStr) {
+    if (healthyPanels <= maxSafePerStr) {
         recStrings = 1;
-        minPerStr = Math.max(minVoltPerStr, minRequiredPanels);
-        optPerStr = Math.min(maxPerStr, Math.max(minPerStr, optVoltPerStr));
+        optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, healthyPanels, optVoltPerStr));
     } else {
-        recStrings = Math.max(2, Math.ceil(minRequiredPanels / optVoltPerStr));
-        minPerStr = Math.max(minVoltPerStr, Math.ceil(minRequiredPanels / recStrings));
-        optPerStr = Math.min(maxPerStr, Math.max(minPerStr, Math.ceil((pumpKW * 1.38 * 1000) / (recStrings * pMax))));
+        recStrings = Math.max(2, Math.ceil(healthyPanels / optVoltPerStr));
+        optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(healthyPanels / recStrings)));
     }
 
+    // Phương án mở rộng: Vmp gần sát MPPT Max nhưng tuyệt đối không vượt maxSafePerStr (Voc 10°C < Vdc Max)
+    const nearMpptMaxPerStr = Math.floor(mpptMax / vmp);
+    const extPerStr = Math.min(maxSafePerStr, Math.max(optPerStr, nearMpptMaxPerStr));
+
     const recPerStr = optPerStr;
-    const strSuffix = recStrings === 1 ? " / 1 CHUỖI" : ` (${recStrings} CHUỖI)`;
+    const strSuffix = recStrings === 1 ? " (1 CHUỖI)" : ` (${recStrings} CHUỖI)`;
     currentSolarPlans = [
-        { label: "PHƯƠNG ÁN TỐI THIỂU", strings: recStrings, perStr: minPerStr, total: recStrings * minPerStr },
-        { label: `⭐ TỐI ƯU NHẤT${strSuffix}`, strings: recStrings, perStr: optPerStr, total: recStrings * optPerStr },
-        { label: "MỞ RỘNG TỐI ĐA AN TOÀN", strings: recStrings, perStr: maxPerStr, total: recStrings * maxPerStr }
+        { label: `⭐ PHƯƠNG ÁN TỐI ƯU${strSuffix}`, strings: recStrings, perStr: optPerStr, total: recStrings * optPerStr },
+        { label: `🚀 PHƯƠNG ÁN MỞ RỘNG (SÁT MPPT MAX)`, strings: recStrings, perStr: extPerStr, total: recStrings * extPerStr }
     ];
 
-    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor);
+    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxSafePerStr, vocColdFactor);
 }
 
 function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor) {
@@ -991,7 +992,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
         const panelHeadText = pl.strings === 1
             ? `${pl.perStr} tấm / chuỗi`
             : `${pl.strings} chuỗi × ${pl.perStr} tấm = ${pl.total} tấm`;
-        const bestCls = idx === 1 ? 'best-plan active-plan' : '';
+        const bestCls = idx === 0 ? 'best-plan active-plan' : '';
         return `
             <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSingleOrRecPlan(${idx}, ${recStrings}, ${recPerStr})">
                 <div class="plan-title">${pl.label}</div>
@@ -1023,9 +1024,9 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
 
     const resBox = document.getElementById('toolModalResult');
     resBox.innerHTML = `
-        <div class="solar-3cards">${cardsHtml}</div>
+        <div class="solar-3cards" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">${cardsHtml}</div>
         <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:6px; font-size:13.5px; color:#14532d;">
-            <div style="font-weight:700; margin-bottom:4px;">💡 Cấu hình đề xuất cho biến tần ${invKw}kW:</div>
+            <div style="font-weight:700; margin-bottom:4px;">💡 Cấu hình tối ưu đề xuất cho biến tần ${invKw}kW:</div>
             ${stringText} (Tổng cộng <b>${recTotalPanels} tấm pin</b> — Tổng công suất dàn pin: <b>${recTotalKWp} kWp</b> | Tổng dòng làm việc: <b>${recTotalImp}A</b>).
         </div>
         <div style="margin-top:10px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#92400e; line-height:1.55;">
@@ -1038,15 +1039,9 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     `;
     window.lastCombatConfigSummary = {
         invKw, pMax, recStrings, recPerStr,
-        selectedCardIdx: 1
+        selectedCardIdx: 0
     };
     setQuoteDataFromCombat(recStrings, recPerStr);
-}
-
-function selectSingleOrRecPlan(idx, recStrings, recPerStr) {
-    document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
-    if (window.lastCombatConfigSummary) window.lastCombatConfigSummary.selectedCardIdx = idx;
-    setQuoteDataFromCombat(recStrings, currentSolarPlans[idx].perStr);
 }
 
 function copySolarConfigForZalo() {
@@ -1059,17 +1054,13 @@ function copySolarConfigForZalo() {
         ? `Cấu hình dành cho ${loadNames[loadVal]} ${pumpKW}kW`
         : `Cấu hình dành cho hệ biến tần ${cfg.invKw}kW`;
 
-    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[1];
-    const cleanPlanName = selPlan.label.replace('⭐ ', '').replace('/ 1 CHUỖI', '/ 1 chuỗi').toLowerCase();
+    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[0];
+    const cleanPlanName = selPlan.label.replace('⭐ ', '').replace('🚀 ', '').toLowerCase();
     const formattedPlanTitle = cleanPlanName.charAt(0).toUpperCase() + cleanPlanName.slice(1);
-    const singleKwp = ((selPlan.perStr * cfg.pMax) / 1000).toFixed(3);
-    const line2 = `${formattedPlanTitle}: Biến tần ${cfg.invKw}kW + 1 chuỗi x ${selPlan.perStr} tấm (${cfg.pMax}W) = (${singleKwp} kWp)`;
+    const totalKwp = ((selPlan.total * cfg.pMax) / 1000).toFixed(2);
+    const line2 = `${formattedPlanTitle}: Biến tần ${cfg.invKw}kW + ${selPlan.strings} chuỗi x ${selPlan.perStr} tấm (${cfg.pMax}W) = ${selPlan.total} tấm (${totalKwp} kWp)`;
 
-    const recTotal = cfg.recStrings * cfg.recPerStr;
-    const recKwp = ((recTotal * cfg.pMax) / 1000).toFixed(2);
-    const line3 = `Đề xuất: Biến tần ${cfg.invKw}kW + ${cfg.recStrings} chuỗi x ${cfg.recPerStr} tấm (${cfg.pMax}W) = ${recTotal} tấm (${recKwp} kWp)`;
-
-    const text = `${line1}\n${line2}\n${line3}`;
+    const text = `${line1}\n${line2}`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép cấu hình vào bộ nhớ tạm để gửi Zalo!"))
         .catch(() => prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text));
@@ -1077,6 +1068,7 @@ function copySolarConfigForZalo() {
         prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text);
     }
 }
+
 
 function setQuoteDataFromCombat(strings, perStr) {
     const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 625;
