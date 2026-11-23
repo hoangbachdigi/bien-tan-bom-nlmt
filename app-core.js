@@ -1380,7 +1380,7 @@ function playSolarAiIntro() {
     greetEl.innerHTML = "";
 
     const userName = currentUser ? currentUser.username : "bạn";
-    const fullText = `Chào ${userName}, chúc bạn một ngày bứt phá, chốt được nhiều đơn. Bạn cần hỗ trợ gì không?`;
+    const fullText = `Chào ${userName} mình là Nắng - Trợ lý Solar AI, chúc bạn một ngày bứt phá, chốt được nhiều đơn. Bạn cần hỗ trợ gì không?`;
     let idx = 0;
 
     aiTypingTimer = setInterval(() => {
