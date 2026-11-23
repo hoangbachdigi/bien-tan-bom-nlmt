@@ -950,37 +950,34 @@ function execRealCombatSolarCalc() {
     }
 
     const vocColdFactor = 1.05;
-    // Giới hạn cứng: Voc lúc sáng sớm trời lạnh (10°C) luôn nhỏ hơn Vdc Max
     const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
     const minVoltPerStr = Math.max(1, Math.ceil(mpptMin / vmp));
-    const optVoltPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.round(((mpptMin + mpptMax) / 2) / vmp)));
 
-    // Công suất dàn pin chạy khỏe ổn định (>= 1.35 lần công suất máy bơm)
-    const healthyPanels = Math.ceil((pumpKW * 1.35 * 1000) / pMax);
+    // 1. PHƯƠNG ÁN TỐI ƯU (Ít chuỗi dây nhất, tổng công suất >= 1.3 lần công suất bơm)
+    const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
+    const optStrings = Math.max(1, Math.ceil(minRequiredPanels / maxSafePerStr));
+    const optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(minRequiredPanels / optStrings)));
 
-    let recStrings = 1;
-    let optPerStr = optVoltPerStr;
+    // 2. PHƯƠNG ÁN LÝ TƯỞNG (Điện áp vùng ngọt ~650V, công suất khỏe ~1.6x tải bơm)
+    const targetIdealVolt = mpptMin + (mpptMax - mpptMin) * 0.62;
+    let idealPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.round(targetIdealVolt / vmp)));
+    const idealTargetPanels = Math.ceil((pumpKW * 1.6 * 1000) / pMax);
+    let idealStrings = Math.max(optStrings, Math.ceil(idealTargetPanels / idealPerStr));
 
-    if (healthyPanels <= maxSafePerStr) {
-        recStrings = 1;
-        optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, healthyPanels, optVoltPerStr));
-    } else {
-        recStrings = Math.max(2, Math.ceil(healthyPanels / optVoltPerStr));
-        optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(healthyPanels / recStrings)));
+    if (idealStrings === optStrings && (idealStrings * idealPerStr) <= (optStrings * optPerStr)) {
+        if (optPerStr < maxSafePerStr) {
+            idealPerStr = maxSafePerStr;
+        } else {
+            idealStrings = optStrings + 1;
+        }
     }
 
-    // Phương án mở rộng: Vmp gần sát MPPT Max nhưng tuyệt đối không vượt maxSafePerStr (Voc 10°C < Vdc Max)
-    const nearMpptMaxPerStr = Math.floor(mpptMax / vmp);
-    const extPerStr = Math.min(maxSafePerStr, Math.max(optPerStr, nearMpptMaxPerStr));
-
-    const recPerStr = optPerStr;
-    const strSuffix = recStrings === 1 ? " (1 CHUỖI)" : ` (${recStrings} CHUỖI)`;
     currentSolarPlans = [
-        { label: `⭐ PHƯƠNG ÁN TỐI ƯU${strSuffix}`, strings: recStrings, perStr: optPerStr, total: recStrings * optPerStr },
-        { label: `🚀 PHƯƠNG ÁN MỞ RỘNG (SÁT MPPT MAX)`, strings: recStrings, perStr: extPerStr, total: recStrings * extPerStr }
+        { label: `💡 PHƯƠNG ÁN TỐI ƯU (TIẾT KIỆM DÂY)`, strings: optStrings, perStr: optPerStr, total: optStrings * optPerStr },
+        { label: `⭐ PHƯƠNG ÁN LÝ TƯỞNG (KHUYÊN DÙNG)`, strings: idealStrings, perStr: idealPerStr, total: idealStrings * idealPerStr }
     ];
 
-    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxSafePerStr, vocColdFactor);
+    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, idealStrings, idealPerStr, maxSafePerStr, vocColdFactor);
 }
 
 function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor) {
@@ -992,9 +989,9 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
         const panelHeadText = pl.strings === 1
             ? `${pl.perStr} tấm / chuỗi`
             : `${pl.strings} chuỗi × ${pl.perStr} tấm = ${pl.total} tấm`;
-        const bestCls = idx === 0 ? 'best-plan active-plan' : '';
+        const bestCls = idx === 1 ? 'best-plan active-plan' : '';
         return `
-            <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSingleOrRecPlan(${idx}, ${recStrings}, ${recPerStr})">
+            <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSingleOrRecPlan(${idx})">
                 <div class="plan-title">${pl.label}</div>
                 <div class="plan-panels">${panelHeadText}</div>
                 <div class="plan-sub">
@@ -1005,29 +1002,32 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
         `;
     }).join('');
 
-    const recTotalPanels = recStrings * recPerStr;
-    const recTotalKWp = ((recTotalPanels * pMax) / 1000).toFixed(2);
-    const recTotalImp = (recStrings * imp).toFixed(2);
+    const optPlan = currentSolarPlans[0];
+    const idealPlan = currentSolarPlans[1];
+    const idealTotalKWp = ((idealPlan.total * pMax) / 1000).toFixed(2);
+    const idealTotalImp = (idealPlan.strings * imp).toFixed(2);
+    const optTotalKWp = ((optPlan.total * pMax) / 1000).toFixed(2);
 
     const forbiddenPanels = maxPerStr + 1;
     const forbiddenVocCold = (forbiddenPanels * voc * vocColdFactor).toFixed(1);
     let warnLines = [
         `<b>Bảo vệ quá áp sáng sớm trời lạnh (10°C):</b> Tuyệt đối không đấu đến <b>${forbiddenPanels} tấm/chuỗi</b> vì điện áp hở mạch lúc sáng sớm trời lạnh có thể vọt lên <b>${forbiddenVocCold}V</b>, vượt ngưỡng chịu đựng <b>${vdcMax}V</b> của biến tần.`
     ];
-    if (parseFloat(recTotalImp) > 25) {
-        warnLines.push(`<b>Cảnh báo dòng điện cao (${recTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
+    if (parseFloat(idealTotalImp) > 25) {
+        warnLines.push(`<b>Cảnh báo dòng điện cao (${idealTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
     }
 
-    const stringText = recStrings === 1
-        ? `Đấu nối tiếp <b>1 chuỗi duy nhất</b> gồm <b>${recPerStr} tấm</b>`
-        : `Ghép <b>${recStrings} chuỗi song song</b>, mỗi chuỗi <b>${recPerStr} tấm</b>`;
+    const idealText = idealPlan.strings === 1
+        ? `Đấu nối tiếp <b>1 chuỗi duy nhất</b> gồm <b>${idealPlan.perStr} tấm</b>`
+        : `Ghép <b>${idealPlan.strings} chuỗi song song</b>, mỗi chuỗi <b>${idealPlan.perStr} tấm</b>`;
 
     const resBox = document.getElementById('toolModalResult');
     resBox.innerHTML = `
         <div class="solar-3cards" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">${cardsHtml}</div>
-        <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:6px; font-size:13.5px; color:#14532d;">
-            <div style="font-weight:700; margin-bottom:4px;">💡 Cấu hình tối ưu đề xuất cho biến tần ${invKw}kW:</div>
-            ${stringText} (Tổng cộng <b>${recTotalPanels} tấm pin</b> — Tổng công suất dàn pin: <b>${recTotalKWp} kWp</b> | Tổng dòng làm việc: <b>${recTotalImp}A</b>).
+        <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:6px; font-size:13.5px; color:#14532d; line-height:1.55;">
+            <div style="font-weight:700; margin-bottom:4px;">⭐ Khuyến nghị chọn cấu hình lý tưởng cho biến tần ${invKw}kW:</div>
+            • <b>Cấu hình lý tưởng:</b> ${idealText} = <b>${idealPlan.total} tấm (${idealTotalKWp} kWp)</b> | Dòng làm việc: <b>${idealTotalImp}A</b> (Bơm chạy cực khỏe từ sáng sớm đến chiều muộn).<br>
+            <span style="font-size:12.5px; color:#166534;">• <i>Ghi chú:</i> Nếu muốn tiết kiệm dây dẫn DC, có thể chọn phương án tối ưu <b>${optPlan.strings} chuỗi × ${optPlan.perStr} tấm = ${optPlan.total} tấm (${optTotalKWp} kWp)</b> (bấm vào thẻ bên trái để lập báo giá theo phương án này).</span>
         </div>
         <div style="margin-top:10px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#92400e; line-height:1.55;">
             • ${warnLines.join('<br>• ')}
@@ -1038,10 +1038,24 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
         </div>
     `;
     window.lastCombatConfigSummary = {
-        invKw, pMax, recStrings, recPerStr,
-        selectedCardIdx: 0
+        invKw, pMax,
+        recStrings: idealPlan.strings,
+        recPerStr: idealPlan.perStr,
+        selectedCardIdx: 1
     };
-    setQuoteDataFromCombat(recStrings, recPerStr);
+    setQuoteDataFromCombat(idealPlan.strings, idealPlan.perStr);
+}
+
+function selectSingleOrRecPlan(idx) {
+    const plan = currentSolarPlans[idx];
+    if (!plan) return;
+    document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
+    if (window.lastCombatConfigSummary) {
+        window.lastCombatConfigSummary.selectedCardIdx = idx;
+        window.lastCombatConfigSummary.recStrings = plan.strings;
+        window.lastCombatConfigSummary.recPerStr = plan.perStr;
+    }
+    setQuoteDataFromCombat(plan.strings, plan.perStr);
 }
 
 function copySolarConfigForZalo() {
@@ -1054,8 +1068,8 @@ function copySolarConfigForZalo() {
         ? `Cấu hình dành cho ${loadNames[loadVal]} ${pumpKW}kW`
         : `Cấu hình dành cho hệ biến tần ${cfg.invKw}kW`;
 
-    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[0];
-    const cleanPlanName = selPlan.label.replace('⭐ ', '').replace('🚀 ', '').toLowerCase();
+    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[1];
+    const cleanPlanName = selPlan.label.replace('💡 ', '').replace('⭐ ', '').toLowerCase();
     const formattedPlanTitle = cleanPlanName.charAt(0).toUpperCase() + cleanPlanName.slice(1);
     const totalKwp = ((selPlan.total * cfg.pMax) / 1000).toFixed(2);
     const line2 = `${formattedPlanTitle}: Biến tần ${cfg.invKw}kW + ${selPlan.strings} chuỗi x ${selPlan.perStr} tấm (${cfg.pMax}W) = ${selPlan.total} tấm (${totalKwp} kWp)`;
@@ -1068,7 +1082,6 @@ function copySolarConfigForZalo() {
         prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text);
     }
 }
-
 
 function setQuoteDataFromCombat(strings, perStr) {
     const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 625;
