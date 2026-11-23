@@ -949,18 +949,20 @@ function execRealCombatSolarCalc() {
         return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.3)}kW trước khi tính.`);
     }
 
-    const vocColdFactor = 1.05;
-    const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
-    const minVoltPerStr = Math.max(1, Math.ceil(mpptMin / vmp));
+     const vocColdFactor = 1.05;
+     const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
+     const midMpptVolt = (mpptMin + mpptMax) / 2;
+     const minOptPerStr = Math.min(maxSafePerStr, Math.max(1, Math.round(midMpptVolt / vmp)));
+    
+     // 1. PHƯƠNG ÁN TỐI ƯU (Ít chuỗi dây nhất, áp >= trung bình MPPT & công suất >= 1.3x tải bơm)
+     const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
+     const optStrings = Math.max(1, Math.ceil(minRequiredPanels / maxSafePerStr));
+     const optPerStr = Math.min(maxSafePerStr, Math.max(minOptPerStr, Math.ceil(minRequiredPanels / optStrings)));
+    
+     // 2. PHƯƠNG ÁN LÝ TƯỞNG (Điện áp vùng ngọt nửa trên MPPT, công suất chạy cực khỏe ~1.55x tải bơm)
+     const targetIdealVolt = mpptMin + (mpptMax - mpptMin) * 0.62;
+     let idealPerStr = Math.min(maxSafePerStr, Math.max(minOptPerStr, Math.round(targetIdealVolt / vmp)));
 
-    // 1. PHƯƠNG ÁN TỐI ƯU (Ít chuỗi dây nhất, tổng công suất >= 1.3 lần công suất bơm)
-    const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
-    const optStrings = Math.max(1, Math.ceil(minRequiredPanels / maxSafePerStr));
-    const optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(minRequiredPanels / optStrings)));
-
-    // 2. PHƯƠNG ÁN LÝ TƯỞNG (Điện áp vùng ngọt ~650V, công suất khỏe ~1.6x tải bơm)
-    const targetIdealVolt = mpptMin + (mpptMax - mpptMin) * 0.62;
-    let idealPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.round(targetIdealVolt / vmp)));
     const idealTargetPanels = Math.ceil((pumpKW * 1.55 * 1000) / pMax);
     let idealStrings = Math.max(optStrings, Math.ceil(idealTargetPanels / idealPerStr));
 
