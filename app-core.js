@@ -931,8 +931,8 @@ function execRealCombatSolarCalc() {
     const invKw = parseFloat(document.getElementById('invKwInput').value) || 0;
     const vdcMax = parseFloat(document.getElementById('invVdcMaxInput').value) || 900;
     const idcMax = parseFloat(document.getElementById('invIdcMaxInput').value) || 40;
-    const mpptMin = parseFloat(document.getElementById('invMpptMinInput').value) || 550;
-    const mpptMax = parseFloat(document.getElementById('invMpptMaxInput').value) || 680;
+    const mpptMin = parseFloat(document.getElementById('invMpptMinInput').value) || 486;
+    const mpptMax = parseFloat(document.getElementById('invMpptMaxInput').value) || 750;
 
     const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 0;
     const imp = parseFloat(document.getElementById('panImpInput').value) || 0;
@@ -946,48 +946,59 @@ function execRealCombatSolarCalc() {
         return alert("⚠️ Vui lòng nhập công suất máy bơm trước khi tính toán!");
     }
     if (pumpKW > invKw) {
-        return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.25)}kW trước khi tính.`);
+        return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.3)}kW trước khi tính.`);
     }
 
-    const refKW = pumpKW > 0 ? pumpKW : invKw;
     const vocColdFactor = 1.05;
-
     const maxPerStr = Math.floor(vdcMax / (voc * vocColdFactor));
-    const minPerStr = Math.max(1, Math.ceil(mpptMin / vmp));
-    const optPerStr = Math.min(maxPerStr, Math.max(minPerStr, Math.round(((mpptMin + mpptMax) / 2) / vmp)));
+    const minVoltPerStr = Math.max(1, Math.ceil(mpptMin / vmp));
+    const optVoltPerStr = Math.min(maxPerStr, Math.max(minVoltPerStr, Math.round(((mpptMin + mpptMax) / 2) / vmp)));
+
+    // Bắt buộc tổng công suất dàn pin tối thiểu >= 1.3 lần công suất máy bơm
+    const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
 
     let recStrings = 1;
-    let recPerStr = optPerStr;
-    if ((maxPerStr * pMax) >= (refKW * 1.15 * 1000)) {
+    let minPerStr = minVoltPerStr;
+    let optPerStr = optVoltPerStr;
+
+    if (minRequiredPanels <= maxPerStr) {
         recStrings = 1;
-        recPerStr = Math.min(maxPerStr, Math.max(optPerStr, Math.ceil((refKW * 1.25 * 1000) / pMax)));
+        minPerStr = Math.max(minVoltPerStr, minRequiredPanels);
+        optPerStr = Math.min(maxPerStr, Math.max(minPerStr, optVoltPerStr));
     } else {
-        recStrings = Math.max(2, Math.ceil((refKW * 1.2 * 1000) / (optPerStr * pMax)));
-        recPerStr = Math.max(minPerStr, Math.min(maxPerStr, Math.ceil((refKW * 1.2 * 1000) / (recStrings * pMax))));
+        recStrings = Math.max(2, Math.ceil(minRequiredPanels / optVoltPerStr));
+        minPerStr = Math.max(minVoltPerStr, Math.ceil(minRequiredPanels / recStrings));
+        optPerStr = Math.min(maxPerStr, Math.max(minPerStr, Math.ceil((pumpKW * 1.38 * 1000) / (recStrings * pMax))));
     }
 
+    const recPerStr = optPerStr;
+    const strSuffix = recStrings === 1 ? " / 1 CHUỖI" : ` (${recStrings} CHUỖI)`;
     currentSolarPlans = [
-        { label: "PHƯƠNG ÁN TỐI THIỂU", strings: 1, perStr: minPerStr, total: minPerStr },
-        { label: "⭐ TỐI ƯU NHẤT / 1 CHUỖI", strings: 1, perStr: optPerStr, total: optPerStr },
-        { label: "MỞ RỘNG TỐI ĐA AN TOÀN", strings: 1, perStr: maxPerStr, total: maxPerStr }
+        { label: "PHƯƠNG ÁN TỐI THIỂU", strings: recStrings, perStr: minPerStr, total: recStrings * minPerStr },
+        { label: `⭐ TỐI ƯU NHẤT${strSuffix}`, strings: recStrings, perStr: optPerStr, total: recStrings * optPerStr },
+        { label: "MỞ RỘNG TỐI ĐA AN TOÀN", strings: recStrings, perStr: maxPerStr, total: recStrings * maxPerStr }
     ];
 
     renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor);
 }
+
 function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor) {
     const cardsHtml = currentSolarPlans.map((pl, idx) => {
         const voc25 = (pl.perStr * voc).toFixed(1);
         const vocCold = (pl.perStr * voc * vocColdFactor).toFixed(1);
         const vmpStr = (pl.perStr * vmp).toFixed(1);
-        const kwpStr = ((pl.perStr * pMax) / 1000).toFixed(2);
+        const kwpStr = ((pl.total * pMax) / 1000).toFixed(2);
+        const panelHeadText = pl.strings === 1
+            ? `${pl.perStr} tấm / chuỗi`
+            : `${pl.strings} chuỗi × ${pl.perStr} tấm = ${pl.total} tấm`;
         const bestCls = idx === 1 ? 'best-plan active-plan' : '';
         return `
             <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSingleOrRecPlan(${idx}, ${recStrings}, ${recPerStr})">
                 <div class="plan-title">${pl.label}</div>
-                <div class="plan-panels">${pl.perStr} tấm / chuỗi</div>
+                <div class="plan-panels">${panelHeadText}</div>
                 <div class="plan-sub">
                     Voc (25°C): <b>${voc25}V</b> | Sáng sớm trời lạnh (10°C): <b>${vocCold}V</b><br>
-                    Vmp: <b>${vmpStr}V</b> | Công suất: <b>${kwpStr} kWp</b>
+                    Vmp: <b>${vmpStr}V</b> | Tổng công suất: <b>${kwpStr} kWp</b>
                 </div>
             </div>
         `;
@@ -1031,6 +1042,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     };
     setQuoteDataFromCombat(recStrings, recPerStr);
 }
+
 function selectSingleOrRecPlan(idx, recStrings, recPerStr) {
     document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
     if (window.lastCombatConfigSummary) window.lastCombatConfigSummary.selectedCardIdx = idx;
