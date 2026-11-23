@@ -653,13 +653,26 @@ function openCalcToolModal(toolId) {
                         <label>Danh sách biến tần trong kho:</label>
                         <select id="spInvIdx" onchange="fillInverterSpecs()"></select>
                     </div>
+                    <div style="font-size:12px; font-weight:700; color:#0284c7; margin:6px 0 4px;">📥 Thông số đầu vào DC (Từ giàn pin):</div>
                     <div class="solar-mini-grid">
-                        <div class="form-group"><label>Công suất (kW):</label><input type="number" id="invKwInput" step="0.1" value="15"></div>
                         <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="invVdcMaxInput" value="900"></div>
-                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="invIdcMaxInput" value="40"></div>
-                        <div class="form-group"><label>Áp MPPT tối ưu từ (V):</label><input type="number" id="invMpptMinInput" value="550"></div>
+                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="invIdcMaxInput" value="30"></div>
+                        <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="invMpptMinInput" value="486" oninput="updateMpptOptField()"></div>
+                        <div class="form-group"><label>MPPT Max (V):</label><input type="number" id="invMpptMaxInput" value="750" oninput="updateMpptOptField()"></div>
                     </div>
-                    <div class="form-group" style="margin-bottom:0;"><label>Áp MPPT tối ưu đến (V):</label><input type="number" id="invMpptMaxInput" value="680"></div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label>Áp MPPT tối ưu (Trung bình) (V):</label>
+                        <input type="number" id="invMpptOptInput" value="618" readonly style="background:#f0f9ff; font-weight:700; color:#0369a1;">
+                    </div>
+                    <div style="font-size:12px; font-weight:700; color:#15803d; margin:6px 0 4px; border-top:1px dashed #cbd5e1; padding-top:6px;">📤 Thông số đầu ra AC (Ra máy bơm):</div>
+                    <div class="solar-mini-grid" style="margin-bottom:0;">
+                        <div class="form-group" style="margin-bottom:0;"><label>Công suất (kW):</label><input type="number" id="invKwInput" step="0.1" value="7.5"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label>Điện áp AC ra:</label><input type="text" id="invPhaseInput" value="3 pha 380V"></div>
+                    </div>
+                    <div class="form-group" style="margin-top:6px; margin-bottom:0;">
+                        <label>Dòng đầu ra định mức (A):</label>
+                        <input type="number" id="invOutAInput" step="0.1" value="17" style="font-weight:700; color:#15803d;">
+                    </div>
                 </div>
                 <div class="solar-sec-box">
                     <div class="solar-sec-title">2. Chọn / Nhập Tấm Pin (STC)</div>
@@ -668,10 +681,10 @@ function openCalcToolModal(toolId) {
                         <select id="spPanelIdx" onchange="fillPanelSpecs()">${panelOpts}</select>
                     </div>
                     <div class="solar-mini-grid">
-                        <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="panPmaxInput" value="625"></div>
-                        <div class="form-group"><label>Dòng làm việc Imp (A):</label><input type="number" id="panImpInput" step="0.01" value="15.29"></div>
-                        <div class="form-group"><label>Áp làm việc Vmp (V):</label><input type="number" id="panVmpInput" step="0.01" value="40.90"></div>
-                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="49.28"></div>
+                        <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="panPmaxInput" value="580"></div>
+                        <div class="form-group"><label>Dòng làm việc Imp (A):</label><input type="number" id="panImpInput" step="0.01" value="13.22"></div>
+                        <div class="form-group"><label>Áp làm việc Vmp (V):</label><input type="number" id="panVmpInput" step="0.01" value="43.88"></div>
+                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="52.50"></div>
                     </div>
                     <div class="form-group" style="margin-top:4px; margin-bottom:0;">
                         <label>Chiều dài dây Cab Solar DC 1 chiều (m):</label>
@@ -684,7 +697,7 @@ function openCalcToolModal(toolId) {
         `);
         setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 50);
     }
-        else if (toolId === 'health') {
+    else if (toolId === 'health') {
         const panelOpts = buildGroupedPanelOptions(null, true);
         let invOpts = '';
         ["Power S", "Voltique", "Green Nova", "SAJ"].forEach(br => {
@@ -723,7 +736,7 @@ function openCalcToolModal(toolId) {
                         <div class="form-group"><label>Công suất (kW):</label><input type="number" id="hlInvKw" step="0.1" value="11"></div>
                         <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="hlInvVdcMax" value="900"></div>
                         <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="hlInvIdcMax" value="40"></div>
-                        <div class="form-group"><label>MPPT tối ưu từ (V):</label><input type="number" id="hlInvMpptMin" value="550"></div>
+                        <div class="form-group"><label>MPPT tối ưu từ (V):</label><input type="number" id="hlInvMpptMin" value="486"></div>
                     </div>
                 </div>
                 <div class="solar-sec-box">
@@ -744,7 +757,7 @@ function openCalcToolModal(toolId) {
             <button class="btn btn-primary" style="font-size:15px;" onclick="checkLimitAndRun(execSolarHealthCheck)">🔍 KHÁM SỨC KHỎE HỆ THỐNG</button>
             <div id="toolModalResult" style="margin-top:12px;"></div>
         `);
-    }    
+    }
     else if (toolId === 'acc') {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
@@ -782,6 +795,7 @@ function openCalcToolModal(toolId) {
         `);
     }
 }
+
 function cleanPumpExprInput() {
     const inputEl = document.getElementById('spPumpExpr');
     if (!inputEl) return;
@@ -889,6 +903,8 @@ function fillInverterSpecs() {
     const inv = SOLAR_INVERTERS_DB[parseInt(val)];
     if (!inv) return;
     document.getElementById('invKwInput').value = inv.kw;
+    const phaseEl = document.getElementById('invPhaseInput');
+    if (phaseEl) phaseEl.value = inv.phase || "3 pha 380V";
     const outAEl = document.getElementById('invOutAInput');
     if (outAEl) outAEl.value = inv.iOut || "";
     document.getElementById('invVdcMaxInput').value = inv.vdcMax;
@@ -897,6 +913,7 @@ function fillInverterSpecs() {
     document.getElementById('invMpptMaxInput').value = inv.mpptMax;
     updateMpptOptField();
 }
+
 
 function fillPanelSpecs() {
     const val = document.getElementById('spPanelIdx')?.value;
