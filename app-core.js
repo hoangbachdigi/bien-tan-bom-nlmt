@@ -843,7 +843,7 @@ function updateInverterDropdownAll() {
             if (suggestEl) {
                 suggestEl.style.display = 'block';
                 suggestEl.style.color = '#dc2626';
-                suggestEl.innerHTML = `⚠️ Bơm <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> vượt quá công suất biến tần lớn nhất trong kho (<b>${maxKhoKW}kW</b>). Vui lòng tự nhập thông số biến tần công suất lớn bên dưới!`;
+                suggestEl.innerHTML = `⚠️ Bơm <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> hiện tại không có sẵn trong kho (<b>${maxKhoKW}kW</b>). Hãy liên hệ bộ phận kinh doanh để được tư vấn đặt hàng!`;
             }
         } else {
             targetKW = distinctKWs[baseIdx + stepUp];
