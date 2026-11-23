@@ -655,11 +655,16 @@ function openCalcToolModal(toolId) {
                     </div>
                     <div style="font-size:12px; font-weight:700; color:#0284c7; margin:6px 0 4px;">📥 Thông số đầu vào DC (Từ giàn pin):</div>
                     <div class="solar-mini-grid">
-                        <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="invVdcMaxInput" value="900"></div>
-                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="invIdcMaxInput" value="30"></div>
-                        <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="invMpptMinInput" value="486" oninput="updateMpptOptField()"></div>
-                        <div class="form-group"><label>MPPT Max (V):</label><input type="number" id="invMpptMaxInput" value="750" oninput="updateMpptOptField()"></div>
+                        <div class="form-group"><label>Công suất (kW):</label><input type="number" id="hlInvKw" step="0.1" value="11"></div>
+                        <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="hlInvVdcMax" value="900"></div>
+                        <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="hlInvIdcMax" value="40"></div>
+                        <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="hlInvMpptMin" value="486"></div>
                     </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>MPPT Max (V):</label>
+                        <input type="number" id="hlInvMpptMax" value="750">
+                    </div>
+
                     <div class="form-group" style="margin-bottom:8px;">
                         <label>Áp MPPT tối ưu (Trung bình) (V):</label>
                         <input type="number" id="invMpptOptInput" value="618" readonly style="background:#f0f9ff; font-weight:700; color:#0369a1;">
@@ -1313,6 +1318,8 @@ function fillHealthInv() {
     document.getElementById('hlInvVdcMax').value = inv.vdcMax;
     document.getElementById('hlInvIdcMax').value = inv.idcMax;
     document.getElementById('hlInvMpptMin').value = inv.mpptMin;
+    const mMaxEl = document.getElementById('hlInvMpptMax');
+    if (mMaxEl) mMaxEl.value = inv.mpptMax;
 }
 
 function fillHealthPan() {
@@ -1335,7 +1342,9 @@ function execSolarHealthCheck() {
     const invKw = parseFloat(document.getElementById('hlInvKw').value) || 0;
     const vdcMax = parseFloat(document.getElementById('hlInvVdcMax').value) || 900;
     const idcMax = parseFloat(document.getElementById('hlInvIdcMax').value) || 40;
-    const mpptMin = parseFloat(document.getElementById('hlInvMpptMin').value) || 550;
+    const mpptMin = parseFloat(document.getElementById('hlInvMpptMin').value) || 486;
+    const mpptMax = parseFloat(document.getElementById('hlInvMpptMax')?.value) || 750;
+    const midMppt = (mpptMin + mpptMax) / 2;
 
     const pMax = parseFloat(document.getElementById('hlPanPmax').value) || 0;
     const imp = parseFloat(document.getElementById('hlPanImp').value) || 0;
@@ -1351,7 +1360,8 @@ function execSolarHealthCheck() {
     const vmpTotal = perStr * vmp;
     const impTotal = strings * imp;
     const reqInvKw = stepUp === 0 ? pumpKW : (stepUp === 1 ? pumpKW * 1.3 : pumpKW * 1.6);
-    const reqKwp = pumpKW * 1.25;
+    const minReqKwp = pumpKW * 1.3;
+    const idealReqKwp = pumpKW * 1.55;
 
     let score = 100;
     let issues = [];
@@ -1359,15 +1369,15 @@ function execSolarHealthCheck() {
 
     if (vocCold > vdcMax) {
         score -= 35;
-        const safeMax = Math.floor(vdcMax / (voc * 1.05));
+        const safeMax = Math.floor((vdcMax - 0.1) / (voc * 1.05));
         issues.push(`🔴 <b>Nguy hiểm quá áp sáng sớm trời lạnh (10°C):</b> Voc đạt <b>${vocCold.toFixed(1)}V</b> vượt ngưỡng <b>${vdcMax}V</b> của biến tần.`);
         upgrades.push(`Giảm ngay số tấm mỗi chuỗi từ ${perStr} tấm xuống tối đa <b>${safeMax} tấm/chuỗi</b> để tránh nổ tụ/báo lỗi quá áp.`);
     }
-    if (vmpTotal < mpptMin - 40) {
+    if (vmpTotal < midMppt - 15) {
         score -= 20;
-        const needPerStr = Math.ceil(mpptMin / vmp);
-        issues.push(`🟡 <b>Thiếu áp MPPT (Bơm chạy yếu):</b> Áp làm việc <b>${vmpTotal.toFixed(1)}V</b> thấp hơn vùng tối ưu (${mpptMin}V), bơm khó đạt đủ 50Hz.`);
-        upgrades.push(`Đấu nối tiếp thêm <b>${needPerStr - perStr} tấm/chuỗi</b> (nâng lên ${needPerStr} tấm/chuỗi) để đưa áp vào vùng ngọt MPPT.`);
+        const needPerStr = Math.round(midMppt / vmp);
+        issues.push(`🟡 <b>Áp làm việc thấp hơn vùng trung bình MPPT (${midMppt.toFixed(0)}V):</b> Vmp hiện tại <b>${vmpTotal.toFixed(1)}V</b> dễ bị tụt áp trưa nắng nóng khiến bơm chạy yếu.`);
+        upgrades.push(`Đấu nối tiếp thêm <b>${Math.max(1, needPerStr - perStr)} tấm/chuỗi</b> (nâng lên <b>${needPerStr} tấm/chuỗi</b>) để đưa áp vào vùng ngọt MPPT.`);
     }
     if (impTotal > idcMax) {
         score -= 25;
@@ -1379,17 +1389,18 @@ function execSolarHealthCheck() {
         issues.push(`🟡 <b>Biến tần yếu so với tải bơm:</b> Bơm ${pumpKW.toFixed(1)}kW đang kéo biến tần ${invKw}kW dễ báo lỗi quá dòng (OC) khi khởi động.`);
         upgrades.push(`Nâng cấp biến tần lên cấp <b>${Math.ceil(reqInvKw)}kW</b> (1–2 cấp trên tải bơm) để khởi động khỏe và bền máy.`);
     }
-    if (totalKWp < pumpKW * 1.15) {
-        score -= 15;
-        const missPanels = Math.ceil(((reqKwp - totalKWp) * 1000) / pMax);
-        issues.push(`🟡 <b>Thiếu công suất giàn pin:</b> Giàn pin hiện có <b>${totalKWp.toFixed(2)} kWp</b> chưa đạt mức lý tưởng (${reqKwp.toFixed(2)} kWp) cho bơm ${pumpKW.toFixed(1)}kW.`);
-        upgrades.push(`Lắp bổ sung thêm khoảng <b>${missPanels} tấm pin (${pMax}W)</b> để bơm chạy khỏe từ sáng sớm đến chiều muộn.`);
+    if (totalKWp < minReqKwp) {
+        score -= 20;
+        const missMin = Math.ceil(((minReqKwp - totalKWp) * 1000) / pMax);
+        const missIdeal = Math.ceil(((idealReqKwp - totalKWp) * 1000) / pMax);
+        issues.push(`🟡 <b>Thiếu công suất giàn pin (Chưa đạt chuẩn ≥ 1.3x tải bơm):</b> Giàn pin hiện có <b>${totalKWp.toFixed(2)} kWp</b>, mức tối thiểu cần đạt <b>${minReqKwp.toFixed(2)} kWp</b>.`);
+        upgrades.push(`Lắp bổ sung tối thiểu <b>${missMin} tấm pin (${pMax}W)</b> (hoặc <b>${missIdeal} tấm</b> để đạt mức lý tưởng <b>${idealReqKwp.toFixed(2)} kWp</b>) giúp bơm chạy khỏe cả ngày.`);
     }
 
     score = Math.max(10, score);
     const badgeColor = score >= 85 ? '#16a34a' : (score >= 60 ? '#ea580c' : '#dc2626');
     const statusLabel = score >= 85 ? 'HỆ THỐNG HOẠT ĐỘNG TỐT' : (score >= 60 ? 'CẦN TỐI ƯU ĐỂ ĐẠT HIỆU SUẤT CAO' : 'CẢNH BÁO LỖI KỸ THUẬT - CẦN XỬ LÝ');
-    if (issues.length === 0) issues.push(`🟢 <b>Cấu hình phối ghép chuẩn xác:</b> Điện áp, dòng điện và công suất pin đều nằm trong vùng tối ưu của biến tần.`);
+    if (issues.length === 0) issues.push(`🟢 <b>Cấu hình phối ghép chuẩn xác:</b> Điện áp (≥ trung bình MPPT), dòng điện và công suất pin (≥ 1.3x tải bơm) đều nằm trong vùng tối ưu của biến tần.`);
     if (upgrades.length === 0) upgrades.push(`Giữ nguyên cấu hình hiện tại. Chỉ cần vệ sinh bề mặt tấm pin định kỳ và kiểm tra siết chặt các đầu cốt tủ điện.`);
 
     window.lastHealthZaloText = `🩺 KẾT QUẢ KHÁM SỨC KHỎE HỆ BƠM NLMT\n• Hệ hiện tại: Bơm ${pumpKW.toFixed(1)}kW | Biến tần ${invKw}kW | ${strings} chuỗi x ${perStr} tấm ${pMax}W (${totalKWp.toFixed(2)} kWp)\n• Đánh giá: ${score}/100 điểm (${statusLabel})\n--------------------------------\n📋 Chẩn đoán:\n${issues.map(x => x.replace(/<[^>]+>/g, '')).join('\n')}\n--------------------------------\n💡 Phương án nâng cấp:\n${upgrades.map(x => '- ' + x.replace(/<[^>]+>/g, '')).join('\n')}`;
@@ -1410,6 +1421,7 @@ function execSolarHealthCheck() {
         <button class="btn" style="width:100%; background:#0068ff; margin-top:12px; font-size:14.5px;" onclick="navigator.clipboard.writeText(window.lastHealthZaloText).then(()=>alert('✅ Đã sao chép kết quả khám bệnh gửi Zalo!'))">💬 Sao chép kết quả gửi Zalo khách hàng</button>
     `;
 }
+
 /* === ĐIỀU KHIỂN TRỢ LÝ KỸ THUẬT SOLAR AI === */
 let aiTypingTimer = null;
 
