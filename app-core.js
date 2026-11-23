@@ -973,12 +973,17 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     if (parseFloat(recTotalImp) > 25) {
         warnLines.push(`<b>Cảnh báo dòng điện cao (${recTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
     }
+
+    const stringText = recStrings === 1
+        ? `Đấu nối tiếp <b>1 chuỗi duy nhất</b> gồm <b>${recPerStr} tấm</b>`
+        : `Ghép <b>${recStrings} chuỗi song song</b>, mỗi chuỗi <b>${recPerStr} tấm</b>`;
+
     const resBox = document.getElementById('toolModalResult');
     resBox.innerHTML = `
         <div class="solar-3cards">${cardsHtml}</div>
         <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:6px; font-size:13.5px; color:#14532d;">
             <div style="font-weight:700; margin-bottom:4px;">💡 Cấu hình đề xuất cho biến tần ${invKw}kW:</div>
-            Ghép <b>${recStrings} chuỗi song song</b>, mỗi chuỗi <b>${recPerStr} tấm</b> (Tổng cộng <b>${recTotalPanels} tấm pin</b> — Tổng công suất dàn pin: <b>${recTotalKWp} kWp</b> | Tổng dòng làm việc: <b>${recTotalImp}A</b>).
+            ${stringText} (Tổng cộng <b>${recTotalPanels} tấm pin</b> — Tổng công suất dàn pin: <b>${recTotalKWp} kWp</b> | Tổng dòng làm việc: <b>${recTotalImp}A</b>).
         </div>
         <div style="margin-top:10px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#92400e; line-height:1.55;">
             • ${warnLines.join('<br>• ')}
@@ -994,7 +999,6 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     };
     setQuoteDataFromCombat(recStrings, recPerStr);
 }
-
 function selectSingleOrRecPlan(idx, recStrings, recPerStr) {
     document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
     if (window.lastCombatConfigSummary) window.lastCombatConfigSummary.selectedCardIdx = idx;
