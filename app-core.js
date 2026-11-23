@@ -914,9 +914,14 @@ function execRealCombatSolarCalc() {
     if (invKw <= 0 || pMax <= 0 || vmp <= 0 || voc <= 0) return alert("Vui lòng kiểm tra lại thông số biến tần và tấm pin!");
 
     const pumpKW = parseSafePumpPowerKW();
-    if (pumpKW > invKw) {
-    return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.25)}kW trước khi tính.`);
+    if (pumpKW <= 0) {
+        document.getElementById('spPumpExpr')?.focus();
+        return alert("⚠️ Vui lòng nhập công suất máy bơm trước khi tính toán!");
     }
+    if (pumpKW > invKw) {
+        return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.25)}kW trước khi tính.`);
+    }
+
     const refKW = pumpKW > 0 ? pumpKW : invKw;
     const vocColdFactor = 1.05;
 
