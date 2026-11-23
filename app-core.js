@@ -876,16 +876,26 @@ function updateInverterDropdownAll() {
     if (!isOverMax) fillInverterSpecs();
 }
 
+function updateMpptOptField() {
+    const mMin = parseFloat(document.getElementById('invMpptMinInput')?.value) || 0;
+    const mMax = parseFloat(document.getElementById('invMpptMaxInput')?.value) || 0;
+    const optEl = document.getElementById('invMpptOptInput');
+    if (optEl) optEl.value = Math.round((mMin + mMax) / 2);
+}
+
 function fillInverterSpecs() {
     const val = document.getElementById('spInvIdx')?.value;
     if (val === 'custom') return;
     const inv = SOLAR_INVERTERS_DB[parseInt(val)];
     if (!inv) return;
     document.getElementById('invKwInput').value = inv.kw;
+    const outAEl = document.getElementById('invOutAInput');
+    if (outAEl) outAEl.value = inv.iOut || "";
     document.getElementById('invVdcMaxInput').value = inv.vdcMax;
     document.getElementById('invIdcMaxInput').value = inv.idcMax;
     document.getElementById('invMpptMinInput').value = inv.mpptMin;
     document.getElementById('invMpptMaxInput').value = inv.mpptMax;
+    updateMpptOptField();
 }
 
 function fillPanelSpecs() {
