@@ -1623,7 +1623,7 @@ function renderSrvStep1() {
             ${renderSlotGroup("☀️ Buổi Sáng (08:00 - 11:00):", morningSlots)}
             ${renderSlotGroup("🌤️ Buổi Chiều (13:30 - 15:00):", afternoonSlots)}
         `
-        : `<div style="text-align:center; padding:14px; background:#f8fafc; border-radius:8px; color:#64748b; font-size:12.5px;">👆 Vui lòng chạm vào một ngày còn trống trên lịch để chọn khung giờ Video Call.</div>`;
+        : `<div style="text-align:center; padding:14px; background:#f8fafc; border-radius:8px; color:#64748b; font-size:12.5px;">Vui lòng chạm vào một ngày còn trống trên lịch để chọn khung giờ</div>`;
 
     body.innerHTML = `
         <div class="cal-nav">
@@ -1862,8 +1862,6 @@ function renderSrvStep4() {
     const flowSteps = [
         "Khách gửi yêu cầu",
         "Tele sale gọi lại xác nhận",
-        "Chờ khách thanh toán phí",
-        "Xác nhận đã thanh toán",
         "Kỹ thuật viên gọi lại hỗ trợ",
         "Kết thúc"
     ];
