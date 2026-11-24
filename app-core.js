@@ -1488,6 +1488,157 @@ function aiQuickAction(type) {
         loadSubPage('page-xu-ly-loi.html', errTab);
     }
 }
+/* === TRANG DỊCH VỤ VIDEO CALL 1:1 - BƯỚC 1: CHỌN NGÀY & GIỜ === */
+const VN_PUBLIC_HOLIDAYS = [
+    "01-01", "30-04", "01-05", "02-09", "03-09",
+    // Một số ngày lễ Âm lịch quy đổi (Tết Nguyên Đán & Giỗ Tổ Hùng Vương 2026-2027)
+    "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-04-26",
+    "2027-02-05", "2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09", "2027-04-16"
+];
+
+function isVnHolidayOrSunday(y, m, d) {
+    const dt = new Date(y, m, d);
+    if (dt.getDay() === 0) return "Chủ Nhật (Nghỉ)";
+    const mm = String(m + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    const fullStr = `${y}-${mm}-${dd}`;
+    const shortStr = `${dd}-${mm}`;
+    if (VN_PUBLIC_HOLIDAYS.includes(fullStr) || VN_PUBLIC_HOLIDAYS.includes(shortStr)) {
+        return "Ngày Lễ Việt Nam (Nghỉ)";
+    }
+    return "";
+}
+
+function initServiceBookingPage() {
+    const now = new Date();
+    srvState.year = now.getFullYear();
+    srvState.month = now.getMonth();
+    const myActive = (appData.bookings || []).filter(b => currentUser && b.username === currentUser.username && b.status !== 'Kết thúc' && b.status !== 'Đã hủy');
+    if (myActive.length > 0 && !srvState.forceNew) {
+        goSrvStep(4);
+    } else {
+        srvState.forceNew = false;
+        goSrvStep(1);
+    }
+}
+
+function goSrvStep(stepNum) {
+    if (stepNum === 2 && (!srvState.date || !srvState.time)) {
+        return alert("⚠️ Vui lòng chọn Ngày và Khung giờ hỗ trợ trước khi sang Bước 2!");
+    }
+    if (stepNum === 3 && (!srvState.form || !srvState.form.field)) {
+        return alert("⚠️ Vui lòng điền thông tin yêu cầu ở Bước 2 trước khi xem lại!");
+    }
+    srvState.step = stepNum;
+    for (let i = 1; i <= 4; i++) {
+        const node = document.getElementById(`srvStepNode_${i}`);
+        if (!node) continue;
+        node.classList.remove('active', 'done');
+        if (i < stepNum) node.classList.add('done');
+        else if (i === stepNum) node.classList.add('active');
+    }
+    if (stepNum === 1) renderSrvStep1();
+    else if (stepNum === 2) renderSrvStep2();
+    else if (stepNum === 3) renderSrvStep3();
+    else if (stepNum === 4) renderSrvStep4();
+}
+
+function changeSrvMonth(delta) {
+    srvState.month += delta;
+    if (srvState.month > 11) { srvState.month = 0; srvState.year++; }
+    if (srvState.month < 0) { srvState.month = 11; srvState.year--; }
+    renderSrvStep1();
+}
+
+function selectSrvDate(dateStr) {
+    srvState.date = dateStr;
+    srvState.time = "";
+    renderSrvStep1();
+}
+
+function selectSrvTime(timeStr) {
+    srvState.time = timeStr;
+    renderSrvStep1();
+}
+
+function renderSrvStep1() {
+    const body = document.getElementById('phoneScreenBody');
+    if (!body) return;
+
+    const y = srvState.year;
+    const m = srvState.month;
+    const firstDow = new Date(y, m, 1).getDay();
+    const startOffset = firstDow === 0 ? 6 : firstDow - 1;
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let cellsHtml = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+        .map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+    for (let e = 0; e < startOffset; e++) {
+        cellsHtml += `<div class="cal-day empty"></div>`;
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const cellDate = new Date(y, m, d);
+        const dateStr = `${String(d).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}/${y}`;
+        const holidayReason = isVnHolidayOrSunday(y, m, d);
+        const isPast = cellDate < today;
+        const isSel = srvState.date === dateStr;
+
+        if (isPast || holidayReason) {
+            const titleTip = holidayReason || "Ngày đã qua";
+            cellsHtml += `<div class="cal-day disabled" title="${titleTip}">${d}</div>`;
+        } else {
+            cellsHtml += `<div class="cal-day ${isSel ? 'selected' : ''}" onclick="selectSrvDate('${dateStr}')">${d}</div>`;
+        }
+    }
+
+    const morningSlots = ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"];
+    const afternoonSlots = ["13:30", "14:00", "14:30", "15:00"];
+
+    const bookedTimes = (appData.bookings || [])
+        .filter(b => b.date === srvState.date && b.status !== 'Kết thúc' && b.status !== 'Đã hủy')
+        .map(b => b.time);
+
+    const renderSlotGroup = (title, list) => `
+        <div class="slot-group-title">${title}</div>
+        <div class="slot-grid">
+            ${list.map(t => {
+                const isBooked = bookedTimes.includes(t);
+                const isSel = srvState.time === t;
+                if (isBooked) return `<div class="slot-btn booked" title="Khung giờ đã có người đặt">${t}</div>`;
+                return `<div class="slot-btn ${isSel ? 'selected' : ''}" onclick="selectSrvTime('${t}')">${t}</div>`;
+            }).join('')}
+        </div>
+    `;
+
+    const timeSectionHtml = srvState.date
+        ? `
+            <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:7px 10px; border-radius:6px; font-size:12px; color:#0369a1; font-weight:700; margin-bottom:6px;">
+                📅 Ngày đã chọn: ${srvState.date} ${srvState.time ? `— ⏰ Lúc ${srvState.time}` : '(Chọn khung giờ bên dưới)'}
+            </div>
+            ${renderSlotGroup("☀️ Buổi Sáng (08:00 - 11:00):", morningSlots)}
+            ${renderSlotGroup("🌤️ Buổi Chiều (13:30 - 15:00):", afternoonSlots)}
+        `
+        : `<div style="text-align:center; padding:14px; background:#f8fafc; border-radius:8px; color:#64748b; font-size:12.5px;">👆 Vui lòng chạm vào một ngày còn trống trên lịch để chọn khung giờ Video Call.</div>`;
+
+    body.innerHTML = `
+        <div class="cal-nav">
+            <button type="button" onclick="changeSrvMonth(-1)">&#10094;</button>
+            <span>Tháng ${m + 1} / ${y}</span>
+            <button type="button" onclick="changeSrvMonth(1)">&#10095;</button>
+        </div>
+        <div class="cal-grid">${cellsHtml}</div>
+        <div style="font-size:11px; color:#64748b; margin-bottom:8px; text-align:center;">
+            <i>(Tự động khóa Chủ Nhật & Các ngày Lễ Việt Nam)</i>
+        </div>
+        ${timeSectionHtml}
+        <button type="button" class="btn btn-primary" style="margin-top:12px; font-size:14px;" onclick="goSrvStep(2)">Tiếp ➔</button>
+    `;
+}
 
 
 
