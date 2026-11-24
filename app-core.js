@@ -11,6 +11,7 @@ let currentUser = JSON.parse(sessionStorage.getItem('current_user')) || null;
 let currentSortBy = 'day';
 let lastSolarQuoteData = null;
 let currentSolarPlans = [];
+let srvState = { step: 1, year: new Date().getFullYear(), month: new Date().getMonth(), date: "", time: "", form: {} };
 document.addEventListener("DOMContentLoaded", async () => {
     renderVietnamDate();
     applyBannerFromConfig();
@@ -67,6 +68,7 @@ async function loadSubPage(pageFile, navElement) {
         if (pageFile === 'page-xu-ly-loi.html') renderErrorsPage(1);
         if (pageFile === 'page-tinh-toan.html') renderToolsPage(1);
         if (pageFile === 'page-kien-thuc.html') renderKnowledgePage();
+        if (pageFile === 'page-dich-vu.html') initServiceBookingPage();
     } catch (error) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
@@ -91,6 +93,7 @@ async function syncDataFromGoogleSheet() {
         appData.users = [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }, ...(data.users || []).map(u => ({ ...u, role: 'user' }))];
         appData.configs = data.configs || [];
         appData.logs = data.logs || [];
+        appData.bookings = data.bookings || [];
         localStorage.setItem('solar_app_cache', JSON.stringify(appData));
         applyBannerFromConfig();
         if (currentUser) {
@@ -101,6 +104,7 @@ async function syncDataFromGoogleSheet() {
         if (document.getElementById('productGridArea')) renderProductsPage(1);
         if (document.getElementById('errorTableBody')) renderErrorsPage(1);
         if (document.getElementById('knowledgeListArea')) renderKnowledgePage();
+        if (document.getElementById('phoneScreenBody') && srvState.step === 4) renderSrvStep4();
     } catch (e) {}
 }
 
