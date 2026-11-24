@@ -1,7 +1,75 @@
-<div class="card-panel" style="text-align: center; padding: 50px 20px;">
-    <div style="font-size: 40px; margin-bottom: 10px;">🚧</div>
-    <h2 style="margin: 0 0 8px; color: var(--orange); font-size: 18px;">TÍNH NĂNG ĐANG PHÁT TRIỂN</h2>
-    <p style="margin: 0 auto; max-width: 480px; font-size: 13.5px; color: #64748b;">
-        Các gói dịch vụ hỗ trợ kỹ thuật, bảo trì và lắp đặt trọn gói đang được hoàn thiện và sẽ sớm cập nhật tại mục này.
-    </p>
+<div class="srv-layout">
+    <!-- CỘT TRÁI: 4 QUYỀN LỢI & QUY TRÌNH HỖ TRỢ VIDEO CALL 1:1 -->
+    <div class="srv-info-card">
+        <span class="srv-badge-tag">📹 HỖ TRỢ KỸ THUẬT TỪ XA 1:1</span>
+        <h3 style="margin: 0 0 6px; color: var(--primary); font-size: 18px;">Đặt Lịch Hỗ Trợ Video Call Chuyên Sâu</h3>
+        <p style="margin: 0; font-size: 13px; color: #475569; line-height: 1.5;">
+            Dành cho anh em thợ và khách hàng cần kỹ thuật viên đồng hành trực tiếp qua Video Call khi cài đặt biến tần, đấu nối giàn pin hoặc xử lý sự cố tận công trình.
+        </p>
+
+        <div class="srv-benefit-list">
+            <div class="srv-benefit-item">
+                <div class="srv-benefit-num">1</div>
+                <div>Ưu tiên tiếp nhận hỗ trợ</div>
+            </div>
+            <div class="srv-benefit-item">
+                <div class="srv-benefit-num">2</div>
+                <div>Kỹ thuật hỗ trợ 1:1</div>
+            </div>
+            <div class="srv-benefit-item">
+                <div class="srv-benefit-num">3</div>
+                <div>Khách hàng chủ động từng dự án</div>
+            </div>
+            <div class="srv-benefit-item">
+                <div class="srv-benefit-num">4</div>
+                <div>Kỹ thuật nắm bắt lịch trình làm việc ít bị động và áp lực</div>
+            </div>
+        </div>
+
+        <div class="srv-flow-box">
+            <div style="font-weight: 800; margin-bottom: 4px; font-size: 13px;">🔄 Quy trình tiếp nhận & xử lý (6 bước):</div>
+            <div><b>1.</b> Khách gửi yêu cầu ➔ <b>2.</b> Tele sale gọi lại xác nhận</div>
+            <div><b>3.</b> Chờ khách thanh toán phí ➔ <b>4.</b> Xác nhận đã thanh toán</div>
+            <div><b>5.</b> Kỹ thuật viên gọi lại hỗ trợ ➔ <b>6.</b> Kết thúc</div>
+            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed #86efac; color: #b91c1c; font-weight: 700;">
+                ⏰ Lịch tiếp nhận: Sáng 08:00–11:00 | Chiều 13:30–15:00 (Thứ 2 – Thứ 7). Không tiếp nhận Chủ Nhật & Ngày Lễ Việt Nam.
+            </div>
+        </div>
+    </div>
+
+    <!-- CỘT PHẢI: KHUNG MÀN HÌNH ĐIỆN THOẠI ĐẶT DỊCH VỤ 4 BƯỚC -->
+    <div class="phone-mockup">
+        <div class="phone-notch"></div>
+        <div class="phone-header">
+            <h4>Đặt dịch vụ</h4>
+            <p>Hỗ trợ kỹ thuật Video Call 1:1</p>
+        </div>
+
+        <!-- Thanh tiến trình 4 chấm tròn -->
+        <div class="stepper-4">
+            <div class="step-node active" id="srvStepNode_1" onclick="goSrvStep(1)">
+                <div class="step-dot">1</div>
+                <div class="step-label">Chọn<br>thời gian</div>
+            </div>
+            <div class="step-node" id="srvStepNode_2" onclick="goSrvStep(2)">
+                <div class="step-dot">2</div>
+                <div class="step-label">Chọn<br>dịch vụ</div>
+            </div>
+            <div class="step-node" id="srvStepNode_3" onclick="goSrvStep(3)">
+                <div class="step-dot">3</div>
+                <div class="step-label">Xem lại</div>
+            </div>
+            <div class="step-node" id="srvStepNode_4" onclick="goSrvStep(4)">
+                <div class="step-dot">4</div>
+                <div class="step-label">Trạng thái</div>
+            </div>
+        </div>
+
+        <!-- Màn hình nội dung động theo từng bước -->
+        <div class="phone-screen-body" id="phoneScreenBody">
+            <div style="text-align: center; padding: 40px 10px; color: #64748b;">
+                ⏳ Đang tải lịch đặt dịch vụ...
+            </div>
+        </div>
+    </div>
 </div>
