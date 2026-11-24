@@ -1639,6 +1639,274 @@ function renderSrvStep1() {
         <button type="button" class="btn btn-primary" style="margin-top:12px; font-size:14px;" onclick="goSrvStep(2)">Tiếp ➔</button>
     `;
 }
+/* === TRANG DỊCH VỤ VIDEO CALL 1:1 - BƯỚC 2, 3, 4 === */
+function getNowVnFormatted() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    return `${hh}:${mi} - ${dd}/${mm}/${yyyy}`;
+}
+
+function renderSrvStep2() {
+    const body = document.getElementById('phoneScreenBody');
+    if (!body) return;
+    if (!currentUser) {
+        body.innerHTML = `
+            <div style="text-align:center; padding:24px 10px;">
+                <div style="font-size:32px; margin-bottom:8px;">🔒</div>
+                <div style="font-weight:700; color:#0f172a; margin-bottom:6px;">Vui lòng đăng nhập tài khoản Zalo</div>
+                <p style="font-size:12.5px; color:#64748b; margin-bottom:14px;">Hệ thống cần lấy Tên tài khoản Zalo của bạn để lập phiếu hỗ trợ và theo dõi tiến độ xử lý.</p>
+                <button type="button" class="btn btn-primary" onclick="openUserModal()">Đăng Nhập / Đăng Ký Ngay</button>
+            </div>
+        `;
+        return;
+    }
+
+    const f = srvState.form || {};
+    const nowStr = getNowVnFormatted();
+
+    body.innerHTML = `
+        <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:6px 10px; border-radius:6px; font-size:12px; color:#0369a1; font-weight:700; margin-bottom:10px;">
+            📅 Lịch hẹn: ${srvState.date} | ⏰ Lúc ${srvState.time}
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Tên khách hàng (Tài khoản đăng nhập):</label>
+            <input type="text" id="srvCustName" value="${currentUser.username}" readonly style="background:#f1f5f9; font-weight:700; color:#0f172a; padding:7px;">
+        </div>
+        <div class="grid-2" style="gap:8px;">
+            <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:12px;">Lĩnh vực:</label>
+                <select id="srvField" style="padding:7px; font-size:12.5px;">
+                    <option value="Biến tần bơm NLMT" ${f.field === 'Biến tần bơm NLMT' ? 'selected' : ''}>Biến tần bơm NLMT</option>
+                    <option value="Điện NLMT" ${f.field === 'Điện NLMT' ? 'selected' : ''}>Điện NLMT</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:12px;">Yêu cầu:</label>
+                <select id="srvReqType" style="padding:7px; font-size:12.5px;">
+                    <option value="Xử lý sự cố" ${f.reqType === 'Xử lý sự cố' ? 'selected' : ''}>Xử lý sự cố</option>
+                    <option value="Tư vấn lắp mới" ${f.reqType === 'Tư vấn lắp mới' ? 'selected' : ''}>Tư vấn lắp mới</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Số tiền điện mỗi tháng (nếu có):</label>
+            <input type="text" id="srvBill" value="${f.bill || ''}" placeholder="Ví dụ: 3.500.000đ hoặc không dùng điện lưới..." style="padding:7px;">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Công suất máy bơm:</label>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" id="srvPumpVal" value="${f.pumpVal || ''}" placeholder="Nhập công suất..." style="padding:7px; flex:1;">
+                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
+                    <input type="radio" name="srvPumpUnit" value="kW" ${(f.pumpUnit || 'kW') === 'kW' ? 'checked' : ''} style="width:auto;"> kW
+                </label>
+                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
+                    <input type="radio" name="srvPumpUnit" value="HP" ${f.pumpUnit === 'HP' ? 'checked' : ''} style="width:auto;"> HP
+                </label>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Công suất biến tần:</label>
+            <div style="display:flex; gap:6px; align-items:center;">
+                <input type="text" id="srvInvVal" value="${f.invVal || ''}" placeholder="Nhập công suất..." style="padding:7px; flex:1;">
+                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
+                    <input type="radio" name="srvInvUnit" value="kW" ${(f.invUnit || 'kW') === 'kW' ? 'checked' : ''} style="width:auto;"> kW
+                </label>
+                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
+                    <input type="radio" name="srvInvUnit" value="HP" ${f.invUnit === 'HP' ? 'checked' : ''} style="width:auto;"> HP
+                </label>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Công suất giàn PIN:</label>
+            <input type="text" id="srvPvKw" value="${f.pvKw || ''}" placeholder="Ví dụ: 14 tấm 580W (8.12 kWp)..." style="padding:7px;">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Tình trạng lỗi / Nhu cầu chi tiết:</label>
+            <textarea id="srvIssue" rows="2" placeholder="Mô tả tình trạng hoạt động thực tế..." style="padding:7px; font-size:12.5px;">${f.issue || ''}</textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Màn hình hiển thị lỗi:</label>
+            <input type="text" id="srvScreenErr" value="${f.screenErr || ''}" placeholder="Ví dụ: Báo lỗi E.OC1, E.LU, nhấp nháy đèn..." style="padding:7px;">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+            <label style="font-size:12px;">Yêu cầu khác:</label>
+            <input type="text" id="srvNote" value="${f.note || ''}" placeholder="Ghi chú thêm cho kỹ thuật viên..." style="padding:7px;">
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:12px;">Thời gian tạo phiếu:</label>
+            <input type="text" id="srvCreatedAt" value="${nowStr}" readonly style="background:#f1f5f9; color:#475569; font-size:12px; padding:6px;">
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1.6fr; gap:8px;">
+            <button type="button" class="btn btn-outline" onclick="goSrvStep(1)">⬅ Quay lại</button>
+            <button type="button" class="btn btn-primary" onclick="saveSrvStep2AndReview()">Xem lại phiếu ➔</button>
+        </div>
+    `;
+}
+function saveSrvStep2AndReview() {
+    const field = document.getElementById('srvField')?.value || "";
+    const reqType = document.getElementById('srvReqType')?.value || "";
+    const bill = document.getElementById('srvBill')?.value.trim() || "Không ghi";
+    const pumpVal = document.getElementById('srvPumpVal')?.value.trim() || "";
+    const pumpUnit = document.querySelector('input[name="srvPumpUnit"]:checked')?.value || "kW";
+    const invVal = document.getElementById('srvInvVal')?.value.trim() || "";
+    const invUnit = document.querySelector('input[name="srvInvUnit"]:checked')?.value || "kW";
+    const pvKw = document.getElementById('srvPvKw')?.value.trim() || "Chưa có";
+    const issue = document.getElementById('srvIssue')?.value.trim() || "";
+    const screenErr = document.getElementById('srvScreenErr')?.value.trim() || "Không báo mã lỗi";
+    const note = document.getElementById('srvNote')?.value.trim() || "Không";
+    const createdAt = document.getElementById('srvCreatedAt')?.value || getNowVnFormatted();
+
+    if (!issue && !screenErr) {
+        return alert("⚠️ Vui lòng nhập Tình trạng lỗi hoặc nhu cầu tư vấn trước khi tiếp tục!");
+    }
+
+    srvState.form = {
+        username: currentUser.username,
+        field, reqType, bill,
+        pumpVal, pumpUnit,
+        pumpKw: pumpVal ? `${pumpVal} ${pumpUnit}` : "Chưa nhập",
+        invVal, invUnit,
+        invKw: invVal ? `${invVal} ${invUnit}` : "Chưa nhập",
+        pvKw, issue, screenErr, note, createdAt
+    };
+    goSrvStep(3);
+}
+
+function renderSrvStep3() {
+    const body = document.getElementById('phoneScreenBody');
+    if (!body) return;
+    const f = srvState.form;
+    body.innerHTML = `
+        <div style="font-weight:800; color:var(--primary); font-size:13.5px; margin-bottom:8px;">📋 Xác nhận thông tin đặt lịch Video Call:</div>
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-size:12.5px; line-height:1.65; margin-bottom:12px;">
+            <div>• <b>Khách hàng:</b> ${f.username}</div>
+            <div>• <b>Thời gian hẹn:</b> <span style="color:#b91c1c; font-weight:700;">${srvState.time} — Ngày ${srvState.date}</span></div>
+            <div>• <b>Lĩnh vực:</b> ${f.field} (${f.reqType})</div>
+            <div>• <b>Tiền điện/tháng:</b> ${f.bill}</div>
+            <div>• <b>Công suất bơm:</b> ${f.pumpKw} | <b>Biến tần:</b> ${f.invKw}</div>
+            <div>• <b>Công suất giàn PIN:</b> ${f.pvKw}</div>
+            <div>• <b>Tình trạng lỗi:</b> ${f.issue}</div>
+            <div>• <b>Màn hình hiển thị lỗi:</b> ${f.screenErr}</div>
+            <div>• <b>Yêu cầu khác:</b> ${f.note}</div>
+            <div>• <b>Thời gian tạo:</b> ${f.createdAt}</div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1.6fr; gap:8px;">
+            <button type="button" class="btn btn-outline" onclick="goSrvStep(2)">⬅ Sửa lại</button>
+            <button type="button" class="btn btn-success" id="btnSubmitBooking" onclick="submitServiceBooking()">🚀 GỬI YÊU CẦU</button>
+        </div>
+    `;
+}
+async function submitServiceBooking() {
+    if (!currentUser) return alert("Vui lòng đăng nhập trước!");
+    const myActive = (appData.bookings || []).filter(b => b.username === currentUser.username && b.status !== 'Kết thúc' && b.status !== 'Đã hủy');
+    if (myActive.length >= 3) {
+        alert("⚠️ Bạn đang có 3 yêu cầu chờ xử lý (đạt giới hạn tối đa 3 yêu cầu/tài khoản). Vui lòng đợi hoàn tất trước khi tạo thêm!");
+        return goSrvStep(4);
+    }
+
+    const btn = document.getElementById('btnSubmitBooking');
+    if (btn) { btn.disabled = true; btn.innerText = "⏳ Đang gửi..."; }
+
+    const f = srvState.form;
+    const payload = {
+        action: 'create_booking',
+        username: currentUser.username,
+        date: srvState.date,
+        time: srvState.time,
+        field: f.field,
+        reqType: f.reqType,
+        bill: f.bill,
+        pumpKw: f.pumpKw,
+        invKw: f.invKw,
+        pvKw: f.pvKw,
+        issue: f.issue,
+        screenErr: f.screenErr,
+        note: f.note,
+        createdAt: f.createdAt
+    };
+
+    try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const result = await res.json();
+        if (result.status === 'limit_exceeded') {
+            alert("⚠️ Tài khoản của bạn đã đạt tối đa 3 yêu cầu đang xử lý!");
+        } else if (result.status === 'success') {
+            srvState.date = "";
+            srvState.time = "";
+            srvState.form = {};
+            await syncDataFromGoogleSheet();
+        }
+    } catch (e) {}
+    goSrvStep(4);
+}
+
+function startNewServiceBooking() {
+    srvState.forceNew = true;
+    srvState.date = "";
+    srvState.time = "";
+    srvState.form = {};
+    goSrvStep(1);
+}
+function renderSrvStep4() {
+    const body = document.getElementById('phoneScreenBody');
+    if (!body) return;
+    if (!currentUser) {
+        body.innerHTML = `<div style="text-align:center; padding:24px; color:#64748b;">Vui lòng đăng nhập để xem trạng thái yêu cầu của bạn.</div>`;
+        return;
+    }
+
+    const flowSteps = [
+        "Khách gửi yêu cầu",
+        "Tele sale gọi lại xác nhận",
+        "Chờ khách thanh toán phí",
+        "Xác nhận đã thanh toán",
+        "Kỹ thuật viên gọi lại hỗ trợ",
+        "Kết thúc"
+    ];
+
+    const myTickets = (appData.bookings || []).filter(b => b.username === currentUser.username).reverse();
+    const activeCount = myTickets.filter(b => b.status !== 'Kết thúc' && b.status !== 'Đã hủy').length;
+
+    const listHtml = myTickets.length === 0
+        ? `<div style="text-align:center; padding:20px; color:#64748b; font-size:12.5px;">Bạn chưa có yêu cầu đặt lịch nào.</div>`
+        : myTickets.map(tk => {
+            const curIdx = flowSteps.indexOf(tk.status);
+            const stepsPillHtml = flowSteps.map((st, idx) => {
+                let cls = "";
+                if (idx < curIdx || tk.status === "Kết thúc") cls = "done";
+                else if (idx === curIdx) cls = "curr";
+                return `<span class="dv-flow-pill ${cls}">${idx + 1}. ${st}</span>`;
+            }).join('');
+
+            return `
+                <div class="booking-status-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <b style="color:var(--primary);">#${tk.id} — ${tk.date} (${tk.time})</b>
+                        <span class="bk-pill">${tk.status}</span>
+                    </div>
+                    <div style="font-size:12px; color:#334155;">• <b>${tk.field}</b> (${tk.reqType}) — Bơm: ${tk.pumpKw} | Biến tần: ${tk.invKw}</div>
+                    <div style="font-size:12px; color:#475569;">• Lỗi: ${tk.issue} (${tk.screenErr})</div>
+                    <div class="dv-flow-steps">${stepsPillHtml}</div>
+                </div>
+            `;
+        }).join('');
+
+    const addBtnHtml = activeCount < 3
+        ? `<button type="button" class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="startNewServiceBooking()">+ Tạo thêm yêu cầu mới (${activeCount}/3)</button>`
+        : `<div style="text-align:center; padding:8px; background:#fef3c7; color:#92400e; border-radius:6px; font-size:12px; font-weight:700; margin-top:8px;">⚠️ Đã đạt tối đa 3 yêu cầu đang xử lý.</div>`;
+
+    body.innerHTML = `
+        <div style="padding:8px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; font-size:12.5px; color:#166534; font-weight:700; margin-bottom:10px;">
+            ⏳ Trạng thái: Đang chờ tiếp nhận & xử lý (${activeCount}/3 phiếu đang mở)
+        </div>
+        ${listHtml}
+        ${addBtnHtml}
+    `;
+}
 
 
 
