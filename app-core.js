@@ -1010,13 +1010,11 @@ function execRealCombatSolarCalc() {
 
     const pumpKW = parseSafePumpPowerKW();
     if (pumpKW <= 0) {
-        document.getElementById('spPumpExpr')?.focus();
-        return alert("⚠️ Vui lòng nhập công suất máy bơm trước khi tính toán!");
+        return markInputError('spPumpExpr', "⚠️ Vui lòng nhập công suất máy bơm trước khi tính toán!");
     }
     if (pumpKW > invKw) {
-        return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.3)}kW trước khi tính.`);
+        return showToast(`⚠️ Công suất bơm (${pumpKW}kW) đang lớn hơn biến tần (${invKw}kW)! Hãy chọn biến tần tối thiểu ${Math.ceil(pumpKW * 1.3)}kW.`, "warn", 4000);
     }
-
     const vocColdFactor = 1.05;
     const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
     const min3PhaseVolt = Math.max(mpptMin, 540);
@@ -1567,9 +1565,14 @@ function playSolarAiIntro() {
 
 function aiQuickAction(type) {
     toggleSolarAiBox();
-    if (type === 'solar') openCalcToolModal('solar');
-    else if (type === 'health') openCalcToolModal('health');
-    else if (type === 'error') {
+    if (type === 'solar' || type === 'health') {
+        const navItems = document.querySelectorAll('.nav-item');
+        const toolTab = navItems.length > 2 ? navItems[2] : null;
+        const lblEl = document.getElementById('mobileCurrentPageLabel');
+        if (lblEl) lblEl.innerText = 'Công cụ';
+        activeCalcToolId = type;
+        loadSubPage('page-tinh-toan.html', toolTab);
+    } else if (type === 'error') {
         const navItems = document.querySelectorAll('.nav-item');
         const errTab = navItems.length > 1 ? navItems[1] : null;
         const lblEl = document.getElementById('mobileCurrentPageLabel');
@@ -1577,6 +1580,7 @@ function aiQuickAction(type) {
         loadSubPage('page-xu-ly-loi.html', errTab);
     }
 }
+
 /* === TRANG DỊCH VỤ VIDEO CALL 1:1 - BƯỚC 1: CHỌN NGÀY & GIỜ === */
 const VN_PUBLIC_HOLIDAYS = [
     "01-01", "30-04", "01-05", "02-09", "03-09",
