@@ -1,6 +1,14 @@
-<div style="margin-bottom: 16px;">
-    <h2 style="margin: 0 0 4px; color: var(--primary); font-size: 18px;">🧮 Bộ Công Cụ Tính Toán Kỹ Thuật</h2>
-    <p style="margin: 0; font-size: 13px; color: #64748b;">Chọn công cụ bên dưới để tính toán thông số và xuất bảng báo giá chi tiết.</p>
+<div class="card-panel" style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+        <h2 style="margin:0; font-size:17px; color:var(--primary);">🧮 Bộ Công Cụ Tính Toán Kỹ Thuật</h2>
+        <span style="font-size:12px; color:#64748b;">Chọn công cụ bên dưới để tính trực tiếp ngay trên trang</span>
+    </div>
+
+    <!-- Thanh chọn nhanh 6 công cụ nằm ngang -->
+    <div class="tool-tabs-bar" id="toolTabsBar"></div>
+
+    <!-- Khu vực làm việc mở rộng trực tiếp trên trang -->
+    <div class="tool-workspace-box" id="toolWorkspaceArea">
+        <div style="text-align:center; padding:30px; color:#64748b;">⏳ Đang tải công cụ tính toán...</div>
+    </div>
 </div>
-<div class="grid-3" id="toolsGridArea"></div>
-<div class="pagination" id="toolsPagination"></div>
