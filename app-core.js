@@ -94,6 +94,9 @@ async function syncDataFromGoogleSheet() {
         appData.configs = data.configs || [];
         appData.logs = data.logs || [];
         appData.bookings = data.bookings || [];
+        const visitEl = document.getElementById('todayVisitCounter');
+        if (visitEl && data.todayVisits) visitEl.innerText = Number(data.todayVisits).toLocaleString('vi-VN');
+
         localStorage.setItem('solar_app_cache', JSON.stringify(appData));
         applyBannerFromConfig();
         if (currentUser) {
