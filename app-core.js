@@ -965,21 +965,21 @@ function execRealCombatSolarCalc() {
         return alert(`⚠️ Công suất máy bơm (${pumpKW}kW) đang lớn hơn công suất biến tần (${invKw}kW)! Vui lòng nhập công suất biến tần tối thiểu ${Math.ceil(pumpKW * 1.3)}kW trước khi tính.`);
     }
 
-     const vocColdFactor = 1.05;
-     const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
-     const midMpptVolt = (mpptMin + mpptMax) / 2;
-     const minOptPerStr = Math.min(maxSafePerStr, Math.max(1, Math.round(midMpptVolt / vmp)));
-    
-     // 1. PHƯƠNG ÁN TỐI ƯU (Ít chuỗi dây nhất, áp >= trung bình MPPT & công suất >= 1.3x tải bơm)
-     const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
-     const optStrings = Math.max(1, Math.ceil(minRequiredPanels / maxSafePerStr));
-     const optPerStr = Math.min(maxSafePerStr, Math.max(minOptPerStr, Math.ceil(minRequiredPanels / optStrings)));
-    
-     // 2. PHƯƠNG ÁN LÝ TƯỞNG (Điện áp vùng ngọt nửa trên MPPT, công suất chạy cực khỏe ~1.55x tải bơm)
-     const targetIdealVolt = mpptMin + (mpptMax - mpptMin) * 0.62;
-     let idealPerStr = Math.min(maxSafePerStr, Math.max(minOptPerStr, Math.round(targetIdealVolt / vmp)));
+    const vocColdFactor = 1.05;
+    const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
+    const min3PhaseVolt = Math.max(mpptMin, 540);
+    const minVoltPerStr = Math.min(maxSafePerStr, Math.max(1, Math.ceil(min3PhaseVolt / vmp)));
+    const midMpptVolt = (mpptMin + mpptMax) / 2;
+    const midPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.round(midMpptVolt / vmp)));
 
-    const idealTargetPanels = Math.ceil((pumpKW * 1.55 * 1000) / pMax);
+    // 1. PHƯƠNG ÁN TỐI ƯU (Ít chuỗi dây nhất, Vmp >= 540VDC & Tổng công suất >= 1.3x tải bơm)
+    const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
+    const optStrings = Math.max(1, Math.ceil(minRequiredPanels / maxSafePerStr));
+    const optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(minRequiredPanels / optStrings)));
+
+    // 2. PHƯƠNG ÁN LÝ TƯỞNG (Vmp vùng trung bình MPPT ~618V+, Tổng công suất ~1.5x tải bơm)
+    const idealTargetPanels = Math.ceil((pumpKW * 1.5 * 1000) / pMax);
+    let idealPerStr = midPerStr;
     let idealStrings = Math.max(optStrings, Math.ceil(idealTargetPanels / idealPerStr));
 
     if (idealStrings === optStrings && (idealStrings * idealPerStr) <= (optStrings * optPerStr)) {
@@ -987,6 +987,7 @@ function execRealCombatSolarCalc() {
             idealPerStr = maxSafePerStr;
         } else {
             idealStrings = optStrings + 1;
+            idealPerStr = Math.max(minVoltPerStr, Math.ceil(idealTargetPanels / idealStrings));
         }
     }
 
@@ -995,10 +996,21 @@ function execRealCombatSolarCalc() {
         { label: `⭐ PHƯƠNG ÁN LÝ TƯỞNG (KHUYÊN DÙNG)`, strings: idealStrings, perStr: idealPerStr, total: idealStrings * idealPerStr }
     ];
 
-    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, idealStrings, idealPerStr, maxSafePerStr, vocColdFactor);
+    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, idealStrings, idealPerStr, maxSafePerStr, vocColdFactor, pumpKW);
 }
 
-function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor) {
+function applySingleStringSalesTip(maxPerStr, pMax) {
+    document.querySelectorAll('.plan-card').forEach(el => el.classList.remove('active-plan'));
+    if (window.lastCombatConfigSummary) {
+        window.lastCombatConfigSummary.recStrings = 1;
+        window.lastCombatConfigSummary.recPerStr = maxPerStr;
+        window.lastCombatConfigSummary.isSalesTipSingle = true;
+    }
+    setQuoteDataFromCombat(1, maxPerStr);
+    alert(`✅ Đã chọn gói tiết kiệm 1 chuỗi × ${maxPerStr} tấm (${((maxPerStr * pMax)/1000).toFixed(2)} kWp)! Bạn có thể bấm "Lập Bảng Báo Giá" hoặc "Sao chép cấu hình" ngay.`);
+}
+
+function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor, pumpKW) {
     const cardsHtml = currentSolarPlans.map((pl, idx) => {
         const voc25 = (pl.perStr * voc).toFixed(1);
         const vocCold = (pl.perStr * voc * vocColdFactor).toFixed(1);
@@ -1026,6 +1038,24 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
     const idealTotalImp = (idealPlan.strings * imp).toFixed(2);
     const optTotalKWp = ((optPlan.total * pMax) / 1000).toFixed(2);
 
+    // Mẹo tư vấn chốt đơn thực tế: Khi phải nhảy lên 2 chuỗi nhưng 1 chuỗi maxPerStr đã đạt 1.15x - 1.30x tải bơm
+    const singleMaxKWp = (maxPerStr * pMax) / 1000;
+    const singleRatio = pumpKW > 0 ? (singleMaxKWp / pumpKW) : 0;
+    let salesTipHtml = "";
+    if (optPlan.strings >= 2 && singleRatio >= 1.15 && singleRatio < 1.3) {
+        const minWattForSingle = Math.ceil((pumpKW * 1.3 * 1000) / maxPerStr);
+        salesTipHtml = `
+            <div style="margin-top:10px; padding:12px; background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #0284c7; border-radius:6px; font-size:13px; color:#1e3a8a; line-height:1.55;">
+                <div style="font-weight:700; margin-bottom:4px;">🤝 Mẹo tư vấn chốt đơn thực tế (Gói tiết kiệm tối đa 1 chuỗi):</div>
+                • Với bơm <b>${pumpKW}kW</b>, nếu khách dùng pin <b>${pMax}W</b> mà muốn tiết kiệm chi phí tối đa, có thể đi <b>1 chuỗi × ${maxPerStr} tấm = ${singleMaxKWp.toFixed(2)} kWp</b> (đạt <b>${singleRatio.toFixed(2)}x</b> tải bơm — giảm được <b>${optPlan.total - maxPerStr} tấm pin</b> + 1 bộ dây/CB DC, chạy tốt giờ nắng đỉnh).<br>
+                • Hoặc tư vấn khách đổi sang dòng pin công suất từ <b>${minWattForSingle}W trở lên</b> (ví dụ 610W/625W) để vừa giữ được <b>1 chuỗi × ${maxPerStr} tấm</b> gọn nhẹ, vừa đạt chuẩn <b>≥ 1.3x</b> của hãng!
+                <div style="margin-top:6px;">
+                    <button type="button" class="btn" style="padding:5px 10px; font-size:12px; background:#0284c7; width:auto;" onclick="applySingleStringSalesTip(${maxPerStr}, ${pMax})">⚡ Áp dụng gói tiết kiệm 1 chuỗi (${maxPerStr} tấm) để báo giá</button>
+                </div>
+            </div>
+        `;
+    }
+
     const forbiddenPanels = maxPerStr + 1;
     const forbiddenVocCold = (forbiddenPanels * voc * vocColdFactor).toFixed(1);
     let warnLines = [
@@ -1047,6 +1077,7 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
             • <b>Cấu hình lý tưởng:</b> ${idealText} = <b>${idealPlan.total} tấm (${idealTotalKWp} kWp)</b> | Dòng làm việc: <b>${idealTotalImp}A</b> (Bơm chạy cực khỏe từ sáng sớm đến chiều muộn).<br>
             <span style="font-size:12.5px; color:#166534;">• <i>Ghi chú:</i> Nếu muốn tiết kiệm dây dẫn DC, có thể chọn phương án tối ưu <b>${optPlan.strings} chuỗi × ${optPlan.perStr} tấm = ${optPlan.total} tấm (${optTotalKWp} kWp)</b> (bấm vào thẻ bên trái để lập báo giá theo phương án này).</span>
         </div>
+        ${salesTipHtml}
         <div style="margin-top:10px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#92400e; line-height:1.55;">
             • ${warnLines.join('<br>• ')}
         </div>
@@ -1059,7 +1090,8 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
         invKw, pMax,
         recStrings: idealPlan.strings,
         recPerStr: idealPlan.perStr,
-        selectedCardIdx: 1
+        selectedCardIdx: 1,
+        isSalesTipSingle: false
     };
     setQuoteDataFromCombat(idealPlan.strings, idealPlan.perStr);
 }
