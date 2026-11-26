@@ -185,17 +185,62 @@ function closeGlobalModal() {
     document.getElementById('globalModal').style.display = 'none';
     document.body.style.overflow = '';
 }
+/* === HỆ THỐNG THÔNG BÁO TRƯỢT (TOAST) & BÁO LỖI TẠI CHỖ === */
+function showToast(msg, type = 'info', duration = 3000) {
+    let box = document.getElementById('globalToastContainer');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'globalToastContainer';
+        box.className = 'toast-container';
+        document.body.appendChild(box);
+    }
+    const item = document.createElement('div');
+    item.className = `toast-item ${type}`;
+    item.innerHTML = msg;
+    box.appendChild(item);
+    setTimeout(() => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateX(30px)';
+        item.style.transition = '0.25s ease';
+        setTimeout(() => item.remove(), 260);
+    }, duration);
+}
+
+function clearInputError(inputId) {
+    const el = document.getElementById(inputId);
+    if (el) el.classList.remove('input-error-ring');
+    const errEl = document.getElementById(inputId + '_err');
+    if (errEl) errEl.remove();
+}
+
+function markInputError(inputId, msg) {
+    clearInputError(inputId);
+    const el = document.getElementById(inputId);
+    if (!el) { showToast(msg, 'warn'); return; }
+    el.classList.add('input-error-ring');
+    el.focus();
+    const errDiv = document.createElement('div');
+    errDiv.id = inputId + '_err';
+    errDiv.className = 'inline-err-text';
+    errDiv.innerText = msg;
+    el.parentNode.appendChild(errDiv);
+}
+
 function openUserModal() {
     if (!currentUser) {
         openGlobalModal(`
             <h3 style="margin-top:0; color:var(--primary);">👤 Đăng Nhập / Đăng Ký</h3>
             <p style="font-size:13.5px; color:#555;">Đăng ký lần đầu bằng Tên Zalo để được <b>tặng ngay 60 ngày sử dụng</b> công cụ tính toán!</p>
-            <div class="form-group"><label>Nhập chính xác Tên tài khoản Zalo:</label><input type="text" id="modalZaloInput" placeholder="Ví dụ: Nguyen Van A"></div>
+            <div class="form-group">
+                <label>Nhập chính xác Tên tài khoản Zalo:</label>
+                <input type="text" id="modalZaloInput" placeholder="Ví dụ: Nguyen Van A" oninput="clearInputError('modalZaloInput')" onkeydown="if(event.key==='Enter') processLogin()">
+            </div>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-primary" onclick="processLogin()">Đăng Nhập</button>
                 <button class="btn btn-success" style="width:100%;" onclick="processRegister()">Đăng Ký</button>
             </div>
         `);
+        setTimeout(() => document.getElementById('modalZaloInput')?.focus(), 80);
     } else if (currentUser.role === 'admin') {
         renderAdminDashboard();
     } else {
@@ -228,7 +273,7 @@ function openUserModal() {
                 ${pendingNote}
                 <div class="form-group" style="margin-bottom:8px;">
                     <label style="font-size:12.5px;">Nhập Mã đơn hàng đã mua (có thể nhập nhiều mã cách nhau dấu phẩy):</label>
-                    <input type="text" id="userOrderCodeInput" placeholder="Ví dụ: DH1025, DH1026...">
+                    <input type="text" id="userOrderCodeInput" placeholder="Ví dụ: DH1025, DH1026..." oninput="clearInputError('userOrderCodeInput')">
                 </div>
                 <button class="btn btn-success" style="width:100%;" onclick="submitUserOrderCode()">Gửi</button>
             </div>
@@ -246,8 +291,8 @@ function openUserModal() {
 
 async function submitUserOrderCode() {
     const raw = (document.getElementById('userOrderCodeInput')?.value || "").trim();
-    if (!raw) return alert("Vui lòng nhập mã đơn hàng đã mua!");
-    alert("Đang gửi mã đơn hàng lên hệ thống...");
+    if (!raw) return markInputError('userOrderCodeInput', "Vui lòng nhập mã đơn hàng đã mua!");
+    showToast("⏳ Đang gửi mã đơn hàng lên hệ thống...", "info", 2000);
     await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'submit_order', username: currentUser.username, orderCode: raw })
@@ -258,38 +303,40 @@ async function submitUserOrderCode() {
     });
     currentUser.pendingOrder = oldList.join(", ");
     sessionStorage.setItem('current_user', JSON.stringify(currentUser));
-    alert("✅ Đã gửi mã đơn hàng! Sau khi Admin duyệt, tài khoản của bạn sẽ tự động cộng thêm ngày sử dụng");
+    showToast("✅ Đã gửi mã đơn hàng! Admin duyệt sẽ tự động cộng thêm ngày.", "success", 3500);
     openUserModal();
     syncDataFromGoogleSheet();
 }
 
-
 async function processRegister() {
-    const name = document.getElementById('modalZaloInput').value.trim();
-    if (!name) return alert("Vui lòng nhập tên Zalo!");
-    if (name === 'nguyenhoangbach') return alert("Tên này thuộc quyền quản trị!");
-    alert("Đang gửi yêu cầu đăng ký...");
+    const name = document.getElementById('modalZaloInput')?.value.trim() || "";
+    if (!name) return markInputError('modalZaloInput', "Vui lòng nhập tên Zalo!");
+    if (name === 'nguyenhoangbach') return markInputError('modalZaloInput', "Tên này thuộc quyền quản trị!");
+    showToast("⏳ Đang gửi yêu cầu đăng ký...", "info", 2000);
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', username: name }) });
-    alert("Đăng ký thành công! Vui lòng liên hệ Zalo Quang Nguyen để được duyệt.");
+    showToast("✅ Đăng ký thành công! Vui lòng liên hệ Zalo Quang Nguyen để được duyệt.", "success", 4000);
     closeGlobalModal();
     syncDataFromGoogleSheet();
 }
+
 async function processLogin() {
-    const name = document.getElementById('modalZaloInput').value.trim();
-    if (!name) return alert("Vui lòng nhập tên Zalo!");
+    const name = document.getElementById('modalZaloInput')?.value.trim() || "";
+    if (!name) return markInputError('modalZaloInput', "Vui lòng nhập tên Zalo!");
     const user = appData.users.find(u => u.username === name);
-    if (!user) return alert("Tên Zalo này chưa đăng ký!");
-    if (user.status === 'pending') return alert("Tài khoản của bạn đang chờ duyệt. Liên hệ Zalo Quang Nguyen!");
+    if (!user) return markInputError('modalZaloInput', "Tên Zalo này chưa đăng ký! Hãy bấm nút Đăng Ký bên cạnh.");
+    if (user.status === 'pending') return markInputError('modalZaloInput', "Tài khoản đang chờ duyệt. Liên hệ Zalo Quang Nguyen!");
     currentUser = user;
     sessionStorage.setItem('current_user', JSON.stringify(currentUser));
     updateTopUserBar();
     closeGlobalModal();
+    showToast(`👋 Xin chào <b>${user.username}</b>!`, "success", 2500);
     if (user.role !== 'admin') {
         fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_login', username: name }) });
     } else {
         openUserModal();
     }
 }
+
 
 function processLogout() {
     currentUser = null;
@@ -579,41 +626,45 @@ const CALC_TOOLS_LIST = [
     { id: 'divider', icon: '🔌', title: 'Tính cầu trở phân áp', desc: 'Tính điện áp đầu ra Vout và dòng tiêu thụ cho mạch cảm biến, đo lường.' }
 ];
 
-function renderToolsPage(page) {
-    const grid = document.getElementById('toolsGridArea');
-    const pag = document.getElementById('toolsPagination');
-    if (!grid) return;
-    const perPage = 9;
-    const totalPages = Math.ceil(CALC_TOOLS_LIST.length / perPage);
-    const items = CALC_TOOLS_LIST.slice((page - 1) * perPage, page * perPage);
+let activeCalcToolId = 'solar';
 
-    grid.innerHTML = items.map(t => `<div class="item-card" onclick="openCalcToolModal('${t.id}')" style="padding:16px; text-align:center;"><div style="font-size:32px; margin-bottom:8px;">${t.icon}</div><h3 class="card-heading" style="color:var(--primary);">${t.title}</h3><p class="card-desc-2line">${t.desc}</p></div>`).join('');
-    pag.innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderToolsPage(${i + 1})">${i + 1}</button>`).join('') : '';
+function renderToolsPage(defaultToolId) {
+    const tabsBar = document.getElementById('toolTabsBar');
+    if (!tabsBar) return;
+    if (defaultToolId && typeof defaultToolId === 'string') activeCalcToolId = defaultToolId;
+
+    tabsBar.innerHTML = CALC_TOOLS_LIST.map(t => `
+        <button type="button" class="tool-tab-pill ${t.id === activeCalcToolId ? 'active' : ''}" onclick="openCalcToolModal('${t.id}')">
+            ${t.icon} ${t.title}
+        </button>
+    `).join('');
+
+    openCalcToolModal(activeCalcToolId);
 }
-function buildGroupedPanelOptions(defaultPower, addCustomSelected) {
-    const brands = ["Jinko Solar", "Astronergy", "Trina Solar", "TCL Solar"];
-    let html = "";
-    brands.forEach(br => {
-        const items = SOLAR_PANELS_DB.map((p, idx) => ({ ...p, origIdx: idx }))
-            .filter(p => (p.brand || (p.name.includes("Astronergy") ? "Astronergy" : "Jinko Solar")) === br)
-            .sort((a, b) => a.power - b.power);
-        if (items.length > 0) {
-            html += `<optgroup label="Hãng ${br}">`;
-            items.forEach(p => {
-                const isSel = (!addCustomSelected && defaultPower && br === "Jinko Solar" && p.power === defaultPower) ? "selected" : "";
-                html += `<option value="${p.origIdx}" ${isSel}>${p.name}</option>`;
-            });
-            html += `</optgroup>`;
-        }
-    });
-    html += `<option value="custom" ${addCustomSelected ? 'selected' : ''}>-- Tự nhập thông số tấm pin khác --</option>`;
-    return html;
+
+function renderToolHost(htmlContent) {
+    const ws = document.getElementById('toolWorkspaceArea');
+    if (ws) {
+        ws.innerHTML = htmlContent;
+    } else {
+        openGlobalModal(htmlContent);
+    }
 }
 
 function openCalcToolModal(toolId) {
+    activeCalcToolId = toolId;
+    const tabsBar = document.getElementById('toolTabsBar');
+    if (tabsBar) {
+        tabsBar.innerHTML = CALC_TOOLS_LIST.map(t => `
+            <button type="button" class="tool-tab-pill ${t.id === toolId ? 'active' : ''}" onclick="openCalcToolModal('${t.id}')">
+                ${t.icon} ${t.title}
+            </button>
+        `).join('');
+    }
+
     if (toolId === 'pump') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">💧 Tính Công Suất Máy Bơm Chuẩn Thủy Lực</h3>
+        renderToolHost(`
+            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">💧 Tính Công Suất Máy Bơm Chuẩn Thủy Lực</h3>
             <div class="grid-2" style="gap:10px;">
                 <div class="form-group"><label>Loại bơm:</label><select id="calcSource"><option value="gieng">Giếng khoan sâu (Bơm hỏa tiễn)</option><option value="ho" selected>Ao, hồ, sông (Bơm cạn / trục đứng)</option></select></div>
                 <div class="form-group"><label>Cỡ ống dẫn chính (Phi):</label><select id="calcPipeDia"><option value="40">Ống Phi 42</option><option value="50">Ống Phi 49</option><option value="63" selected>Ống Phi 60</option><option value="75">Ống Phi 76</option><option value="90">Ống Phi 90</option><option value="110">Ống Phi 114</option></select></div>
@@ -623,15 +674,16 @@ function openCalcToolModal(toolId) {
                 <div class="form-group"><label>Tổng chiều dài ống (m):</label><input type="number" id="calcLength" value="200"></div>
             </div>
             <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Lưu lượng cần bơm (m³/h):</label><input type="number" id="calcFlow" value="15"></div>
+                <div class="form-group"><label>Lưu lượng cần bơm (m³/h):</label><input type="number" id="calcFlow" value="15" oninput="clearInputError('calcFlow')"></div>
                 <div class="form-group"><label>Áp lực đầu béc (m):</label><input type="number" id="calcOutletHead" value="15"></div>
             </div>
             <button class="btn btn-primary" onclick="checkLimitAndRun(execPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
             <div id="toolModalResult" class="result-box"></div>
         `);
-    } else if (toolId === 'solar') {
+    }
+    else if (toolId === 'solar') {
         const panelOpts = buildGroupedPanelOptions(580, false);
-        openGlobalModal(`
+        renderToolHost(`
             <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT</h3>
             <div class="solar-sec-box" style="margin-bottom:12px;">
                 <div class="solar-sec-title">0. Thông số máy bơm</div>
@@ -647,7 +699,7 @@ function openCalcToolModal(toolId) {
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Tổng công suất máy bơm:</label>
                         <div class="input-unit-group">
-                            <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Nhập công suất..." oninput="cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
+                            <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Nhập công suất..." oninput="clearInputError('spPumpExpr'); cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
                             <select id="spPumpUnit" onchange="updateInverterDropdownAll()">
                                 <option value="kW" selected>kW</option>
                                 <option value="HP">HP</option>
@@ -717,7 +769,7 @@ function openCalcToolModal(toolId) {
         });
         invOpts += `<option value="custom" selected>-- Tự nhập thông số biến tần của khách --</option>`;
 
-        openGlobalModal(`
+        renderToolHost(`
             <h3 style="margin-top:0; color:var(--primary); font-size:17px;">🩺 Khám sức khỏe hệ bơm NLMT</h3>
             <div class="solar-sec-box" style="margin-bottom:12px;">
                 <div class="solar-sec-title">1. Thông số Máy bơm hiện tại</div>
@@ -773,10 +825,9 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" style="margin-top:12px;"></div>
         `);
     }
-
     else if (toolId === 'acc') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
+        renderToolHost(`
+            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
             <div class="form-group"><label>Tổng số lượng tấm pin (tấm):</label><input type="number" id="accTotalPanels" value="18"></div>
             <div class="form-group"><label>Số dãy pin lắp đặt (dãy):</label><input type="number" id="accRows" value="2"></div>
             <div class="form-group"><label>Cấu hình chân đế:</label><select id="accLegType"><option value="2">Loại 2 chân đế (2 thanh ray / dãy)</option><option value="3">Loại 3 chân đế (3 thanh ray / dãy)</option></select></div>
@@ -784,8 +835,8 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" class="result-box"></div>
         `);
     } else if (toolId === 'vdrop') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">⚡ Tính Sụt Áp Trên Đường Dây</h3>
+        renderToolHost(`
+            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">⚡ Tính Sụt Áp Trên Đường Dây</h3>
             <div class="grid-2" style="gap:10px;">
                 <div class="form-group"><label>Hệ thống điện:</label><select id="vdSystem"><option value="380">3 Pha 380V (AC)</option><option value="220">1 Pha 220V (AC)</option><option value="550">Điện mặt trời DC (~550V)</option></select></div>
                 <div class="form-group"><label>Chất liệu lõi dây:</label><select id="vdMaterial"><option value="0.0175">Dây Đồng (Cu)</option><option value="0.0283">Dây Nhôm (Al)</option></select></div>
@@ -799,8 +850,8 @@ function openCalcToolModal(toolId) {
             <div id="toolModalResult" class="result-box"></div>
         `);
     } else if (toolId === 'divider') {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">🔌 Tính Cầu Trở Phân Áp</h3>
+        renderToolHost(`
+            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">🔌 Tính Cầu Trở Phân Áp</h3>
             <div class="form-group"><label>Điện áp nguồn đầu vào Vin (V):</label><input type="number" id="divVin" value="24" step="0.1"></div>
             <div class="grid-2" style="gap:10px;">
                 <div class="form-group"><label>Điện trở R1 (kΩ):</label><input type="number" id="divR1" value="10" step="0.1"></div>
@@ -811,6 +862,7 @@ function openCalcToolModal(toolId) {
         `);
     }
 }
+
 
 function cleanPumpExprInput() {
     const inputEl = document.getElementById('spPumpExpr');
