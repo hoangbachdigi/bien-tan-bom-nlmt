@@ -61,18 +61,19 @@ async function loadSubPage(pageFile, navElement) {
     }
     const container = document.getElementById('mainPageContent');
     try {
-        const response = await fetch(pageFile);
+        const response = await fetch(pageFile + '?v=' + Date.now(), { cache: 'no-store' });
         if (!response.ok) throw new Error("Not found");
         container.innerHTML = await response.text();
         if (pageFile === 'page-san-pham.html') renderProductsPage(1);
         if (pageFile === 'page-xu-ly-loi.html') renderErrorsPage(1);
-        if (pageFile === 'page-tinh-toan.html') renderToolsPage(1);
+        if (pageFile === 'page-tinh-toan.html') renderToolsPage('solar');
         if (pageFile === 'page-kien-thuc.html') renderKnowledgePage();
         if (pageFile === 'page-dich-vu.html') initServiceBookingPage();
     } catch (error) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
 }
+
 
 function applyBannerFromConfig() {
     const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
