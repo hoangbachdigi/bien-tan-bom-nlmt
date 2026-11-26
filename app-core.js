@@ -978,9 +978,10 @@ function execRealCombatSolarCalc() {
     const optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(minRequiredPanels / optStrings)));
 
     // 2. PHƯƠNG ÁN LÝ TƯỞNG (Vmp vùng trung bình MPPT ~618V+, Tổng công suất ~1.5x tải bơm)
+    // 2. PHƯƠNG ÁN LÝ TƯỞNG (Ưu tiên gói gọn trong cùng số chuỗi nếu maxSafePerStr chứa đủ)
     const idealTargetPanels = Math.ceil((pumpKW * 1.5 * 1000) / pMax);
-    let idealPerStr = midPerStr;
-    let idealStrings = Math.max(optStrings, Math.ceil(idealTargetPanels / idealPerStr));
+    let idealStrings = Math.max(optStrings, Math.ceil(idealTargetPanels / maxSafePerStr));
+    let idealPerStr = Math.min(maxSafePerStr, Math.max(midPerStr, Math.ceil(idealTargetPanels / idealStrings)));
 
     if (idealStrings === optStrings && (idealStrings * idealPerStr) <= (optStrings * optPerStr)) {
         if (optPerStr < maxSafePerStr) {
@@ -990,6 +991,7 @@ function execRealCombatSolarCalc() {
             idealPerStr = Math.max(minVoltPerStr, Math.ceil(idealTargetPanels / idealStrings));
         }
     }
+
 
     currentSolarPlans = [
         { label: `💡 PHƯƠNG ÁN TỐI ƯU (TIẾT KIỆM DÂY)`, strings: optStrings, perStr: optPerStr, total: optStrings * optPerStr },
