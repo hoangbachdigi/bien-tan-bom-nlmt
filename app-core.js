@@ -51,7 +51,7 @@ function selectMobileDrawer(pageFile, labelText, el) {
     const lblEl = document.getElementById('mobileCurrentPageLabel');
     if (lblEl) lblEl.innerText = labelText;
     document.getElementById('mobileDrawer').classList.remove('open');
-    loadSubPage(pageFile, null);
+    (pageFile, null);
 }
 
 async function loadSubPage(pageFile, navElement) {
@@ -60,20 +60,32 @@ async function loadSubPage(pageFile, navElement) {
         navElement.classList.add('active');
     }
     const container = document.getElementById('mainPageContent');
+    if (pageFile === 'page-tinh-toan.html') {
+        container.innerHTML = `
+            <div class="card-panel" style="padding: 14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+                    <h2 style="margin:0; font-size:17px; color:var(--primary);">🧮 Bộ Công Cụ Tính Toán Kỹ Thuật</h2>
+                    <span style="font-size:12px; color:#64748b;">Chọn công cụ bên dưới để tính trực tiếp ngay trên trang</span>
+                </div>
+                <div class="tool-tabs-bar" id="toolTabsBar"></div>
+                <div class="tool-workspace-box" id="toolWorkspaceArea"></div>
+            </div>
+        `;
+        renderToolsPage('solar');
+        return;
+    }
     try {
-        const response = await fetch(pageFile + '?v=' + Date.now(), { cache: 'no-store' });
+        const response = await fetch(pageFile + '?v=' + Date.now());
         if (!response.ok) throw new Error("Not found");
         container.innerHTML = await response.text();
         if (pageFile === 'page-san-pham.html') renderProductsPage(1);
         if (pageFile === 'page-xu-ly-loi.html') renderErrorsPage(1);
-        if (pageFile === 'page-tinh-toan.html') renderToolsPage('solar');
         if (pageFile === 'page-kien-thuc.html') renderKnowledgePage();
         if (pageFile === 'page-dich-vu.html') initServiceBookingPage();
     } catch (error) {
         container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
     }
 }
-
 
 function applyBannerFromConfig() {
     const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
