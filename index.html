@@ -2,120 +2,144 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biến Tần Bơm & Điện Năng Lượng Mặt Trời | Kỹ Thuật & Báo Giá</title>
-    <meta name="description" content="Hệ thống tra cứu sản phẩm biến tần bơm năng lượng mặt trời PowerS, Voltique, SAJ, Green Nova, xử lý mã lỗi và công cụ tính toán phối ghép chuẩn thực chiến.">
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Biến Tần Bơm & Điện Năng Lượng Mặt Trời - Quang Nguyen</title>
+    <link rel="stylesheet" href="style.css?v=20261126">
 </head>
 <body>
 
-<div class="top-user-bar">
-    <div id="vnDateDisplay" class="date-badge">📅 Đang tải ngày...</div>
-    <div class="user-actions">
-        <span id="userStatusText">Khách vãng lai (Còn <b style="color:#ef4444;">3</b> lượt tính)</span>
-        <button id="userBtnLabel" class="btn-user-pill" onclick="openUserModal()">Đăng nhập</button>
-    </div>
-</div>
-
-<div class="banner-box" id="bannerContainer">
-    <div class="banner-placeholder">
-        <h1>GIẢI PHÁP BIẾN TẦN BƠM & ĐIỆN NĂNG LƯỢNG MẶT TRỜI</h1>
-        <p>Tư vấn kỹ thuật • Phối ghép chuẩn xác • Lập báo giá nhanh chóng</p>
-    </div>
-</div>
-
-<nav class="nav-desktop">
-    <div class="nav-desktop-inner">
-        <div class="nav-item active" onclick="loadSubPage('page-san-pham.html', this)">SẢN PHẨM</div>
-        <div class="nav-item" onclick="loadSubPage('page-xu-ly-loi.html', this)">XỬ LÝ LỖI</div>
-        <div class="nav-item" onclick="loadSubPage('page-tinh-toan.html', this)">CÔNG CỤ</div>
-        <div class="nav-item" onclick="loadSubPage('page-kien-thuc.html', this)">KIẾN THỨC & KINH NGHIỆM</div>
-        <div class="nav-item" onclick="loadSubPage('page-dich-vu.html', this)">DỊCH VỤ</div>
-    </div>
-</nav>
-
-    <nav class="nav-mobile">
-        <div class="nav-mobile-bar" style="justify-content: flex-end;">
-        <button class="hamburger-btn" onclick="toggleMobileDrawer()">☰ Menu</button>
-    </div>
-    <div id="mobileDrawer" class="mobile-drawer">
-        <div class="drawer-item active" onclick="selectMobileDrawer('page-san-pham.html', '📦 Thông tin sản phẩm', this)">SẢN PHẨM</div>
-        <div class="drawer-item" onclick="selectMobileDrawer('page-xu-ly-loi.html', '🛠️ Xử lý mã lỗi biến tần', this)">XỬ LÝ LỖI</div>
-        <div class="drawer-item" onclick="selectMobileDrawer('page-tinh-toan.html', '🧮 Bộ Công Cụ Tính Toán', this)">CÔNG CỤ</div>
-        <div class="drawer-item" onclick="selectMobileDrawer('page-kien-thuc.html', '📚 Kiến thức & Kinh nghiệm', this)">KIẾN THỨC & KINH NGHIỆM</div>
-        <div class="drawer-item" onclick="selectMobileDrawer('page-dich-vu.html', '🤝 Dịch vụ', this)">DỊCH VỤ</div>
-    </div>
-</nav>
-<main id="mainPageContent" class="main-container">
-    <div style="text-align:center; padding:40px; color:#64748b;">Đang tải dữ liệu hệ thống...</div>
-</main>
-
-<div id="globalModal" class="modal-overlay" onclick="if(event.target === this) closeGlobalModal()">
-    <div class="modal-box">
-        <div class="modal-close" onclick="closeGlobalModal()">&times;</div>
-        <div id="globalModalBody"></div>
-    </div>
-</div>
-
-<footer class="site-footer">
-    <div class="footer-inner">
-        <div>
-            <div class="footer-title">⚡ HỆ THỐNG KỸ THUẬT BIẾN TẦN BƠM & SOLAR</div>
-            <p style="margin:0 0 8px; line-height:1.6;">Chuyên cung cấp giải pháp biến tần bơm nước năng lượng mặt trời (Power S, Voltique, SAJ, Green Nova), tấm pin hiệu suất cao và hỗ trợ kỹ thuật 24/24</p>
-            <p style="margin:0; font-size:12.5px; color:#94a3b8;">© 2026 Bản quyền thuộc về Quang Nguyen.</p>
-        </div>
-        <div>
-            <div class="footer-title">📞 HỖ TRỢ KỸ THUẬT & DUYỆT TÀI KHOẢN</div>
-            <p style="margin:0 0 6px;">Liên hệ trực tiếp qua Zalo để được tư vấn chọn cấu hình và mở khóa tính toán không giới hạn:</p>
-            <div style="text-align:left; padding: 14px 10px 24px; font-size: 13px; color: #94a3b8; border-top: 1px dashed #cbd5e1; margin-top: 20px;">
-            👁️ Tổng lượt truy cập hôm nay: <b id="todayVisitCounter" style="color: var(--primary); font-size: 14px;">...</b> lượt
+    <!-- HEADER 2 TẦNG CHUẨN APP -->
+    <header class="app-header">
+        <div class="header-top">
+            <div class="brand-logo" onclick="navigateApp('home')">
+                <span class="logo-icon">⚡</span>
+                <div>
+                    <div class="logo-title">SOLAR QUANG NGUYEN</div>
+                    <div class="logo-sub" id="vnDateDisplay">📅 Đang tải...</div>
+                </div>
             </div>
-            <a href="https://zalo.me/0859653338" target="_blank" class="zalo-float-btn">💬 Liên hệ Admin</a>
+            <div class="header-actions">
+                <button class="hdr-pill-btn" onclick="navigateApp('errors')" title="Tra cứu mã lỗi">
+                    <span>⚠️</span> <span class="hide-mob">Mã lỗi</span>
+                </button>
+                <button class="hdr-pill-btn user-pill" id="topUserBadgeBtn" onclick="openAccountPanel()">
+                    <span>👤</span> <span id="userStatusText">Đăng nhập</span>
+                </button>
+            </div>
         </div>
-    </div>
-</footer>
+        <div class="header-search-row">
+            <button class="menu-burger-btn" onclick="toggleSideMenu(true)" aria-label="Mở Menu">☰</button>
+            <div class="search-input-wrap">
+                <input type="text" id="globalSearchInput" placeholder="Tìm biến tần, tấm pin, mã lỗi (VD: E.OC1)..." onkeydown="if(event.key==='Enter') handleGlobalSearch()">
+                <button onclick="handleGlobalSearch()">🔍</button>
+            </div>
+        </div>
+    </header>
 
-<script src="solar-db.js"></script>
-<script src="app-core.js"></script>
-<!-- === LINH VẬT TRỢ LÝ KỸ THUẬT SOLAR AI === -->
-<div class="solar-ai-widget" id="solarAiWidget">
-    <div class="solar-ai-box" id="solarAiBox">
-        <div class="solar-ai-head">
-            <span>Nắng Solar AI</span>
-            <button type="button" onclick="toggleSolarAiBox()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;">&times;</button>
+    <!-- NGĂN KÉO MENU TRƯỢT TỪ BÊN TRÁI (THEO MẪU ẢNH 2) -->
+    <div id="sideMenuOverlay" class="side-overlay" onclick="toggleSideMenu(false)"></div>
+    <aside id="sideMenuDrawer" class="side-drawer">
+        <div class="drawer-head">
+            <span>☰ Danh Mục & Công Cụ</span>
+            <button onclick="toggleSideMenu(false)">&times;</button>
         </div>
-        <div class="solar-ai-greet" id="solarAiGreeting" style="min-height: 44px;"></div>
-        <div class="solar-ai-menu" id="solarAiMenu">
-            <button type="button" class="solar-ai-mbtn seq-item" onclick="aiQuickAction('solar')">Tính công suất chuỗi pin và biến tần</button>
-            <button type="button" class="solar-ai-mbtn seq-item" onclick="aiQuickAction('health')">Khám sức khỏe hệ bơm</button>
-            <button type="button" class="solar-ai-mbtn seq-item" onclick="aiQuickAction('error')">Tra mã lỗi biến tần</button>
-            <a class="solar-ai-mbtn seq-item zalo-btn" style="text-decoration:none;" href="https://zalo.me/0859653338" target="_blank" rel="noopener">💬 Liên hệ Admin</a>
-           <!-- <a class="solar-ai-mbtn seq-item zalo-btn" style="text-decoration:none;" href="tel:0859653338">📞 Hotline</a> -->
+
+        <div class="drawer-body">
+            <div class="drawer-link" onclick="navigateApp('home')">🏠 Trang chủ tổng hợp</div>
+            <div class="drawer-link" onclick="navigateApp('products')">📦 Tất cả sản phẩm kho</div>
+            <div class="drawer-link" onclick="navigateApp('tool-solar')">☀️ Tính chuỗi pin & biến tần</div>
+            <div class="drawer-link" onclick="navigateApp('tool-health')">🩺 Khám sức khỏe hệ bơm</div>
+
+            <div class="drawer-sec-title">TIỆN ÍCH & HỖ TRỢ KỸ THUẬT</div>
+            <div class="drawer-link" onclick="navigateApp('tool-pump')">💧 Tính công suất máy bơm</div>
+            <div class="drawer-link" onclick="navigateApp('tool-vdrop')">⚡ Tính sụt áp & phụ kiện</div>
+            <div class="drawer-link" onclick="navigateApp('errors')">⚠️ Tra cứu mã lỗi biến tần</div>
+            <div class="drawer-link" onclick="navigateApp('service')">📹 Đặt lịch Video Call 1:1</div>
+            <div class="drawer-link" onclick="navigateApp('knowledge')">📖 Kiến thức & Kinh nghiệm</div>
+        </div>
+
+        <!-- KHU VỰC TÀI KHOẢN / ĐĂNG NHẬP DƯỚI ĐÁY MENU -->
+        <div class="drawer-footer" id="drawerAccountBox">
+            <div class="drawer-auth-btns">
+                <button class="btn btn-primary" onclick="toggleSideMenu(false); openAuthModal('login')">Đăng nhập</button>
+                <button class="btn btn-outline" onclick="toggleSideMenu(false); openAuthModal('register')">Đăng ký</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="app-main" id="mainPageContent">
+        <div style="text-align:center; padding:50px 15px; color:#64748b;">⏳ Đang khởi tạo hệ thống...</div>
+    </main>
+
+    <!-- CHÂN TRANG GỌN GÀNG -->
+    <footer class="app-footer">
+        <div class="footer-grid">
+            <div>
+                <div class="footer-title">⚡ HỆ THỐNG KỸ THUẬT BIẾN TẦN BƠM & SOLAR</div>
+                <p>Chuyên cung cấp giải pháp biến tần bơm nước năng lượng mặt trời 3 pha 380V (Power S, Voltique, SAJ, Green Nova), tấm pin hiệu suất cao và hỗ trợ kỹ thuật 24/7.</p>
+                <p style="margin-top:6px; opacity:0.8;">© 2026 Bản quyền thuộc về Quang Nguyen</p>
+            </div>
+            <div>
+                <div class="footer-title">📞 HỖ TRỢ KỸ THUẬT & DUYỆT TÀI KHOẢN</div>
+                <p>Liên hệ trực tiếp qua Zalo để được tư vấn chọn cấu hình và mở khóa tính toán không giới hạn.</p>
+                <div class="visit-badge">👁️ Tổng lượt truy cập hôm nay: <b id="todayVisitCounter">...</b> lượt</div>
+                <a href="https://zalo.me" target="_blank" class="zalo-footer-btn">💬 Liên hệ Admin</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- THANH ĐIỀU HƯỚNG CỐ ĐỊNH DƯỚI ĐÁY MÀN HÌNH (BOTTOM BAR 4 NÚT) -->
+    <nav class="bottom-nav">
+        <button class="bnav-item active" id="bnav_home" onclick="navigateApp('home')">
+            <span class="bnav-ico">🏠</span>
+            <span>Trang chủ</span>
+        </button>
+        <button class="bnav-item" id="bnav_products" onclick="navigateApp('products')">
+            <span class="bnav-ico">📦</span>
+            <span>Danh mục</span>
+        </button>
+        <button class="bnav-item" id="bnav_tools" onclick="navigateApp('tool-solar')">
+            <span class="bnav-ico">🧮</span>
+            <span>Công cụ</span>
+        </button>
+        <button class="bnav-item" id="bnav_account" onclick="openAccountPanel()">
+            <span class="bnav-ico">👤</span>
+            <span>Tài khoản</span>
+        </button>
+    </nav>
+
+    <!-- TRỢ LÝ SOLAR AI (NẮNG) -->
+    <div class="ai-widget-wrap">
+        <div id="solarAiBox" class="ai-chat-box">
+            <div class="ai-box-head">
+                <span>☀️ Nắng - Trợ lý Solar AI</span>
+                <button onclick="toggleSolarAiBox()">&times;</button>
+            </div>
+            <div class="ai-box-body">
+                <div id="solarAiGreeting" class="ai-greet-bubble"></div>
+                <div id="solarAiMenu" class="ai-quick-list">
+                    <button class="seq-item" onclick="aiQuickAction('solar')">☀️ Tính chuỗi pin & chọn biến tần</button>
+                    <button class="seq-item" onclick="aiQuickAction('health')">🩺 Khám sức khỏe hệ bơm NLMT</button>
+                    <button class="seq-item" onclick="aiQuickAction('error')">⚠️ Tra cứu mã lỗi biến tần</button>
+                    <button class="seq-item" onclick="aiQuickAction('service')">📹 Đặt lịch Video Call 1:1</button>
+                </div>
+            </div>
+        </div>
+        <button class="ai-fab-btn" onclick="toggleSolarAiBox()" title="Hỏi Nắng - Trợ lý Solar AI">
+            <span class="ai-face">🤖</span>
+        </button>
+    </div>
+
+    <!-- MODAL CHUNG DUY NHẤT (CHỈ DÙNG CHO ĐĂNG NHẬP / XEM CHI TIẾT / IN BÁO GIÁ) -->
+    <div id="globalModal" class="modal-backdrop" onclick="if(event.target===this) closeGlobalModal()">
+        <div class="modal-card">
+            <button class="modal-close-x" onclick="closeGlobalModal()">&times;</button>
+            <div id="globalModalBody"></div>
         </div>
     </div>
 
-    <div class="solar-ai-launcher" onclick="toggleSolarAiBox()" title="Trợ lý Kỹ thuật Solar">
-        <button type="button" class="solar-ai-hide-btn" onclick="event.stopPropagation();document.getElementById('solarAiWidget').style.display='none';" title="Ẩn trợ lý">&times;</button>
-        <svg class="ai-baby-svg" width="42" height="42" viewBox="0 0 64 64" fill="none" xmlns="http://w3.org">
-            <circle cx="32" cy="34" r="18" fill="#FDE68A"/>
-            <path d="M13 28C13 17 21 10 32 10C43 10 51 17 51 28H13Z" fill="#F59E0B"/>
-            <rect x="10" y="26" width="44" height="4" rx="2" fill="#D97706"/>
-            <rect x="27" y="13" width="10" height="8" rx="2" fill="#FEF3C7"/>
-            <path d="M32 14L29.5 17.5H32L31 20.5L34.5 16.5H32L32 14Z" fill="#0284C7"/>
-            <g class="ai-baby-eye">
-                <circle cx="25" cy="34" r="2.3" fill="#1E293B"/>
-                <circle cx="25.7" cy="33.3" r="0.8" fill="#FFFFFF"/>
-            </g>
-            <g class="ai-baby-eye">
-                <circle cx="39" cy="34" r="2.3" fill="#1E293B"/>
-                <circle cx="39.7" cy="33.3" r="0.8" fill="#FFFFFF"/>
-            </g>
-            <path d="M26 41C28 43.5 36 43.5 38 41" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M16 56C18 49 24 47 32 47C40 47 46 49 48 56" fill="#0284C7"/>
-        </svg>
-        <span class="solar-ai-badge">AI</span>
-    </div>
-</div>
+    <script src="solar-db.js?v=20261126"></script>
+    <script src="app-core.js?v=20261126"></script>
 </body>
 </html>
-    
