@@ -4,19 +4,20 @@ let cachedData = JSON.parse(localStorage.getItem('solar_app_cache')) || null;
 let appData = cachedData || {
     users: [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }],
     configs: [],
-    logs: []
+    logs: [],
+    bookings: []
 };
 let guestCount = parseInt(localStorage.getItem('guest_visits_count')) || 0;
 let currentUser = JSON.parse(sessionStorage.getItem('current_user')) || null;
-let currentSortBy = 'day';
 let lastSolarQuoteData = null;
 let currentSolarPlans = [];
+let activeCalcToolId = 'solar';
 let srvState = { step: 1, year: new Date().getFullYear(), month: new Date().getMonth(), date: "", time: "", form: {} };
-document.addEventListener("DOMContentLoaded", async () => {
+
+document.addEventListener("DOMContentLoaded", () => {
     renderVietnamDate();
-    applyBannerFromConfig();
     updateTopUserBar();
-    await loadSubPage('page-san-pham.html', document.querySelector('.nav-item.active'));
+    navigateApp('home');
     checkSharedProductUrl();
     syncDataFromGoogleSheet();
 });
@@ -26,82 +27,46 @@ function renderVietnamDate() {
     if (!el) return;
     try {
         const now = new Date();
-        const isMob = window.innerWidth <= 768;
-        const opts = isMob
-            ? { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }
-            : { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' };
-        const vnStr = now.toLocaleDateString('vi-VN', opts);
-        el.innerText = "📅 " + vnStr.charAt(0).toUpperCase() + vnStr.slice(1);
+        const str = now.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' });
+        el.innerText = "📅 " + str;
     } catch (e) { el.innerText = "📅 Hôm nay"; }
 }
 
-function checkSharedProductUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const spIdx = params.get('sp');
-    if (spIdx !== null && !isNaN(parseInt(spIdx))) openProductDetail(parseInt(spIdx));
+function toggleSideMenu(open) {
+    document.getElementById('sideMenuDrawer')?.classList.toggle('open', open);
+    document.getElementById('sideMenuOverlay')?.classList.toggle('open', open);
 }
 
-function toggleMobileDrawer() {
-    document.getElementById('mobileDrawer').classList.toggle('open');
+function setBottomNavActive(tabKey) {
+    document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('bnav_' + tabKey)?.classList.add('active');
 }
 
-function selectMobileDrawer(pageFile, labelText, el) {
-    document.querySelectorAll('.drawer-item').forEach(i => i.classList.remove('active'));
-    el.classList.add('active');
-    const lblEl = document.getElementById('mobileCurrentPageLabel');
-    if (lblEl) lblEl.innerText = labelText;
-    document.getElementById('mobileDrawer').classList.remove('open');
-    (pageFile, null);
-}
-
-async function loadSubPage(pageFile, navElement) {
-    if (navElement) {
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        navElement.classList.add('active');
+function navigateApp(route) {
+    toggleSideMenu(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (route === 'home') { setBottomNavActive('home'); renderHomePage(); }
+    else if (route === 'products') { setBottomNavActive('products'); renderProductsFullPage(1); }
+    else if (route.startsWith('tool-')) {
+        setBottomNavActive('tools');
+        activeCalcToolId = route.replace('tool-', '');
+        renderToolsWorkspace();
     }
-    const container = document.getElementById('mainPageContent');
-    if (pageFile === 'page-tinh-toan.html') {
-        container.innerHTML = `
-            <div class="card-panel" style="padding: 14px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
-                    <h2 style="margin:0; font-size:17px; color:var(--primary);">🧮 Bộ Công Cụ Tính Toán Kỹ Thuật</h2>
-                    <span style="font-size:12px; color:#64748b;">Chọn công cụ bên dưới để tính trực tiếp ngay trên trang</span>
-                </div>
-                <div class="tool-tabs-bar" id="toolTabsBar"></div>
-                <div class="tool-workspace-box" id="toolWorkspaceArea"></div>
-            </div>
-        `;
-        renderToolsPage('solar');
-        return;
-    }
-    try {
-        const response = await fetch(pageFile + '?v=' + Date.now());
-        if (!response.ok) throw new Error("Not found");
-        container.innerHTML = await response.text();
-        if (pageFile === 'page-san-pham.html') renderProductsPage(1);
-        if (pageFile === 'page-xu-ly-loi.html') renderErrorsPage(1);
-        if (pageFile === 'page-kien-thuc.html') renderKnowledgePage();
-        if (pageFile === 'page-dich-vu.html') initServiceBookingPage();
-    } catch (error) {
-        container.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">Đang cập nhật nội dung chức năng này...</div>`;
-    }
+    else if (route === 'errors') { setBottomNavActive('home'); renderErrorsFullPage(1); }
+    else if (route === 'service') { setBottomNavActive('home'); renderServiceFullPage(); }
+    else if (route === 'knowledge') { setBottomNavActive('home'); renderKnowledgeFullPage(); }
 }
 
-function applyBannerFromConfig() {
-    const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
-    if (bannerCfg && bannerCfg.media) {
-        document.getElementById('bannerContainer').innerHTML = `<img src="${bannerCfg.media}" alt="Banner Biến Tần Bơm và Điện Năng Lượng Mặt Trời">`;
-        document.getElementById('bannerContainer').style.padding = "0";
-    }
+function handleGlobalSearch() {
+    const q = (document.getElementById('globalSearchInput')?.value || "").trim();
+    if (!q) return showToast("Nhập từ khóa sản phẩm hoặc mã lỗi cần tìm!", "warn");
+    if (/^(e\.|err|ol|oc|ou|lu|oh|ef|pf)/i.test(q)) renderErrorsFullPage(1, q);
+    else renderProductsFullPage(1, q);
 }
-
 async function syncDataFromGoogleSheet() {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-        const noCacheUrl = API_URL + (API_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
-        const res = await fetch(noCacheUrl, { signal: controller.signal, cache: 'no-store' });
-        clearTimeout(timeoutId);
+        const url = API_URL + (API_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store' });
         const data = await res.json();
         appData.users = [{ username: 'nguyenhoangbach', role: 'admin', status: 'approved' }, ...(data.users || []).map(u => ({ ...u, role: 'user' }))];
         appData.configs = data.configs || [];
@@ -109,96 +74,18 @@ async function syncDataFromGoogleSheet() {
         appData.bookings = data.bookings || [];
         const visitEl = document.getElementById('todayVisitCounter');
         if (visitEl && data.todayVisits) visitEl.innerText = Number(data.todayVisits).toLocaleString('vi-VN');
-
         localStorage.setItem('solar_app_cache', JSON.stringify(appData));
-        applyBannerFromConfig();
+
         if (currentUser) {
-            const freshUser = appData.users.find(u => u.username === currentUser.username);
-            if (freshUser) { currentUser = freshUser; sessionStorage.setItem('current_user', JSON.stringify(currentUser)); }
+            const fresh = appData.users.find(u => u.username === currentUser.username);
+            if (fresh) { currentUser = fresh; sessionStorage.setItem('current_user', JSON.stringify(currentUser)); }
         }
         updateTopUserBar();
-        if (document.getElementById('productGridArea')) renderProductsPage(1);
-        if (document.getElementById('errorTableBody')) renderErrorsPage(1);
-        if (document.getElementById('knowledgeListArea')) renderKnowledgePage();
+        if (document.getElementById('homeBannerSlot')) renderHomePage();
         if (document.getElementById('phoneScreenBody') && srvState.step === 4) renderSrvStep4();
     } catch (e) {}
 }
 
-function updateTopUserBar() {
-    const statusText = document.getElementById('userStatusText');
-    const btnLabel = document.getElementById('userBtnLabel');
-    const isMob = window.innerWidth <= 768;
-    if (currentUser) {
-        if (currentUser.role === 'admin') {
-            statusText.innerHTML = isMob ? ` <b style="color:var(--primary)">${currentUser.username}</b>` : `Admin: <b style="color:var(--primary)">${currentUser.username}</b>`;
-            btnLabel.innerText = "Quản trị";
-        } else {
-            let st = '<span style="color:#fbbf24">Chờ duyệt</span>';
-            if (currentUser.status === 'approved') {
-                const exp = Number(currentUser.expiry) || 0;
-                if (exp >= 9000000000000) {
-                    st = '<span style="color:#38bdf8">Vĩnh viễn</span>';
-                } else if (exp === 0) {
-                    st = '<span style="color:#4ade80">Còn 60 ngày</span>';
-                } else if (exp > Date.now()) {
-                    const daysLeft = Math.ceil((exp - Date.now()) / 86400000);
-                    st = `<span style="color:#4ade80">Còn ${daysLeft} ngày</span>`;
-                } else {
-                    st = '<span style="color:#f87171">Hết hạn</span>';
-                }
-            }
-            statusText.innerHTML = isMob ? `👤 <b>${currentUser.username}</b> (${st})` : `👤 Zalo: <b>${currentUser.username}</b> (${st})`;
-            btnLabel.innerText = "Tài khoản";
-        }
-    } else {
-        let left = Math.max(0, 3 - guestCount);
-        statusText.innerHTML = isMob ? `🔮 Còn <b style="color:#f87171">${left}</b> lượt` : `🔮 Khách vãng lai (Còn <b style="color:#f87171">${left}</b> lượt tính)`;
-        btnLabel.innerText = "Đăng nhập";
-    }
-    const aiGreetEl = document.getElementById('solarAiGreeting');
-    if (aiGreetEl) {
-        const displayName = currentUser ? `<b>${currentUser.username}</b>` : "bạn";
-        aiGreetEl.innerHTML = `Chào ${displayName}, chúc bạn một ngày bứt phá, chốt được nhiều đơn. Bạn cần hỗ trợ gì không?`;
-    }
-}
-
-function checkLimitAndRun(callbackFn) {
-    if (currentUser) {
-        if (currentUser.role === 'admin') return callbackFn();
-        if (currentUser.status !== 'approved') {
-            alert("Tài khoản Zalo của bạn đang chờ Admin duyệt kích hoạt!");
-            return openUserModal();
-        }
-        const now = Date.now();
-        const exp = Number(currentUser.expiry) || 0;
-        if (exp > 0 && exp < now) {
-            alert("Tài khoản của bạn đã hết thời hạn sử dụng! Vui lòng nhập Mã đơn hàng đã mua để được cộng thêm 10 ngày sử dụng.");
-            return openUserModal();
-        }
-        return callbackFn();
-    }
-    if (guestCount >= 3) {
-        alert("Bạn đã dùng hết 3 lượt tính miễn phí! Vui lòng đăng ký bằng Tên Zalo để nhận ngay 60 ngày sử dụng.");
-        return openUserModal();
-    }
-    guestCount++;
-    localStorage.setItem('guest_visits_count', guestCount);
-    updateTopUserBar();
-    callbackFn();
-}
-
-
-function openGlobalModal(htmlContent) {
-    document.getElementById('globalModalBody').innerHTML = htmlContent;
-    document.getElementById('globalModal').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-}
-
-function closeGlobalModal() {
-    document.getElementById('globalModal').style.display = 'none';
-    document.body.style.overflow = '';
-}
-/* === HỆ THỐNG THÔNG BÁO TRƯỢT (TOAST) & BÁO LỖI TẠI CHỖ === */
 function showToast(msg, type = 'info', duration = 3000) {
     let box = document.getElementById('globalToastContainer');
     if (!box) {
@@ -213,600 +100,550 @@ function showToast(msg, type = 'info', duration = 3000) {
     box.appendChild(item);
     setTimeout(() => {
         item.style.opacity = '0';
-        item.style.transform = 'translateX(30px)';
-        item.style.transition = '0.25s ease';
+        item.style.transition = '0.25s';
         setTimeout(() => item.remove(), 260);
     }, duration);
 }
 
-function clearInputError(inputId) {
-    const el = document.getElementById(inputId);
-    if (el) el.classList.remove('input-error-ring');
-    const errEl = document.getElementById(inputId + '_err');
-    if (errEl) errEl.remove();
+function clearInputError(id) {
+    document.getElementById(id)?.classList.remove('input-error-ring');
+    document.getElementById(id + '_err')?.remove();
 }
 
-function markInputError(inputId, msg) {
-    clearInputError(inputId);
-    const el = document.getElementById(inputId);
-    if (!el) { showToast(msg, 'warn'); return; }
+function markInputError(id, msg) {
+    clearInputError(id);
+    const el = document.getElementById(id);
+    if (!el) return showToast(msg, 'warn');
     el.classList.add('input-error-ring');
     el.focus();
-    const errDiv = document.createElement('div');
-    errDiv.id = inputId + '_err';
-    errDiv.className = 'inline-err-text';
-    errDiv.innerText = msg;
-    el.parentNode.appendChild(errDiv);
+    const div = document.createElement('div');
+    div.id = id + '_err';
+    div.className = 'inline-err-text';
+    div.innerText = msg;
+    el.parentNode.appendChild(div);
 }
 
-function openUserModal() {
-    if (!currentUser) {
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">👤 Đăng Nhập / Đăng Ký</h3>
-            <p style="font-size:13.5px; color:#555;">Đăng ký lần đầu bằng Tên Zalo để được <b>tặng ngay 60 ngày sử dụng</b> công cụ tính toán!</p>
-            <div class="form-group">
-                <label>Nhập chính xác Tên tài khoản Zalo:</label>
-                <input type="text" id="modalZaloInput" placeholder="Ví dụ: Nguyen Van A" oninput="clearInputError('modalZaloInput')" onkeydown="if(event.key==='Enter') processLogin()">
-            </div>
-            <div style="display:flex; gap:10px;">
-                <button class="btn btn-primary" onclick="processLogin()">Đăng Nhập</button>
-                <button class="btn btn-success" style="width:100%;" onclick="processRegister()">Đăng Ký</button>
-            </div>
-        `);
-        setTimeout(() => document.getElementById('modalZaloInput')?.focus(), 80);
-    } else if (currentUser.role === 'admin') {
-        renderAdminDashboard();
-    } else {
-        const now = Date.now();
-        const exp = Number(currentUser.expiry) || 0;
-        const isLifetime = exp >= 9000000000000;
-        let daysLeftText = "";
-        if (currentUser.status !== 'approved') {
-            daysLeftText = `<span style="color:#d97706;">Đang chờ Admin duyệt</span>`;
-        } else if (isLifetime) {
-            daysLeftText = `<span style="color:#0284c7; font-weight:700;">Vĩnh viễn</span>`;
-        } else if (exp === 0) {
-            daysLeftText = `<span style="color:#16a34a;">Đang hoạt động (60 ngày ưu đãi)</span>`;
-        } else if (exp > now) {
-            const daysLeft = Math.ceil((exp - now) / 86400000);
-            const expDateStr = new Date(exp).toLocaleDateString('vi-VN');
-            daysLeftText = `<span style="color:#16a34a;">Còn <b>${daysLeft} ngày</b> (Hết hạn: ${expDateStr})</span>`;
-        } else {
-            daysLeftText = `<span style="color:#dc2626;">Đã hết hạn sử dụng!</span>`;
-        }
-
-        const pendingList = (currentUser.pendingOrder || "").split(",").map(s => s.trim()).filter(Boolean);
-        const pendingNote = pendingList.length > 0
-            ? `<div style="padding:8px 10px; background:#fef3c7; border-radius:6px; font-size:12.5px; color:#92400e; margin-bottom:10px;">⏳ Đang chờ duyệt <b>${pendingList.length} đơn</b>: <b>${pendingList.join(', ')}</b> (+${pendingList.length * 10} ngày)</div>`
-            : "";
-
-        const renewBlock = isLifetime ? "" : `
-            <div style="padding:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:14px;">
-                <div style="font-weight:700; font-size:13.5px; color:var(--dark); margin-bottom:6px;">🎁 Gia hạn thêm (+10 ngày / 1 đơn hàng)</div>
-                ${pendingNote}
-                <div class="form-group" style="margin-bottom:8px;">
-                    <label style="font-size:12.5px;">Nhập Mã đơn hàng đã mua (có thể nhập nhiều mã cách nhau dấu phẩy):</label>
-                    <input type="text" id="userOrderCodeInput" placeholder="Ví dụ: DH1025, DH1026..." oninput="clearInputError('userOrderCodeInput')">
+function openGlobalModal(html) {
+    document.getElementById('globalModalBody').innerHTML = html;
+    document.getElementById('globalModal').style.display = 'flex';
+}
+function closeGlobalModal() { document.getElementById('globalModal').style.display = 'none'; }
+function updateTopUserBar() {
+    const topTxt = document.getElementById('userStatusText');
+    const drawerBox = document.getElementById('drawerAccountBox');
+    if (currentUser) {
+        if (topTxt) topTxt.innerText = currentUser.username;
+        if (drawerBox) {
+            drawerBox.innerHTML = `
+                <div style="font-size:13px; margin-bottom:8px;">👤 Xin chào <b>${currentUser.username}</b></div>
+                <div class="drawer-auth-btns">
+                    <button class="btn btn-primary" onclick="toggleSideMenu(false); openAccountPanel()">Tài khoản</button>
+                    <button class="btn btn-danger" onclick="toggleSideMenu(false); processLogout()">Đăng xuất</button>
                 </div>
-                <button class="btn btn-success" style="width:100%;" onclick="submitUserOrderCode()">Gửi</button>
-            </div>
-        `;
-
-        openGlobalModal(`
-            <h3 style="margin-top:0; color:var(--primary);">Thông Tin Tài Khoản</h3>
-            <p style="margin:6px 0;">- Tên Zalo: <b>${currentUser.username}</b></p>
-            <p style="margin:6px 0 12px;">- Thời hạn sử dụng: ${daysLeftText}</p>
-            ${renewBlock}
-            <button class="btn btn-danger" style="width:100%;" onclick="processLogout()">Đăng Xuất</button>
-        `);
+            `;
+        }
+    } else {
+        const left = Math.max(0, 3 - guestCount);
+        if (topTxt) topTxt.innerText = `Đăng nhập (${left} lượt)`;
+        if (drawerBox) {
+            drawerBox.innerHTML = `
+                <div class="drawer-auth-btns">
+                    <button class="btn btn-primary" onclick="toggleSideMenu(false); openAuthModal('login')">Đăng nhập</button>
+                    <button class="btn btn-outline" onclick="toggleSideMenu(false); openAuthModal('register')">Đăng ký</button>
+                </div>
+            `;
+        }
     }
 }
 
-async function submitUserOrderCode() {
-    const raw = (document.getElementById('userOrderCodeInput')?.value || "").trim();
-    if (!raw) return markInputError('userOrderCodeInput', "Vui lòng nhập mã đơn hàng đã mua!");
-    showToast("⏳ Đang gửi mã đơn hàng lên hệ thống...", "info", 2000);
-    await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'submit_order', username: currentUser.username, orderCode: raw })
-    });
-    const oldList = (currentUser.pendingOrder || "").split(",").map(s => s.trim()).filter(Boolean);
-    raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).forEach(c => {
-        if (!oldList.includes(c)) oldList.push(c);
-    });
-    currentUser.pendingOrder = oldList.join(", ");
-    sessionStorage.setItem('current_user', JSON.stringify(currentUser));
-    showToast("✅ Đã gửi mã đơn hàng! Admin duyệt sẽ tự động cộng thêm ngày.", "success", 3500);
-    openUserModal();
-    syncDataFromGoogleSheet();
+function openAuthModal(mode) {
+    const isReg = mode === 'register';
+    openGlobalModal(`
+        <h3 style="margin-top:0; color:var(--primary);">${isReg ? '📝 Đăng Ký Tài Khoản Zalo' : '👤 Đăng Nhập Hệ Thống'}</h3>
+        <p style="font-size:13px; color:#475569;">${isReg ? 'Đăng ký bằng Tên Zalo để nhận ngay <b>60 ngày sử dụng miễn phí</b>!' : 'Nhập chính xác Tên tài khoản Zalo đã đăng ký của bạn.'}</p>
+        <div class="form-group">
+            <label>Tên tài khoản Zalo:</label>
+            <input type="text" id="modalZaloInput" placeholder="Ví dụ: Nguyen Van A" oninput="clearInputError('modalZaloInput')" onkeydown="if(event.key==='Enter') ${isReg ? 'processRegister()' : 'processLogin()'}">
+        </div>
+        <div class="grid-2" style="gap:8px;">
+            <button class="btn btn-primary" onclick="processLogin()">Đăng nhập</button>
+            <button class="btn btn-success" onclick="processRegister()">Đăng ký mới</button>
+        </div>
+    `);
+    setTimeout(() => document.getElementById('modalZaloInput')?.focus(), 80);
 }
 
+function openAccountPanel() {
+    if (!currentUser) return openAuthModal('login');
+    if (currentUser.role === 'admin') return renderAdminDashboard();
+
+    const now = Date.now();
+    const exp = Number(currentUser.expiry) || 0;
+    const isLife = exp >= 9000000000000;
+    let statusStr = isLife ? '<b style="color:#0284c7;">Vĩnh viễn</b>'
+        : (exp === 0 ? '<b style="color:#16a34a;">Còn 60 ngày ưu đãi</b>'
+        : (exp > now ? `<b style="color:#16a34a;">Còn ${Math.ceil((exp - now)/86400000)} ngày</b>` : '<b style="color:#dc2626;">Đã hết hạn</b>'));
+
+    const pendingList = (currentUser.pendingOrder || "").split(",").map(s => s.trim()).filter(Boolean);
+    const pendingHtml = pendingList.length ? `<div style="padding:8px; background:#fef3c7; border-radius:6px; font-size:12px; color:#92400e; margin-bottom:8px;">⏳ Chờ duyệt ${pendingList.length} đơn: <b>${pendingList.join(', ')}</b></div>` : '';
+
+    openGlobalModal(`
+        <h3 style="margin-top:0; color:var(--primary);">👤 Thông Tin Tài Khoản</h3>
+        <p style="margin:4px 0;">• Tên Zalo: <b>${currentUser.username}</b></p>
+        <p style="margin:4px 0 12px;">• Thời hạn: ${statusStr}</p>
+        ${isLife ? '' : `
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; margin-bottom:12px;">
+                <div style="font-weight:700; font-size:13px; margin-bottom:6px;">🎁 Nhập mã đơn hàng để cộng thêm +10 ngày/đơn:</div>
+                ${pendingHtml}
+                <input type="text" id="userOrderCodeInput" placeholder="Nhập mã đơn hàng (VD: DH101, DH102)..." style="margin-bottom:8px;" oninput="clearInputError('userOrderCodeInput')">
+                <button class="btn btn-success" style="width:100%;" onclick="submitUserOrderCode()">Gửi mã đơn hàng</button>
+            </div>
+        `}
+        <button class="btn btn-danger" style="width:100%;" onclick="processLogout()">Đăng xuất</button>
+    `);
+}
 async function processRegister() {
-    const name = document.getElementById('modalZaloInput')?.value.trim() || "";
+    const name = (document.getElementById('modalZaloInput')?.value || "").trim();
     if (!name) return markInputError('modalZaloInput', "Vui lòng nhập tên Zalo!");
     if (name === 'nguyenhoangbach') return markInputError('modalZaloInput', "Tên này thuộc quyền quản trị!");
-    showToast("⏳ Đang gửi yêu cầu đăng ký...", "info", 2000);
+    showToast("⏳ Đang đăng ký tài khoản...", "info", 2000);
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'register', username: name }) });
-    showToast("✅ Đăng ký thành công! Vui lòng liên hệ Zalo Quang Nguyen để được duyệt.", "success", 4000);
+    showToast("✅ Đăng ký thành công! Liên hệ Admin Zalo để được duyệt kích hoạt.", "success", 4000);
     closeGlobalModal();
     syncDataFromGoogleSheet();
 }
 
 async function processLogin() {
-    const name = document.getElementById('modalZaloInput')?.value.trim() || "";
+    const name = (document.getElementById('modalZaloInput')?.value || "").trim();
     if (!name) return markInputError('modalZaloInput', "Vui lòng nhập tên Zalo!");
     const user = appData.users.find(u => u.username === name);
-    if (!user) return markInputError('modalZaloInput', "Tên Zalo này chưa đăng ký! Hãy bấm nút Đăng Ký bên cạnh.");
-    if (user.status === 'pending') return markInputError('modalZaloInput', "Tài khoản đang chờ duyệt. Liên hệ Zalo Quang Nguyen!");
+    if (!user) return markInputError('modalZaloInput', "Tên Zalo chưa đăng ký! Hãy bấm nút Đăng ký mới.");
+    if (user.status === 'pending') return markInputError('modalZaloInput', "Tài khoản đang chờ Admin duyệt!");
     currentUser = user;
     sessionStorage.setItem('current_user', JSON.stringify(currentUser));
     updateTopUserBar();
     closeGlobalModal();
     showToast(`👋 Xin chào <b>${user.username}</b>!`, "success", 2500);
-    if (user.role !== 'admin') {
-        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_login', username: name }) });
-    } else {
-        openUserModal();
-    }
+    if (user.role !== 'admin') fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'log_login', username: name }) });
+    else renderAdminDashboard();
 }
-
 
 function processLogout() {
     currentUser = null;
     sessionStorage.removeItem('current_user');
     updateTopUserBar();
     closeGlobalModal();
-}
-function calculateUserStats() {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    const dayOfWeek = now.getDay();
-    startOfWeek.setDate(now.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek));
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const statsMap = {};
-    appData.users.filter(u => u.role !== 'admin').forEach(u => {
-        statsMap[u.username] = { username: u.username, status: u.status, day: 0, week: 0, month: 0, year: 0 };
-    });
-
-    appData.logs.forEach(l => {
-        const uName = l.username;
-        if (!statsMap[uName]) return;
-        const d = new Date(Number(l.time));
-        if (isNaN(d.getTime())) return;
-        if (d.toDateString() === now.toDateString()) statsMap[uName].day++;
-        if (d >= startOfWeek && d <= now) statsMap[uName].week++;
-        if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) statsMap[uName].month++;
-        if (d.getFullYear() === now.getFullYear()) statsMap[uName].year++;
-    });
-
-    return Object.values(statsMap).sort((a, b) => b[currentSortBy] - a[currentSortBy]);
-}
-function sortStatsTable(criteria) {
-    currentSortBy = criteria;
-    renderStatsTableOnly();
+    showToast("Đã đăng xuất tài khoản.", "info", 2000);
 }
 
-function renderStatsTableOnly() {
-    const tbody = document.getElementById('statsTableBody');
-    if (!tbody) return;
-    document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active-sort'));
-    const activeBtn = document.getElementById('sort_' + currentSortBy);
-    if (activeBtn) activeBtn.classList.add('active-sort');
-
-    const sorted = calculateUserStats();
-    tbody.innerHTML = sorted.length === 0 ? `<tr><td colspan="6" style="text-align:center;">Chưa có dữ liệu thành viên</td></tr>` : sorted.map((u, idx) => {
-        const fullU = appData.users.find(x => x.username === u.username) || {};
-        const exp = Number(fullU.expiry) || 0;
-        const isLifetime = exp >= 9000000000000;
-        const daysLeft = exp > Date.now() ? Math.ceil((exp - Date.now()) / 86400000) : (exp === 0 ? 60 : 0);
-        const timeBadge = isLifetime
-            ? `<span style="font-size:11px;color:#0284c7;font-weight:700;">(Vĩnh viễn)</span>`
-            : `<span style="font-size:11px;color:#16a34a;">(Còn ${daysLeft}d)</span>`;
-
-        const orderCodes = (fullU.pendingOrder || "").split(",").map(s => s.trim()).filter(Boolean);
-        const orderListHtml = orderCodes.length > 0
-            ? `<div style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">` + orderCodes.map(c => `
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <span style="background:#fef3c7;color:#b45309;padding:2px 5px;border-radius:4px;font-size:11px;font-weight:700;">📦 ${c}</span>
-                    <button class="btn btn-primary" style="padding:2px 6px;font-size:10.5px;" onclick="adminOrderAction('approve_order', '${u.username}', '${c.replace(/'/g, "\\'")}')">+10d</button>
-                    <button class="btn btn-outline" style="padding:1px 5px;font-size:10.5px;color:#dc2626;border-color:#fca5a5;" onclick="adminOrderAction('reject_order', '${u.username}', '${c.replace(/'/g, "\\'")}')" title="Xóa mã sai">&times;</button>
-                </div>
-            `).join('') + `</div>`
-            : "";
-
-        return `
-        <tr>
-            <td><b>#${idx + 1} ${u.username}</b> ${timeBadge}${orderListHtml}</td>
-            <td style="text-align:center; font-weight:bold; color:var(--primary);">${u.day}</td>
-            <td style="text-align:center; font-weight:bold;">${u.week}</td>
-            <td style="text-align:center; font-weight:bold;">${u.month}</td>
-            <td style="text-align:center; font-weight:bold; color:var(--secondary);">${u.year}</td>
-            <td style="white-space:nowrap;">
-                ${u.status === 'pending' ? `<button class="btn btn-success" style="padding:3px 6px; font-size:11px;" onclick="adminAction('approve', '${u.username}')">Duyệt</button>` : ''}
-                ${!isLifetime ? `<button class="btn" style="padding:3px 6px; font-size:11px; background:#0284c7;" onclick="adminAction('set_lifetime', '${u.username}')" title="Cấp quyền vĩnh viễn">Vĩnh viễn</button>` : ''}
-                <button class="btn btn-danger" style="padding:3px 6px; font-size:11px;" onclick="adminAction('delete', '${u.username}')">Xóa</button>
-            </td>
-        </tr>`;
-    }).join('');
+async function submitUserOrderCode() {
+    const raw = (document.getElementById('userOrderCodeInput')?.value || "").trim();
+    if (!raw) return markInputError('userOrderCodeInput', "Vui lòng nhập mã đơn hàng!");
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'submit_order', username: currentUser.username, orderCode: raw }) });
+    showToast("✅ Đã gửi mã đơn hàng thành công!", "success", 3000);
+    closeGlobalModal();
+    syncDataFromGoogleSheet();
 }
 
+function checkLimitAndRun(fn) {
+    if (currentUser) {
+        if (currentUser.role === 'admin') return fn();
+        if (currentUser.status !== 'approved') { showToast("Tài khoản đang chờ duyệt!", "warn"); return openAccountPanel(); }
+        const exp = Number(currentUser.expiry) || 0;
+        if (exp > 0 && exp < Date.now()) { showToast("Tài khoản đã hết hạn! Hãy nhập mã đơn hàng để gia hạn.", "warn"); return openAccountPanel(); }
+        return fn();
+    }
+    if (guestCount >= 3) { showToast("Bạn đã hết 3 lượt tính miễn phí! Đăng ký Zalo để nhận 60 ngày dùng miễn phí.", "warn"); return openAuthModal('register'); }
+    guestCount++;
+    localStorage.setItem('guest_visits_count', guestCount);
+    updateTopUserBar();
+    fn();
+}
 async function renderAdminDashboard() {
-    const currentBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
+    const curBanner = (appData.configs.find(c => c.code === 'BANNER') || {}).media || '';
+    const rowsHtml = appData.users.filter(u => u.role !== 'admin').map((u, i) => {
+        const exp = Number(u.expiry) || 0;
+        const isLife = exp >= 9000000000000;
+        const dLeft = exp > Date.now() ? Math.ceil((exp - Date.now()) / 86400000) : (exp === 0 ? 60 : 0);
+        const badge = isLife ? '<span style="color:#0284c7;font-weight:700;">(Vĩnh viễn)</span>' : `<span style="color:#16a34a;">(Còn ${dLeft}d)</span>`;
+        const orders = (u.pendingOrder || '').split(',').map(s => s.trim()).filter(Boolean);
+        const orderBtns = orders.map(c => `
+            <div style="margin-top:3px;">
+                <span style="background:#fef3c7;color:#b45309;padding:1px 5px;border-radius:4px;font-size:11px;">📦 ${c}</span>
+                <button class="btn btn-primary" style="padding:2px 6px;font-size:11px;width:auto;" onclick="adminOrderAct('approve_order','${u.username}','${c}')">+10d</button>
+                <button class="btn btn-outline" style="padding:1px 5px;font-size:11px;color:#dc2626;" onclick="adminOrderAct('reject_order','${u.username}','${c}')">&times;</button>
+            </div>
+        `).join('');
+        return `
+            <tr>
+                <td><b>#${i + 1} ${u.username}</b> ${badge}${orderBtns}</td>
+                <td style="white-space:nowrap;">
+                    ${u.status === 'pending' ? `<button class="btn btn-success" style="padding:3px 7px;font-size:11px;" onclick="adminUserAct('approve','${u.username}')">Duyệt</button>` : ''}
+                    ${!isLife ? `<button class="btn" style="padding:3px 7px;font-size:11px;background:#0284c7;" onclick="adminUserAct('set_lifetime','${u.username}')">Vĩnh viễn</button>` : ''}
+                    <button class="btn btn-danger" style="padding:3px 7px;font-size:11px;" onclick="adminUserAct('delete','${u.username}')">Xóa</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
     openGlobalModal(`
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:12px;">
-            <h3 style="margin:0; color:var(--primary); font-size:16px;">⚙️ Quản Trị Hệ Thống (nguyenhoangbach)</h3>
-            <button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="processLogout()">Đăng xuất</button>
-        </div>
-        <div class="card-panel" style="margin-bottom:12px;">
-            <label>🖼️ Cập Nhật Banner Quảng Cáo (Link Google Photos):</label>
+        <h3 style="margin-top:0; color:var(--primary);">⚙️ Quản Trị Hệ Thống</h3>
+        <div class="form-group">
+            <label>🖼️ Link Banner Trang Chủ (Google Photos):</label>
             <div style="display:flex; gap:6px;">
-                <input type="text" id="adminBannerUrl" value="${currentBanner}" placeholder="Dán link ảnh từ Google Photos...">
-                <button class="btn btn-success" style="white-space:nowrap;" onclick="saveBannerUrl()">Lưu</button>
+                <input type="text" id="adminBannerUrl" value="${curBanner}" placeholder="Dán link ảnh banner...">
+                <button class="btn btn-success" onclick="saveBannerUrl()">Lưu</button>
             </div>
         </div>
-        <div class="card-panel">
-            <label>📊 Bảng Thống Kê & Xếp Hạng Đăng Nhập User:</label>
-            <div style="margin-bottom:8px; display:flex; gap:5px; flex-wrap:wrap; align-items:center; font-size:12.5px;">
-                <span>Sắp xếp:</span>
-                <button id="sort_day" class="btn btn-outline sort-btn active-sort" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('day')">Hôm nay</button>
-                <button id="sort_week" class="btn btn-outline sort-btn" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('week')">Tuần này</button>
-                <button id="sort_month" class="btn btn-outline sort-btn" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('month')">Tháng này</button>
-                <button id="sort_year" class="btn btn-outline sort-btn" style="padding:4px 8px; font-size:12px;" onclick="sortStatsTable('year')">Năm nay</button>
-            </div>
-            <div class="table-wrap">
-                <table class="data-table">
-                    <thead><tr><th>Hạng & Tên</th><th style="text-align:center;">Ngày</th><th style="text-align:center;">Tuần</th><th style="text-align:center;">Tháng</th><th style="text-align:center;">Năm</th><th>Thao tác</th></tr></thead>
-                    <tbody id="statsTableBody"></tbody>
-                </table>
-            </div>
+        <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
+            <table class="data-table">
+                <thead><tr><th>Tài khoản Zalo</th><th>Thao tác</th></tr></thead>
+                <tbody>${rowsHtml || '<tr><td colspan="2" style="text-align:center;">Chưa có thành viên</td></tr>'}</tbody>
+            </table>
         </div>
+        <button class="btn btn-danger" style="width:100%; margin-top:10px;" onclick="processLogout()">Đăng xuất Admin</button>
     `);
-    renderStatsTableOnly();
-    await syncDataFromGoogleSheet();
-    renderStatsTableOnly();
 }
 
 async function saveBannerUrl() {
-    const url = document.getElementById('adminBannerUrl').value.trim();
-    alert("Đang lưu Banner...");
+    const url = (document.getElementById('adminBannerUrl')?.value || '').trim();
+    showToast("⏳ Đang lưu Banner...", "info", 1500);
     await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'update_banner', bannerUrl: url }) });
     await syncDataFromGoogleSheet();
-    alert("Đã cập nhật Banner!");
+    showToast("✅ Đã cập nhật Banner!", "success");
 }
 
-async function adminAction(act, username) {
+async function adminUserAct(act, username) {
     if (act === 'delete' && !confirm(`Xóa tài khoản ${username}?`)) return;
-    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username: username }) });
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username }) });
     await syncDataFromGoogleSheet();
-    renderStatsTableOnly();
-}
-async function adminOrderAction(act, username, orderCode) {
-    if (act === 'reject_order' && !confirm(`Xóa mã đơn "${orderCode}" của ${username}?`)) return;
-    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username: username, orderCode: orderCode }) });
-    await syncDataFromGoogleSheet();
-    renderStatsTableOnly();
+    renderAdminDashboard();
 }
 
-let currentProdSliderImgs = [];
-let currentProdSlideIdx = 0;
-
+async function adminOrderAct(act, username, orderCode) {
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: act, username, orderCode }) });
+    await syncDataFromGoogleSheet();
+    renderAdminDashboard();
+}
+/* === TRANG CHỦ CHUẨN APP & DANH SÁCH SẢN PHẨM === */
 function getCombinedProducts() {
-    const realItems = appData.configs.filter(c => c.code === 'SAN_PHAM').map(c => {
-        const imgList = (c.media || "").split(/\||,/).map(s => s.trim()).filter(Boolean);
-        return {
-            title: c.title,
-            imgs: imgList.length > 0 ? imgList : ["https://unsplash.com"],
-            specs: c.content
-        };
+    const real = appData.configs.filter(c => c.code === 'SAN_PHAM').map(c => {
+        const imgs = (c.media || '').split(/\||,/).map(s => s.trim()).filter(Boolean);
+        return { title: c.title, imgs: imgs.length ? imgs : ['https://unsplash.com'], specs: c.content };
     });
-    const mockFormatted = MOCK_PRODUCTS.map(m => ({
-        title: m.title,
-        imgs: (m.img || "").split(/\||,/).map(s => s.trim()).filter(Boolean),
-        specs: m.specs
+    const mock = (typeof MOCK_PRODUCTS !== 'undefined' ? MOCK_PRODUCTS : []).map(m => ({
+        title: m.title, imgs: (m.img || '').split(/\||,/).map(s => s.trim()).filter(Boolean), specs: m.specs
     }));
-    return realItems.length > 0 ? [...realItems, ...mockFormatted] : mockFormatted;
+    return real.length ? [...real, ...mock] : mock;
 }
 
-function renderProductsPage(page) {
-    const grid = document.getElementById('productGridArea');
-    const pag = document.getElementById('productPagination');
-    if (!grid) return;
-    const all = getCombinedProducts();
+function renderHomePage() {
+    const main = document.getElementById('mainPageContent');
+    if (!main) return;
+    const bannerCfg = appData.configs.find(c => c.code === 'BANNER');
+    const bannerHtml = (bannerCfg && bannerCfg.media)
+        ? `<img src="${bannerCfg.media}" alt="Banner Solar">`
+        : `<div style="padding:26px 18px; text-align:center;">
+               <div style="font-size:18px; font-weight:900; margin-bottom:4px;">⚡ GIẢI PHÁP BIẾN TẦN BƠM & ĐIỆN MẶT TRỜI 3 PHA 380V</div>
+               <div style="font-size:12.5px; opacity:0.9;">Phối ghép chuẩn kỹ thuật SG600 • Lập báo giá nhanh • Hỗ trợ 1:1</div>
+           </div>`;
+
+    const prods = getCombinedProducts().slice(0, 8);
+    const prodCards = prods.map((p, idx) => `
+        <div class="prod-card" onclick="openProductDetail(${idx})">
+            <img class="prod-thumb" src="${p.imgs[0]}" alt="${p.title}" loading="lazy">
+            <div class="prod-info">
+                <h4 class="prod-name">${p.title}</h4>
+                <div class="prod-spec">${(p.specs || '').split('|').slice(0, 2).join(' • ')}</div>
+            </div>
+        </div>
+    `).join('');
+
+    main.innerHTML = `
+        <div class="hero-banner" id="homeBannerSlot">${bannerHtml}</div>
+        <div class="quick-4-grid">
+            <div class="q4-card" onclick="navigateApp('tool-solar')">
+                <div class="q4-ico">☀️</div>
+                <div class="q4-lbl">Tính chuỗi pin</div>
+            </div>
+            <div class="q4-card" onclick="navigateApp('tool-health')">
+                <div class="q4-ico">🩺</div>
+                <div class="q4-lbl">Khám sức khỏe</div>
+            </div>
+            <div class="q4-card" onclick="navigateApp('service')">
+                <div class="q4-ico">📹</div>
+                <div class="q4-lbl">Đặt lịch hỗ trợ</div>
+            </div>
+            <div class="q4-card" onclick="navigateApp('errors')">
+                <div class="q4-ico">⚠️</div>
+                <div class="q4-lbl">Tra mã lỗi</div>
+            </div>
+        </div>
+        <div class="sec-ribbon">
+            <span class="ribbon-tag">🔥 Thiết Bị Nổi Bật Trong Kho</span>
+            <button class="btn btn-outline" style="padding:4px 10px; font-size:12px;" onclick="navigateApp('products')">Xem tất cả ➔</button>
+        </div>
+        <div class="prod-grid">${prodCards}</div>
+    `;
+}
+function checkSharedProductUrl() {
+    const spIdx = new URLSearchParams(window.location.search).get('sp');
+    if (spIdx !== null && !isNaN(parseInt(spIdx))) openProductDetail(parseInt(spIdx));
+}
+
+function renderProductsFullPage(page = 1, keyword = "") {
+    const main = document.getElementById('mainPageContent');
+    if (!main) return;
+    const all = getCombinedProducts().filter(p => !keyword || p.title.toLowerCase().includes(keyword.toLowerCase()) || p.specs.toLowerCase().includes(keyword.toLowerCase()));
     const perPage = 20;
-    const totalPages = Math.ceil(all.length / perPage);
+    const totalPages = Math.max(1, Math.ceil(all.length / perPage));
     const items = all.slice((page - 1) * perPage, page * perPage);
 
-    grid.innerHTML = items.map((item, idx) => {
-        const globalIdx = (page - 1) * perPage + idx;
-        const shortDesc = item.specs.split('|').slice(0, 2).join(' • ');
-        const coverImg = item.imgs[0];
-        return `<div class="item-card" onclick="openProductDetail(${globalIdx})"><img class="card-thumb" src="${coverImg}" alt="${item.title}" loading="lazy"><div class="card-body"><h3 class="card-heading">${item.title}</h3><p class="card-desc-2line">${shortDesc}</p></div></div>`;
-    }).join('');
-    pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderProductsPage(${i + 1})">${i + 1}</button>`).join('');
+    const cards = items.length === 0
+        ? `<div style="grid-column:1/-1; text-align:center; padding:30px; color:#64748b;">Không tìm thấy thiết bị phù hợp.</div>`
+        : items.map((p, i) => {
+            const realIdx = getCombinedProducts().indexOf(p);
+            return `
+                <div class="prod-card" onclick="openProductDetail(${realIdx})">
+                    <img class="prod-thumb" src="${p.imgs[0]}" alt="${p.title}" loading="lazy">
+                    <div class="prod-info">
+                        <h4 class="prod-name">${p.title}</h4>
+                        <div class="prod-spec">${(p.specs || '').split('|').slice(0, 2).join(' • ')}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    const pagBtns = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `
+        <button class="btn ${i + 1 === page ? 'btn-primary' : 'btn-outline'}" style="width:auto; padding:5px 11px;" onclick="renderProductsFullPage(${i + 1}, '${keyword.replace(/'/g, "\\'")}')">${i + 1}</button>
+    `).join('') : '';
+
+    main.innerHTML = `
+        <div class="sec-ribbon" style="margin-top:0;">
+            <span class="ribbon-tag">📦 Danh Mục Thiết Bị (${all.length})</span>
+            ${keyword ? `<button class="btn btn-outline" style="padding:4px 10px; font-size:12px;" onclick="document.getElementById('globalSearchInput').value=''; renderProductsFullPage(1)">Xóa lọc</button>` : ''}
+        </div>
+        <div class="prod-grid">${cards}</div>
+        <div style="display:flex; justify-content:center; gap:6px; margin-top:14px;">${pagBtns}</div>
+    `;
 }
 
 function openProductDetail(idx) {
     const item = getCombinedProducts()[idx];
     if (!item) return;
-    currentProdSliderImgs = item.imgs;
-    currentProdSlideIdx = 0;
-
-    const lines = item.specs.split(/\||\n/).map(s => s.trim()).filter(Boolean);
-    const specListHtml = lines.map(line => `<li style="margin-bottom:6px; color:#334155;">✅ ${line}</li>`).join('');
-    const hasMulti = currentProdSliderImgs.length > 1;
-
-    const sliderNavHtml = hasMulti ? `
-        <button class="slider-nav-btn slider-prev" onclick="changeProdSlide(-1)">&#10094;</button>
-        <button class="slider-nav-btn slider-next" onclick="changeProdSlide(1)">&#10095;</button>
-    ` : '';
-
-    const thumbsHtml = hasMulti ? `<div class="prod-thumbs-row">${currentProdSliderImgs.map((src, i) => `
-        <img src="${src}" class="prod-thumb-item ${i === 0 ? 'active' : ''}" id="pThumb_${i}" onclick="goToProdSlide(${i})">
-    `).join('')}</div>` : '';
+    const lines = (item.specs || '').split(/\||\n/).map(s => s.trim()).filter(Boolean);
+    const specList = lines.map(l => `<li style="margin-bottom:5px;">✅ ${l}</li>`).join('');
+    const thumbs = item.imgs.length > 1 ? `<div style="display:flex; gap:6px; overflow-x:auto; margin:8px 0;">${item.imgs.map(src => `<img src="${src}" style="width:56px; height:56px; object-fit:cover; border-radius:6px; cursor:pointer; border:1px solid #cbd5e1;" onclick="document.getElementById('modalMainProdImg').src='${src}'">`).join('')}</div>` : '';
 
     openGlobalModal(`
-        <div class="prod-slider-wrap">
-            <img id="prodSliderMainImg" class="prod-slider-img" src="${currentProdSliderImgs[0]}" alt="${item.title}">
-            ${sliderNavHtml}
-        </div>
-        ${thumbsHtml}
-        <h3 style="margin:0 0 12px; color:var(--primary); font-size:18px;">${item.title}</h3>
-        <ul style="padding-left:18px; margin:0 0 16px; list-style:none;">${specListHtml}</ul>
-        <button class="btn" style="width:100%; background:#0068ff; font-size:15px;" onclick="copyProductShareLink(${idx}, '${item.title.replace(/'/g, "\\'")}')">🔗 Chia Sẻ / Sao Chép Link Sản Phẩm</button>
+        <img id="modalMainProdImg" src="${item.imgs[0]}" style="width:100%; max-height:260px; object-fit:contain; background:#f8fafc; border-radius:8px;">
+        ${thumbs}
+        <h3 style="margin:10px 0 8px; color:var(--primary); font-size:17px;">${item.title}</h3>
+        <ul style="padding-left:0; list-style:none; font-size:13.5px; color:#334155; margin-bottom:14px;">${specList}</ul>
+        <button class="btn" style="width:100%; background:#0068ff;" onclick="copyProductLink(${idx}, '${item.title.replace(/'/g, "\\'")}')">🔗 Sao chép link chia sẻ sản phẩm</button>
     `);
 }
 
-function changeProdSlide(step) {
-    if (currentProdSliderImgs.length <= 1) return;
-    currentProdSlideIdx = (currentProdSlideIdx + step + currentProdSliderImgs.length) % currentProdSliderImgs.length;
-    goToProdSlide(currentProdSlideIdx);
+function copyProductLink(idx, title) {
+    const url = `${window.location.origin + window.location.pathname}?sp=${idx}`;
+    navigator.clipboard?.writeText(url).then(() => showToast(`✅ Đã sao chép link "${title}"!`, "success"));
 }
-
-function goToProdSlide(idx) {
-    currentProdSlideIdx = idx;
-    const mainImg = document.getElementById('prodSliderMainImg');
-    if (mainImg) mainImg.src = currentProdSliderImgs[idx];
-    document.querySelectorAll('.prod-thumb-item').forEach((el, i) => el.classList.toggle('active', i === idx));
-}
-
-function copyProductShareLink(idx, title) {
-    const shareUrl = `${window.location.origin + window.location.pathname}?sp=${idx}`;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl).then(() => alert(`✅ Đã sao chép đường dẫn sản phẩm "${title}" vào bộ nhớ tạm!`))
-        .catch(() => prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl));
-    } else {
-        prompt("Sao chép đường dẫn sản phẩm dưới đây:", shareUrl);
-    }
-}
-
-
+/* === TRA CỨU MÃ LỖI & KIẾN THỨC KINH NGHIỆM === */
 function getCombinedErrors() {
-    const realErrors = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
-        const bParts = c.title.split('|');
-        const cParts = c.content.split('|');
-        return { brand: (bParts || "PowerS").trim(), code: (bParts || "").trim(), desc: (cParts || "").trim(), fix: (cParts || "").trim() };
+    const real = appData.configs.filter(c => c.code === 'MA_LOI').map(c => {
+        const b = (c.title || '').split('|');
+        const d = (c.content || '').split('|');
+        return { brand: (b || 'PowerS').trim(), code: (b || '').trim(), desc: (d || '').trim(), fix: (d || '').trim() };
     });
-    return [...realErrors, ...MOCK_ERRORS];
+    return [...real, ...(typeof MOCK_ERRORS !== 'undefined' ? MOCK_ERRORS : [])];
 }
 
-function renderErrorsPage(page) {
-    const tbody = document.getElementById('errorTableBody');
-    const pag = document.getElementById('errorPagination');
-    if (!tbody) return;
-    const searchCode = (document.getElementById('errSearchInput')?.value || "").toLowerCase().trim();
-    const filterBrand = document.getElementById('errBrandSelect')?.value || "ALL";
-    const filtered = getCombinedErrors().filter(err => (filterBrand === "ALL" || err.brand.toLowerCase() === filterBrand.toLowerCase()) && (!searchCode || err.code.toLowerCase().includes(searchCode) || err.desc.toLowerCase().includes(searchCode)));
+function renderErrorsFullPage(page = 1, presetQuery = null) {
+    const main = document.getElementById('mainPageContent');
+    if (!main) return;
+    if (!document.getElementById('errSearchInput')) {
+        main.innerHTML = `
+            <div class="card-panel">
+                <h3 style="margin:0 0 10px; color:var(--primary); font-size:16.5px;">⚠️ Tra Cứu Mã Lỗi Biến Tần</h3>
+                <div class="grid-2" style="gap:8px; margin-bottom:10px;">
+                    <select id="errBrandSelect" onchange="renderErrorsFullPage(1)">
+                        <option value="ALL">Tất cả các hãng biến tần</option>
+                        <option value="PowerS">Power S</option>
+                        <option value="Voltique">Voltique</option>
+                        <option value="Green Nova">Green Nova</option>
+                        <option value="SAJ">SAJ</option>
+                    </select>
+                    <input type="text" id="errSearchInput" value="${presetQuery || ''}" placeholder="Nhập mã lỗi (VD: E.OC1, LU, OL)..." oninput="renderErrorsFullPage(1)">
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Hãng</th><th>Mã lỗi</th><th>Nguyên nhân</th><th>Cách khắc phục</th></tr></thead>
+                        <tbody id="errTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="errPagBox" style="display:flex; justify-content:center; gap:6px; margin-top:10px;"></div>
+            </div>
+        `;
+    }
+    const q = (document.getElementById('errSearchInput')?.value || '').toLowerCase().trim();
+    const br = document.getElementById('errBrandSelect')?.value || 'ALL';
+    const list = getCombinedErrors().filter(e => (br === 'ALL' || e.brand.toLowerCase() === br.toLowerCase()) && (!q || e.code.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q)));
     const perPage = 20;
-    const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-    const items = filtered.slice((page - 1) * perPage, page * perPage);
+    const totalPages = Math.max(1, Math.ceil(list.length / perPage));
+    const items = list.slice((page - 1) * perPage, page * perPage);
 
-    tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" style="text-align:center; padding:20px;">Không tìm thấy mã lỗi phù hợp.</td></tr>` : items.map(e => {
-        const bLow = e.brand.toLowerCase();
-        let badgeCls = bLow === 'saj' ? 'badge-saj' : (bLow === 'green nova' ? 'badge-greennova' : (bLow === 'lumentree' ? 'badge-lumentree' : 'badge-powers'));
-        return `<tr><td><span class="badge ${badgeCls}">${e.brand}</span></td><td><b style="color:var(--danger);">${e.code}</b></td><td>${e.desc}</td><td>${e.fix}</td></tr>`;
-    }).join('');
-    pag.innerHTML = Array.from({ length: totalPages }, (_, i) => `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="renderErrorsPage(${i + 1})">${i + 1}</button>`).join('');
-}
-function getCombinedKnowledge() {
-    const realBlogs = appData.configs.filter(c => c.code === 'KIEN_THUC').map(c => ({ title: c.title, date: "Mới cập nhật", content: c.content, video: c.media }));
-    return [...realBlogs, ...MOCK_KNOWLEDGE];
+    document.getElementById('errTableBody').innerHTML = items.length === 0
+        ? `<tr><td colspan="4" style="text-align:center; padding:18px;">Không tìm thấy mã lỗi phù hợp.</td></tr>`
+        : items.map(e => `<tr><td><b>${e.brand}</b></td><td style="color:var(--danger); font-weight:800;">${e.code}</td><td>${e.desc}</td><td>${e.fix}</td></tr>`).join('');
+
+    document.getElementById('errPagBox').innerHTML = totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => `
+        <button class="btn ${i + 1 === page ? 'btn-primary' : 'btn-outline'}" style="width:auto; padding:4px 10px;" onclick="renderErrorsFullPage(${i + 1})">${i + 1}</button>
+    `).join('') : '';
 }
 
-function renderKnowledgePage() {
-    const listArea = document.getElementById('knowledgeListArea');
-    if (!listArea) return;
-    listArea.innerHTML = getCombinedKnowledge().map((b, idx) => `<div class="blog-row" onclick="openKnowledgeDetail(${idx})"><div style="font-weight:600; color:var(--dark);">📄 ${b.title}</div><span style="font-size:12px; color:#64748b; white-space:nowrap;">${b.date} ➔</span></div>`).join('');
+function renderKnowledgeFullPage() {
+    const main = document.getElementById('mainPageContent');
+    if (!main) return;
+    const real = appData.configs.filter(c => c.code === 'KIEN_THUC').map(c => ({ title: c.title, date: 'Mới cập nhật', content: c.content, video: c.media }));
+    const blogs = [...real, ...(typeof MOCK_KNOWLEDGE !== 'undefined' ? MOCK_KNOWLEDGE : [])];
+    window._cachedBlogs = blogs;
+
+    main.innerHTML = `
+        <div class="card-panel">
+            <h3 style="margin:0 0 10px; color:var(--primary); font-size:16.5px;">📖 Kiến Thức & Kinh Nghiệm Lắp Đặt</h3>
+            ${blogs.map((b, i) => `
+                <div style="padding:11px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="openBlogDetail(${i})">
+                    <span style="font-weight:700; font-size:13.5px;">📄 ${b.title}</span>
+                    <span style="font-size:11.5px; color:#64748b; white-space:nowrap;">${b.date} ➔</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
 }
 
-function openKnowledgeDetail(idx) {
-    const b = getCombinedKnowledge()[idx];
+function openBlogDetail(idx) {
+    const b = (window._cachedBlogs || [])[idx];
     if (!b) return;
     openGlobalModal(`
-        <h3 style="margin:0 0 8px; color:var(--primary); font-size:17px;">${b.title}</h3>
-        <div style="font-size:12px; color:#64748b; margin-bottom:14px;">📅 ${b.date}</div>
-        <div style="line-height:1.65; color:#334155; white-space:pre-line; margin-bottom:16px;">${b.content}</div>
-        ${b.video ? `<a href="${b.video}" target="_blank" class="btn btn-danger" style="text-decoration:none; display:inline-block; margin-bottom:12px;">▶ Xem Video Hướng Dẫn</a>` : ''}
+        <h3 style="margin:0 0 6px; color:var(--primary); font-size:17px;">${b.title}</h3>
+        <div style="font-size:12px; color:#64748b; margin-bottom:10px;">📅 ${b.date}</div>
+        <div style="line-height:1.65; font-size:13.5px; color:#334155; white-space:pre-line; margin-bottom:14px;">${b.content}</div>
+        ${b.video ? `<a href="${b.video}" target="_blank" class="btn btn-danger" style="display:inline-block; text-decoration:none; margin-bottom:10px;">▶ Xem Video Hướng Dẫn</a>` : ''}
         <button class="btn btn-outline" style="width:100%;" onclick="closeGlobalModal()">Đóng bài viết</button>
     `);
 }
+/* === KHÔNG GIAN 6 CÔNG CỤ TÍNH TOÁN TRỰC TIẾP TRÊN TRANG === */
 const CALC_TOOLS_LIST = [
-    { id: 'pump', icon: '💧', title: 'Tính công suất bơm', desc: 'Tính cột áp tổng, tổn thất ma sát ống và chọn công suất bơm chuẩn thủy lực.' },
-    { id: 'solar', icon: '☀️', title: 'Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT', desc: 'Chọn biến tần theo hãng, nhập thông số pin và xuất 3 phương án cấu hình thực chiến.' },
-    { id: 'health', icon: '🩺', title: 'Khám sức khỏe hệ bơm NLMT', desc: 'Chẩn đoán cấu hình bơm, biến tần, giàn pin có sẵn của khách và đề xuất nâng cấp.' },
-    { id: 'acc', icon: '🔩', title: 'Tính phụ kiện', desc: 'Tính nhanh số lượng chân đế, kẹp biên, kẹp giữa cho hệ thống pin áp mái.' },
-    { id: 'vdrop', icon: '⚡', title: 'Tính sụt áp trên đường dây', desc: 'Kiểm tra độ sụt áp dây dẫn DC/AC và khuyến nghị tiết diện cáp an toàn.' },
-    { id: 'divider', icon: '🔌', title: 'Tính cầu trở phân áp', desc: 'Tính điện áp đầu ra Vout và dòng tiêu thụ cho mạch cảm biến, đo lường.' }
+    { id: 'solar', icon: '☀️', title: 'Tính chuỗi pin & biến tần' },
+    { id: 'health', icon: '🩺', title: 'Khám sức khỏe hệ bơm' },
+    { id: 'pump', icon: '💧', title: 'Tính công suất bơm' },
+    { id: 'vdrop', icon: '⚡', title: 'Tính sụt áp dây' },
+    { id: 'acc', icon: '🔩', title: 'Tính phụ kiện' },
+    { id: 'divider', icon: '🔌', title: 'Cầu trở phân áp' }
 ];
 
-let activeCalcToolId = 'solar';
-
-function renderToolsPage(defaultToolId) {
-    const tabsBar = document.getElementById('toolTabsBar');
-    if (!tabsBar) return;
-    if (defaultToolId && typeof defaultToolId === 'string') activeCalcToolId = defaultToolId;
-
-    tabsBar.innerHTML = CALC_TOOLS_LIST.map(t => `
-        <button type="button" class="tool-tab-pill ${t.id === activeCalcToolId ? 'active' : ''}" onclick="openCalcToolModal('${t.id}')">
+function renderToolsWorkspace() {
+    const main = document.getElementById('mainPageContent');
+    if (!main) return;
+    const tabsHtml = CALC_TOOLS_LIST.map(t => `
+        <button type="button" class="tool-tab-pill ${t.id === activeCalcToolId ? 'active' : ''}" onclick="activeCalcToolId='${t.id}'; renderToolsWorkspace()">
             ${t.icon} ${t.title}
         </button>
     `).join('');
 
-    openCalcToolModal(activeCalcToolId);
-}
+    main.innerHTML = `
+        <div class="card-panel">
+            <div class="tool-tabs-bar">${tabsHtml}</div>
+            <div id="toolWorkspaceArea"></div>
+        </div>
+    `;
 
-function renderToolHost(htmlContent) {
     const ws = document.getElementById('toolWorkspaceArea');
-    if (ws) {
-        ws.innerHTML = htmlContent;
-    } else {
-        openGlobalModal(htmlContent);
-    }
-}
-
-function openCalcToolModal(toolId) {
-    activeCalcToolId = toolId;
-    const tabsBar = document.getElementById('toolTabsBar');
-    if (tabsBar) {
-        tabsBar.innerHTML = CALC_TOOLS_LIST.map(t => `
-            <button type="button" class="tool-tab-pill ${t.id === toolId ? 'active' : ''}" onclick="openCalcToolModal('${t.id}')">
-                ${t.icon} ${t.title}
-            </button>
-        `).join('');
-    }
-
-    if (toolId === 'pump') {
-        renderToolHost(`
-            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">💧 Tính Công Suất Máy Bơm Chuẩn Thủy Lực</h3>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Loại bơm:</label><select id="calcSource"><option value="gieng">Giếng khoan sâu (Bơm hỏa tiễn)</option><option value="ho" selected>Ao, hồ, sông (Bơm cạn / trục đứng)</option></select></div>
-                <div class="form-group"><label>Cỡ ống dẫn chính (Phi):</label><select id="calcPipeDia"><option value="40">Ống Phi 42</option><option value="50">Ống Phi 49</option><option value="63" selected>Ống Phi 60</option><option value="75">Ống Phi 76</option><option value="90">Ống Phi 90</option><option value="110">Ống Phi 114</option></select></div>
-            </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Độ cao đẩy đứng (m):</label><input type="number" id="calcHeight" value="50"></div>
-                <div class="form-group"><label>Tổng chiều dài ống (m):</label><input type="number" id="calcLength" value="200"></div>
-            </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Lưu lượng cần bơm (m³/h):</label><input type="number" id="calcFlow" value="15" oninput="clearInputError('calcFlow')"></div>
-                <div class="form-group"><label>Áp lực đầu béc (m):</label><input type="number" id="calcOutletHead" value="15"></div>
-            </div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
-    }
-    else if (toolId === 'solar') {
+    if (activeCalcToolId === 'solar') {
         const panelOpts = buildGroupedPanelOptions(580, false);
-        renderToolHost(`
-            <h3 style="margin-top:0; color:var(--primary); font-size:17px;">⚡ Tính Toán Chuỗi Pin & Biến Tần Bơm NLMT</h3>
-            <div class="solar-sec-box" style="margin-bottom:12px;">
+        ws.innerHTML = `
+            <h3 style="margin-top:0; color:var(--primary); font-size:16px;">⚡ Tính Toán Chuỗi Pin & Biến Tần Bơm 3 Pha</h3>
+            <div class="solar-sec-box" style="margin-bottom:10px;">
                 <div class="solar-sec-title">0. Thông số máy bơm</div>
-                <div class="grid-2" style="gap:10px;">
+                <div class="grid-2" style="gap:8px;">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Loại tải máy bơm:</label>
                         <select id="scLoadType" onchange="updateInverterDropdownAll()">
-                            <option value="1" selected>Bơm hỏa tiễn / Bơm chìm (Tăng 1 cấp)</option>
+                            <option value="1" selected>Bơm hỏa tiễn / Bơm chìm (+1 cấp)</option>
                             <option value="0">Bơm đặt cạn / Ly tâm nhẹ (Bằng cấp)</option>
-                            <option value="2">Bơm piston / Nén khí / Đẩy cao nặng (Tăng 2 cấp)</option>
+                            <option value="2">Bơm piston / Đẩy cao nặng (+2 cấp)</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Tổng công suất máy bơm:</label>
                         <div class="input-unit-group">
-                            <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Nhập công suất..." oninput="clearInputError('spPumpExpr'); cleanPumpExprInput()" onkeyup="cleanPumpExprInput()" onblur="evaluatePumpInput()" onkeydown="if(event.key==='Enter'){evaluatePumpInput();}">
-                            <select id="spPumpUnit" onchange="updateInverterDropdownAll()">
-                                <option value="kW" selected>kW</option>
-                                <option value="HP">HP</option>
-                            </select>
+                            <input type="text" id="spPumpExpr" inputmode="decimal" placeholder="Nhập công suất..." oninput="clearInputError('spPumpExpr'); cleanPumpExprInput()" onblur="evaluatePumpInput()">
+                            <select id="spPumpUnit" onchange="updateInverterDropdownAll()"><option value="kW" selected>kW</option><option value="HP">HP</option></select>
                         </div>
                     </div>
                 </div>
-                <div id="pumpSuggestNote" style="margin-top:8px; font-size:12.5px; color:#15803d; font-weight:600; display:none;"></div>
+                <div id="pumpSuggestNote" style="margin-top:6px; font-size:12px; color:#15803d; font-weight:700; display:none;"></div>
             </div>
             <div class="solar-calc-grid">
                 <div class="solar-sec-box">
                     <div class="solar-sec-title">1. Chọn Biến Tần Phù Hợp</div>
-                    <div class="form-group">
-                        <label>Danh sách biến tần trong kho:</label>
-                        <select id="spInvIdx" onchange="fillInverterSpecs()"></select>
-                    </div>
-                    <div style="font-size:12px; font-weight:700; color:#0284c7; margin:6px 0 4px;">📥 Thông số đầu vào DC (Từ giàn pin):</div>
+                    <div class="form-group"><label>Danh sách biến tần trong kho:</label><select id="spInvIdx" onchange="fillInverterSpecs()"></select></div>
+                    <div style="font-size:11.5px; font-weight:700; color:#0284c7; margin:4px 0;">📥 Đầu vào DC (Từ giàn pin):</div>
                     <div class="solar-mini-grid">
                         <div class="form-group"><label>Áp DC Max (V):</label><input type="number" id="invVdcMaxInput" value="900"></div>
                         <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="invIdcMaxInput" value="30"></div>
                         <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="invMpptMinInput" value="486" oninput="updateMpptOptField()"></div>
                         <div class="form-group"><label>MPPT Max (V):</label><input type="number" id="invMpptMaxInput" value="750" oninput="updateMpptOptField()"></div>
                     </div>
-                    <div class="form-group" style="margin-bottom:8px;">
-                        <label>Áp MPPT tối ưu (Trung bình) (V):</label>
-                        <input type="number" id="invMpptOptInput" value="618" readonly style="background:#f0f9ff; font-weight:700; color:#0369a1;">
-                    </div>
-                    <div style="font-size:12px; font-weight:700; color:#15803d; margin:6px 0 4px; border-top:1px dashed #cbd5e1; padding-top:6px;">📤 Thông số đầu ra AC (Ra máy bơm):</div>
-                    <div class="solar-mini-grid" style="margin-bottom:0;">
+                    <div class="form-group"><label>Áp MPPT trung bình (V):</label><input type="number" id="invMpptOptInput" value="618" readonly style="background:#f0f9ff; font-weight:700;"></div>
+                    <div style="font-size:11.5px; font-weight:700; color:#15803d; margin:4px 0;">📤 Đầu ra AC (Ra máy bơm):</div>
+                    <div class="solar-mini-grid">
                         <div class="form-group" style="margin-bottom:0;"><label>Công suất (kW):</label><input type="number" id="invKwInput" step="0.1" value="7.5"></div>
-                        <div class="form-group" style="margin-bottom:0;"><label>Điện áp AC ra:</label><input type="text" id="invPhaseInput" value="3 pha 380V"></div>
-                    </div>
-                    <div class="form-group" style="margin-top:6px; margin-bottom:0;">
-                        <label>Dòng đầu ra định mức (A):</label>
-                        <input type="number" id="invOutAInput" step="0.1" value="17" style="font-weight:700; color:#15803d;">
+                        <div class="form-group" style="margin-bottom:0;"><label>Dòng định mức (A):</label><input type="number" id="invOutAInput" step="0.1" value="17"></div>
                     </div>
                 </div>
                 <div class="solar-sec-box">
                     <div class="solar-sec-title">2. Chọn / Nhập Tấm Pin (STC)</div>
-                    <div class="form-group">
-                        <label>Chọn mẫu tấm pin có sẵn:</label>
-                        <select id="spPanelIdx" onchange="fillPanelSpecs()">${panelOpts}</select>
-                    </div>
+                    <div class="form-group"><label>Mẫu tấm pin trong kho:</label><select id="spPanelIdx" onchange="fillPanelSpecs()">${panelOpts}</select></div>
                     <div class="solar-mini-grid">
-                        <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="panPmaxInput" value="580"></div>
-                        <div class="form-group"><label>Dòng làm việc Imp (A):</label><input type="number" id="panImpInput" step="0.01" value="13.22"></div>
-                        <div class="form-group"><label>Áp làm việc Vmp (V):</label><input type="number" id="panVmpInput" step="0.01" value="43.88"></div>
-                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="52.50"></div>
+                        <div class="form-group"><label>Pmax (W):</label><input type="number" id="panPmaxInput" value="580"></div>
+                        <div class="form-group"><label>Imp (A):</label><input type="number" id="panImpInput" step="0.01" value="13.22"></div>
+                        <div class="form-group"><label>Vmp (V):</label><input type="number" id="panVmpInput" step="0.01" value="43.88"></div>
+                        <div class="form-group"><label>Voc (V):</label><input type="number" id="panVocInput" step="0.01" value="52.50"></div>
                     </div>
-                    <div class="form-group" style="margin-top:4px; margin-bottom:0;">
-                        <label>Chiều dài dây Cab Solar DC 1 chiều (m):</label>
-                        <input type="number" id="spDcLen" value="25">
-                    </div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Chiều dài dây DC 1 chiều (m):</label><input type="number" id="spDcLen" value="25"></div>
                 </div>
             </div>
-            <button class="btn btn-primary" style="font-size:15px;" onclick="checkLimitAndRun(execRealCombatSolarCalc)">TÍNH TOÁN CẤU HÌNH CHUỖI PIN</button>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execRealCombatSolarCalc)">TÍNH TOÁN CẤU HÌNH CHUỖI PIN</button>
             <div id="toolModalResult" style="margin-top:12px;"></div>
-        `);
-        setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 50);
+        `;
+        setTimeout(() => { updateInverterDropdownAll(); fillPanelSpecs(); }, 30);
+    } else {
+        renderOtherCalcTools(ws, activeCalcToolId);
     }
-    else if (toolId === 'health') {
+}
+function renderOtherCalcTools(ws, toolId) {
+    if (toolId === 'health') {
         const panelOpts = buildGroupedPanelOptions(null, true);
         let invOpts = '';
         ["Power S", "Voltique", "Green Nova", "SAJ"].forEach(br => {
             const list = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, idx })).filter(x => x.brand === br);
             if (list.length) invOpts += `<optgroup label="Hãng ${br}">${list.map(x => `<option value="${x.idx}">${x.name}</option>`).join('')}</optgroup>`;
         });
-        invOpts += `<option value="custom" selected>-- Tự nhập thông số biến tần của khách --</option>`;
+        invOpts += `<option value="custom" selected>-- Tự nhập biến tần của khách --</option>`;
 
-        renderToolHost(`
-            <h3 style="margin-top:0; color:var(--primary); font-size:17px;">🩺 Khám sức khỏe hệ bơm NLMT</h3>
-            <div class="solar-sec-box" style="margin-bottom:12px;">
+        ws.innerHTML = `
+            <h3 style="margin-top:0; color:var(--primary); font-size:16px;">🩺 Khám Sức Khỏe Hệ Bơm NLMT</h3>
+            <div class="solar-sec-box" style="margin-bottom:10px;">
                 <div class="solar-sec-title">1. Thông số Máy bơm hiện tại</div>
-                <div class="grid-2" style="gap:10px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Loại máy bơm:</label>
-                        <select id="hlLoadType">
-                            <option value="1" selected>Bơm hỏa tiễn / Bơm chìm (Cần +1 cấp)</option>
-                            <option value="0">Bơm đặt cạn / Ly tâm nhẹ (Bằng cấp)</option>
-                            <option value="2">Bơm piston / Đẩy cao nặng (Cần +2 cấp)</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Công suất máy bơm:</label>
-                        <div class="input-unit-group">
-                            <input type="number" id="hlPumpVal" step="0.1" value="7.5">
-                            <select id="hlPumpUnit"><option value="kW" selected>kW</option><option value="HP">HP</option></select>
-                        </div>
-                    </div>
+                <div class="grid-2" style="gap:8px;">
+                    <div class="form-group" style="margin-bottom:0;"><label>Loại bơm:</label><select id="hlLoadType"><option value="1" selected>Bơm hỏa tiễn / Bơm chìm (+1 cấp)</option><option value="0">Bơm đặt cạn (Bằng cấp)</option><option value="2">Bơm tải nặng (+2 cấp)</option></select></div>
+                    <div class="form-group" style="margin-bottom:0;"><label>Công suất bơm:</label><div class="input-unit-group"><input type="number" id="hlPumpVal" step="0.1" value="7.5"><select id="hlPumpUnit"><option value="kW" selected>kW</option><option value="HP">HP</option></select></div></div>
                 </div>
             </div>
             <div class="solar-calc-grid">
                 <div class="solar-sec-box">
-                    <div class="solar-sec-title">2. Biến tần hiện tại của khách</div>
+                    <div class="solar-sec-title">2. Biến tần của khách</div>
                     <div class="form-group"><label>Chọn mẫu kho hoặc tự nhập:</label><select id="hlInvSel" onchange="fillHealthInv()">${invOpts}</select></div>
                     <div class="solar-mini-grid">
                         <div class="form-group"><label>Công suất (kW):</label><input type="number" id="hlInvKw" step="0.1" value="11"></div>
@@ -814,99 +651,91 @@ function openCalcToolModal(toolId) {
                         <div class="form-group"><label>Dòng DC Max (A):</label><input type="number" id="hlInvIdcMax" value="40"></div>
                         <div class="form-group"><label>MPPT Min (V):</label><input type="number" id="hlInvMpptMin" value="486"></div>
                     </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>MPPT Max (V):</label>
-                        <input type="number" id="hlInvMpptMax" value="750">
-                    </div>
+                    <div class="form-group" style="margin-bottom:0;"><label>MPPT Max (V):</label><input type="number" id="hlInvMpptMax" value="750"></div>
                 </div>
                 <div class="solar-sec-box">
-                    <div class="solar-sec-title">3. Giàn pin hiện tại của khách</div>
+                    <div class="solar-sec-title">3. Giàn pin của khách</div>
                     <div class="form-group"><label>Chọn mẫu kho hoặc tự nhập:</label><select id="hlPanSel" onchange="fillHealthPan()">${panelOpts}</select></div>
                     <div class="solar-mini-grid">
-                        <div class="form-group"><label>Công suất Pmax (W):</label><input type="number" id="hlPanPmax" value="550"></div>
-                        <div class="form-group"><label>Dòng Imp (A):</label><input type="number" id="hlPanImp" step="0.01" value="13.20"></div>
-                        <div class="form-group"><label>Áp Vmp (V):</label><input type="number" id="hlPanVmp" step="0.01" value="41.70"></div>
-                        <div class="form-group"><label>Áp hở mạch Voc (V):</label><input type="number" id="hlPanVoc" step="0.01" value="49.80"></div>
+                        <div class="form-group"><label>Pmax (W):</label><input type="number" id="hlPanPmax" value="580"></div>
+                        <div class="form-group"><label>Imp (A):</label><input type="number" id="hlPanImp" step="0.01" value="13.22"></div>
+                        <div class="form-group"><label>Vmp (V):</label><input type="number" id="hlPanVmp" step="0.01" value="43.88"></div>
+                        <div class="form-group"><label>Voc (V):</label><input type="number" id="hlPanVoc" step="0.01" value="52.50"></div>
                     </div>
                     <div class="solar-mini-grid" style="margin-top:4px;">
                         <div class="form-group" style="margin-bottom:0;"><label>Số chuỗi song song:</label><input type="number" id="hlStrings" value="1" min="1"></div>
-                        <div class="form-group" style="margin-bottom:0;"><label>Số tấm / 1 chuỗi:</label><input type="number" id="hlPerStr" value="14" min="1"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label>Số tấm / chuỗi:</label><input type="number" id="hlPerStr" value="14" min="1"></div>
                     </div>
                 </div>
             </div>
-            <button class="btn btn-primary" style="font-size:15px;" onclick="checkLimitAndRun(execSolarHealthCheck)">🔍 KHÁM SỨC KHỎE HỆ THỐNG</button>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execSolarHealthCheck)">🔍 KHÁM SỨC KHỎE HỆ THỐNG</button>
             <div id="toolModalResult" style="margin-top:12px;"></div>
-        `);
-    }
-    else if (toolId === 'acc') {
-        renderToolHost(`
-            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">🔩 Tính Phụ Kiện Lắp Pin Áp Mái</h3>
-            <div class="form-group"><label>Tổng số lượng tấm pin (tấm):</label><input type="number" id="accTotalPanels" value="18"></div>
-            <div class="form-group"><label>Số dãy pin lắp đặt (dãy):</label><input type="number" id="accRows" value="2"></div>
-            <div class="form-group"><label>Cấu hình chân đế:</label><select id="accLegType"><option value="2">Loại 2 chân đế (2 thanh ray / dãy)</option><option value="3">Loại 3 chân đế (3 thanh ray / dãy)</option></select></div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execAccCalc)">TÍNH PHỤ KIỆN</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
+        `;
+    } else if (toolId === 'pump') {
+        ws.innerHTML = `
+            <h3 style="margin-top:0; color:var(--primary); font-size:16px;">💧 Tính Công Suất Bơm Thủy Lực</h3>
+            <div class="grid-2"><div class="form-group"><label>Loại bơm:</label><select id="calcSource"><option value="gieng">Giếng khoan (Hỏa tiễn)</option><option value="ho" selected>Ao, hồ, sông</option></select></div><div class="form-group"><label>Cỡ ống chính:</label><select id="calcPipeDia"><option value="40">Phi 42</option><option value="50">Phi 49</option><option value="63" selected>Phi 60</option><option value="75">Phi 76</option><option value="90">Phi 90</option><option value="110">Phi 114</option></select></div></div>
+            <div class="grid-2"><div class="form-group"><label>Độ cao đẩy đứng (m):</label><input type="number" id="calcHeight" value="50"></div><div class="form-group"><label>Tổng chiều dài ống (m):</label><input type="number" id="calcLength" value="200"></div></div>
+            <div class="grid-2"><div class="form-group"><label>Lưu lượng cần bơm (m³/h):</label><input type="number" id="calcFlow" value="15"></div><div class="form-group"><label>Áp lực đầu béc (m):</label><input type="number" id="calcOutletHead" value="15"></div></div>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execPumpCalc)">TÍNH CÔNG SUẤT BƠM</button>
+            <div id="toolModalResult" style="margin-top:10px;"></div>
+        `;
     } else if (toolId === 'vdrop') {
-        renderToolHost(`
-            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">⚡ Tính Sụt Áp Trên Đường Dây</h3>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Hệ thống điện:</label><select id="vdSystem"><option value="380">3 Pha 380V (AC)</option><option value="220">1 Pha 220V (AC)</option><option value="550">Điện mặt trời DC (~550V)</option></select></div>
-                <div class="form-group"><label>Chất liệu lõi dây:</label><select id="vdMaterial"><option value="0.0175">Dây Đồng (Cu)</option><option value="0.0283">Dây Nhôm (Al)</option></select></div>
-            </div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Dòng điện tải (A):</label><input type="number" id="vdCurrent" value="25"></div>
-                <div class="form-group"><label>Chiều dài dây 1 chiều (m):</label><input type="number" id="vdLength" value="80"></div>
-            </div>
-            <div class="form-group"><label>Tiết diện dây dẫn (mm²):</label><select id="vdSize"><option value="2.5">2.5 mm²</option><option value="4">4.0 mm²</option><option value="6" selected>6.0 mm²</option><option value="10">10 mm²</option><option value="16">16 mm²</option><option value="25">25 mm²</option></select></div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execVdropCalc)">TÍNH ĐỘ SỤT ÁP</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
+        ws.innerHTML = `
+            <h3 style="margin-top:0; color:var(--primary); font-size:16px;">⚡ Tính Sụt Áp Đường Dây</h3>
+            <div class="grid-2"><div class="form-group"><label>Hệ thống điện:</label><select id="vdSystem"><option value="380">3 Pha 380V (AC)</option><option value="550">Điện mặt trời DC (~550V)</option></select></div><div class="form-group"><label>Lõi dây:</label><select id="vdMaterial"><option value="0.0175">Đồng (Cu)</option><option value="0.0283">Nhôm (Al)</option></select></div></div>
+            <div class="grid-2"><div class="form-group"><label>Dòng tải (A):</label><input type="number" id="vdCurrent" value="25"></div><div class="form-group"><label>Chiều dài 1 chiều (m):</label><input type="number" id="vdLength" value="80"></div></div>
+            <div class="form-group"><label>Tiết diện dây (mm²):</label><select id="vdSize"><option value="4">4.0 mm²</option><option value="6" selected>6.0 mm²</option><option value="10">10 mm²</option><option value="16">16 mm²</option><option value="25">25 mm²</option></select></div>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execVdropCalc)">TÍNH SỤT ÁP</button>
+            <div id="toolModalResult" style="margin-top:10px;"></div>
+        `;
+    } else if (toolId === 'acc') {
+        ws.innerHTML = `
+            <h3 style="margin-top:0; color:var(--primary); font-size:16px;">🔩 Tính Phụ Kiện Áp Mái</h3>
+            <div class="form-group"><label>Tổng số tấm pin:</label><input type="number" id="accTotalPanels" value="18"></div>
+            <div class="form-group"><label>Số dãy pin:</label><input type="number" id="accRows" value="2"></div>
+            <div class="form-group"><label>Loại chân đế:</label><select id="accLegType"><option value="2">2 chân đế / dãy</option><option value="3">3 chân đế / dãy</option></select></div>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execAccCalc)">TÍNH PHỤ KIỆN</button>
+            <div id="toolModalResult" style="margin-top:10px;"></div>
+        `;
     } else if (toolId === 'divider') {
-        renderToolHost(`
-            <h3 style="margin-top:0; color:var(--primary); font-size:16.5px;">🔌 Tính Cầu Trở Phân Áp</h3>
-            <div class="form-group"><label>Điện áp nguồn đầu vào Vin (V):</label><input type="number" id="divVin" value="24" step="0.1"></div>
-            <div class="grid-2" style="gap:10px;">
-                <div class="form-group"><label>Điện trở R1 (kΩ):</label><input type="number" id="divR1" value="10" step="0.1"></div>
-                <div class="form-group"><label>Điện trở R2 (kΩ):</label><input type="number" id="divR2" value="4.7" step="0.1"></div>
-            </div>
-            <button class="btn btn-primary" onclick="checkLimitAndRun(execDividerCalc)">TÍNH ĐIỆN ÁP RA VOUT</button>
-            <div id="toolModalResult" class="result-box"></div>
-        `);
+        ws.innerHTML = `
+            <h3 style="margin-top:0; color:var(--primary); font-size:16px;">🔌 Tính Cầu Trở Phân Áp</h3>
+            <div class="form-group"><label>Điện áp vào Vin (V):</label><input type="number" id="divVin" value="24"></div>
+            <div class="grid-2"><div class="form-group"><label>R1 (kΩ):</label><input type="number" id="divR1" value="10"></div><div class="form-group"><label>R2 (kΩ):</label><input type="number" id="divR2" value="4.7"></div></div>
+            <button class="btn btn-primary" onclick="checkLimitAndRun(execDividerCalc)">TÍNH VOUT</button>
+            <div id="toolModalResult" style="margin-top:10px;"></div>
+        `;
     }
 }
-
-
+/* === HÀM HỖ TRỢ NHẬP LIỆU TÍNH CHUỖI PIN === */
 function cleanPumpExprInput() {
-    const inputEl = document.getElementById('spPumpExpr');
-    if (!inputEl) return;
-    const cleaned = inputEl.value.replace(/[^0-9+\-*/().,\s]/g, '');
-    if (inputEl.value !== cleaned) inputEl.value = cleaned;
+    const el = document.getElementById('spPumpExpr');
+    if (!el) return;
+    el.value = el.value.replace(/[^0-9+\-*/().,\s]/g, '');
     updateInverterDropdownAll();
 }
 
 function evaluatePumpInput() {
-    const inputEl = document.getElementById('spPumpExpr');
-    if (!inputEl) return;
-    const rawExpr = inputEl.value.replace(/,/g, '.').trim();
-    if (!rawExpr) return;
-    const cleanExpr = rawExpr.replace(/[^0-9+\-*/().\s]/g, '');
+    const el = document.getElementById('spPumpExpr');
+    if (!el) return;
+    const raw = el.value.replace(/,/g, '.').trim();
+    if (!raw) return;
     try {
-        const val = Function('"use strict";return (' + cleanExpr + ')')();
+        const val = Function('"use strict";return (' + raw.replace(/[^0-9+\-*/().\s]/g, '') + ')')();
         if (typeof val === 'number' && !isNaN(val) && val > 0) {
-            inputEl.value = Number(val.toFixed(2));
+            el.value = Number(val.toFixed(2));
             updateInverterDropdownAll();
         }
     } catch (e) {}
 }
 
 function parseSafePumpPowerKW() {
-    const rawExpr = (document.getElementById('spPumpExpr')?.value || "").replace(/,/g, '.').trim();
+    const raw = (document.getElementById('spPumpExpr')?.value || "").replace(/,/g, '.').trim();
     const unit = document.getElementById('spPumpUnit')?.value || "kW";
-    if (!rawExpr) return 0;
-    const cleanExpr = rawExpr.replace(/[^0-9+\-*/().\s]/g, '');
+    if (!raw) return 0;
     try {
-        const val = Function('"use strict";return (' + cleanExpr + ')')();
+        const val = Function('"use strict";return (' + raw.replace(/[^0-9+\-*/().\s]/g, '') + ')')();
         if (typeof val !== 'number' || isNaN(val) || val <= 0) return 0;
         return unit === "HP" ? (val * 0.75) : val;
     } catch (e) { return 0; }
@@ -915,67 +744,41 @@ function parseSafePumpPowerKW() {
 function updateInverterDropdownAll() {
     const stepUp = parseInt(document.getElementById('scLoadType')?.value || "1");
     const pumpKW = parseSafePumpPowerKW();
-    const invSelect = document.getElementById('spInvIdx');
-    const suggestEl = document.getElementById('pumpSuggestNote');
-    if (!invSelect) return;
+    const invSel = document.getElementById('spInvIdx');
+    const noteEl = document.getElementById('pumpSuggestNote');
+    if (!invSel) return;
 
-    const brandsOrder = [
-        { key: "Power S", label: "Hãng Power S (Max 900V)" },
-        { key: "Voltique", label: "Hãng Voltique (Max 950V)" },
-        { key: "Green Nova", label: "Hãng Green Nova (Max 950V)" },
-        { key: "SAJ", label: "Hãng SAJ (Max 900V)" }
-    ];
-
+    const kws = [...new Set(SOLAR_INVERTERS_DB.map(i => i.kw))].sort((a, b) => a - b);
     let targetKW = null;
-    let isOverMax = false;
-    const distinctKWs = [...new Set(SOLAR_INVERTERS_DB.map(i => i.kw))].sort((a, b) => a - b);
-    const maxKhoKW = distinctKWs[distinctKWs.length - 1] || 22;
+    let overMax = false;
 
     if (pumpKW > 0) {
-        let baseIdx = distinctKWs.findIndex(kw => kw >= pumpKW);
-        if (baseIdx === -1 || (baseIdx + stepUp) >= distinctKWs.length) {
-            isOverMax = true;
-            if (suggestEl) {
-                suggestEl.style.display = 'block';
-                suggestEl.style.color = '#dc2626';
-                suggestEl.innerHTML = `⚠️ Bơm <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> hiện tại không có sẵn trong kho. Hãy liên hệ bộ phận kinh doanh để được tư vấn đặt hàng!`;
-            }
+        const baseIdx = kws.findIndex(k => k >= pumpKW);
+        if (baseIdx === -1 || (baseIdx + stepUp) >= kws.length) {
+            overMax = true;
+            if (noteEl) { noteEl.style.display = 'block'; noteEl.style.color = '#dc2626'; noteEl.innerHTML = `⚠️ Bơm ${pumpKW.toFixed(1)}kW vượt dải kho sẵn có. Liên hệ kinh doanh đặt hàng!`; }
         } else {
-            targetKW = distinctKWs[baseIdx + stepUp];
-            if (suggestEl) {
-                const loadNames = { "0": "Bơm đặt cạn", "1": "Bơm hỏa tiễn", "2": "Bơm tải nặng" };
-                suggestEl.style.display = 'block';
-                suggestEl.style.color = '#15803d';
-                suggestEl.innerHTML = `👉 Đề xuất: ${loadNames[stepUp]} <b>${pumpKW.toFixed(1)}kW (${Math.round(pumpKW/0.75)}HP)</b> ➔ Chọn biến tần cấp <b>${targetKW}kW (${Math.round(targetKW/0.75)}HP)</b>.`;
-            }
+            targetKW = kws[baseIdx + stepUp];
+            if (noteEl) { noteEl.style.display = 'block'; noteEl.style.color = '#15803d'; noteEl.innerHTML = `👉 Đề xuất: Bơm <b>${pumpKW.toFixed(1)}kW</b> ➔ Chọn biến tần cấp <b>${targetKW}kW (${Math.round(targetKW/0.75)}HP)</b>.`; }
         }
-    } else if (suggestEl) {
-        suggestEl.style.display = 'none';
-    }
+    } else if (noteEl) noteEl.style.display = 'none';
 
     let html = "";
-    brandsOrder.forEach(b => {
-        const items = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, origIdx: idx }))
-            .filter(inv => inv.brand === b.key && (targetKW === null || inv.kw === targetKW));
-        if (items.length > 0) {
-            html += `<optgroup label="${b.label}">`;
-            items.forEach(inv => {
-                html += `<option value="${inv.origIdx}">${inv.name}</option>`;
-            });
-            html += `</optgroup>`;
-        }
+    ["Power S", "Voltique", "Green Nova", "SAJ"].forEach(br => {
+        const list = SOLAR_INVERTERS_DB.map((inv, idx) => ({ ...inv, idx }))
+            .filter(x => x.brand === br && (targetKW === null || x.kw === targetKW));
+        if (list.length) html += `<optgroup label="Hãng ${br}">${list.map(x => `<option value="${x.idx}">${x.name}</option>`).join('')}</optgroup>`;
     });
-    html += `<option value="custom" ${isOverMax ? 'selected' : ''}>-- Tự nhập thông số biến tần khác --</option>`;
-
-    invSelect.innerHTML = html;
-    if (!isOverMax) fillInverterSpecs();
+    html += `<option value="custom" ${overMax ? 'selected' : ''}>-- Tự nhập thông số biến tần --</option>`;
+    invSel.innerHTML = html;
+    if (!overMax) fillInverterSpecs();
 }
 
 function updateMpptOptField() {
     const mMin = parseFloat(document.getElementById('invMpptMinInput')?.value) || 0;
     const mMax = parseFloat(document.getElementById('invMpptMaxInput')?.value) || 0;
-    const optEl = document.getElementById('invMpptOptInput');
-    if (optEl) optEl.value = Math.round((mMin + mMax) / 2);
+    const opt = document.getElementById('invMpptOptInput');
+    if (opt) opt.value = Math.round((mMin + mMax) / 2);
 }
 
 function fillInverterSpecs() {
@@ -984,17 +787,14 @@ function fillInverterSpecs() {
     const inv = SOLAR_INVERTERS_DB[parseInt(val)];
     if (!inv) return;
     document.getElementById('invKwInput').value = inv.kw;
-    const phaseEl = document.getElementById('invPhaseInput');
-    if (phaseEl) phaseEl.value = inv.phase || "3 pha 380V";
-    const outAEl = document.getElementById('invOutAInput');
-    if (outAEl) outAEl.value = inv.iOut || "";
+    const outA = document.getElementById('invOutAInput');
+    if (outA) outA.value = inv.iOut || "";
     document.getElementById('invVdcMaxInput').value = inv.vdcMax;
     document.getElementById('invIdcMaxInput').value = inv.idcMax;
     document.getElementById('invMpptMinInput').value = inv.mpptMin;
     document.getElementById('invMpptMaxInput').value = inv.mpptMax;
     updateMpptOptField();
 }
-
 
 function fillPanelSpecs() {
     const val = document.getElementById('spPanelIdx')?.value;
@@ -1006,9 +806,10 @@ function fillPanelSpecs() {
     document.getElementById('panVmpInput').value = pan.vmp;
     document.getElementById('panVocInput').value = pan.voc;
 }
+/* === CÔNG THỨC TÍNH CHUỖI PIN CHUẨN SG600 & MẸO CHỐT ĐƠN === */
 function execRealCombatSolarCalc() {
     const invVal = document.getElementById('spInvIdx')?.value;
-    const baseInv = invVal !== 'custom' ? SOLAR_INVERTERS_DB[parseInt(invVal)] : { name: "Biến tần tùy chỉnh", phase: "3 pha 380V", price: 10000000 };
+    const baseInv = invVal !== 'custom' ? SOLAR_INVERTERS_DB[parseInt(invVal)] : { name: "Biến tần tùy chỉnh", price: 10000000 };
     const invKw = parseFloat(document.getElementById('invKwInput').value) || 0;
     const vdcMax = parseFloat(document.getElementById('invVdcMaxInput').value) || 900;
     const idcMax = parseFloat(document.getElementById('invIdcMaxInput').value) || 40;
@@ -1019,15 +820,12 @@ function execRealCombatSolarCalc() {
     const imp = parseFloat(document.getElementById('panImpInput').value) || 0;
     const vmp = parseFloat(document.getElementById('panVmpInput').value) || 0;
     const voc = parseFloat(document.getElementById('panVocInput').value) || 0;
-    if (invKw <= 0 || pMax <= 0 || vmp <= 0 || voc <= 0) return alert("Vui lòng kiểm tra lại thông số biến tần và tấm pin!");
+    if (invKw <= 0 || pMax <= 0 || vmp <= 0 || voc <= 0) return showToast("Kiểm tra lại thông số biến tần và tấm pin!", "warn");
 
     const pumpKW = parseSafePumpPowerKW();
-    if (pumpKW <= 0) {
-        return markInputError('spPumpExpr', "⚠️ Vui lòng nhập công suất máy bơm trước khi tính toán!");
-    }
-    if (pumpKW > invKw) {
-        return showToast(`⚠️ Công suất bơm (${pumpKW}kW) đang lớn hơn biến tần (${invKw}kW)! Hãy chọn biến tần tối thiểu ${Math.ceil(pumpKW * 1.3)}kW.`, "warn", 4000);
-    }
+    if (pumpKW <= 0) return markInputError('spPumpExpr', "⚠️ Vui lòng nhập công suất máy bơm trước khi tính!");
+    if (pumpKW > invKw) return showToast(`⚠️ Công suất bơm (${pumpKW}kW) lớn hơn biến tần (${invKw}kW)!`, "warn", 4000);
+
     const vocColdFactor = 1.05;
     const maxSafePerStr = Math.floor((vdcMax - 0.1) / (voc * vocColdFactor));
     const min3PhaseVolt = Math.max(mpptMin, 540);
@@ -1035,33 +833,25 @@ function execRealCombatSolarCalc() {
     const midMpptVolt = (mpptMin + mpptMax) / 2;
     const midPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.round(midMpptVolt / vmp)));
 
-    // 1. PHƯƠNG ÁN TỐI ƯU (Ít chuỗi dây nhất, Vmp >= 540VDC & Tổng công suất >= 1.3x tải bơm)
-    const minRequiredPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
-    const optStrings = Math.max(1, Math.ceil(minRequiredPanels / maxSafePerStr));
-    const optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(minRequiredPanels / optStrings)));
+    const minReqPanels = Math.ceil((pumpKW * 1.3 * 1000) / pMax);
+    const optStrings = Math.max(1, Math.ceil(minReqPanels / maxSafePerStr));
+    const optPerStr = Math.min(maxSafePerStr, Math.max(minVoltPerStr, Math.ceil(minReqPanels / optStrings)));
 
-    // 2. PHƯƠNG ÁN LÝ TƯỞNG (Vmp vùng trung bình MPPT ~618V+, Tổng công suất ~1.5x tải bơm)
-    // 2. PHƯƠNG ÁN LÝ TƯỞNG (Ưu tiên gói gọn trong cùng số chuỗi nếu maxSafePerStr chứa đủ)
     const idealTargetPanels = Math.ceil((pumpKW * 1.5 * 1000) / pMax);
     let idealStrings = Math.max(optStrings, Math.ceil(idealTargetPanels / maxSafePerStr));
     let idealPerStr = Math.min(maxSafePerStr, Math.max(midPerStr, Math.ceil(idealTargetPanels / idealStrings)));
 
     if (idealStrings === optStrings && (idealStrings * idealPerStr) <= (optStrings * optPerStr)) {
-        if (optPerStr < maxSafePerStr) {
-            idealPerStr = maxSafePerStr;
-        } else {
-            idealStrings = optStrings + 1;
-            idealPerStr = Math.max(minVoltPerStr, Math.ceil(idealTargetPanels / idealStrings));
-        }
+        if (optPerStr < maxSafePerStr) idealPerStr = maxSafePerStr;
+        else { idealStrings = optStrings + 1; idealPerStr = Math.max(minVoltPerStr, Math.ceil(idealTargetPanels / idealStrings)); }
     }
 
-
     currentSolarPlans = [
-        { label: `💡 PHƯƠNG ÁN TỐI ƯU (TIẾT KIỆM DÂY)`, strings: optStrings, perStr: optPerStr, total: optStrings * optPerStr },
-        { label: `⭐ PHƯƠNG ÁN LÝ TƯỞNG (KHUYÊN DÙNG)`, strings: idealStrings, perStr: idealPerStr, total: idealStrings * idealPerStr }
+        { label: "💡 PHƯƠNG ÁN TỐI ƯU (TIẾT KIỆM DÂY)", strings: optStrings, perStr: optPerStr, total: optStrings * optPerStr },
+        { label: "⭐ PHƯƠNG ÁN LÝ TƯỞNG (KHUYÊN DÙNG)", strings: idealStrings, perStr: idealPerStr, total: idealStrings * idealPerStr }
     ];
 
-    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, idealStrings, idealPerStr, maxSafePerStr, vocColdFactor, pumpKW);
+    renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, maxSafePerStr, vocColdFactor, pumpKW);
 }
 
 function applySingleStringSalesTip(maxPerStr, pMax) {
@@ -1069,29 +859,24 @@ function applySingleStringSalesTip(maxPerStr, pMax) {
     if (window.lastCombatConfigSummary) {
         window.lastCombatConfigSummary.recStrings = 1;
         window.lastCombatConfigSummary.recPerStr = maxPerStr;
-        window.lastCombatConfigSummary.isSalesTipSingle = true;
     }
     setQuoteDataFromCombat(1, maxPerStr);
-    alert(`✅ Đã chọn gói tiết kiệm 1 chuỗi × ${maxPerStr} tấm (${((maxPerStr * pMax)/1000).toFixed(2)} kWp)! Bạn có thể bấm "Lập Bảng Báo Giá" hoặc "Sao chép cấu hình" ngay.`);
+    showToast(`✅ Đã chọn gói tiết kiệm 1 chuỗi × ${maxPerStr} tấm (${((maxPerStr * pMax)/1000).toFixed(2)} kWp)!`, "success", 3500);
 }
-
-function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, recStrings, recPerStr, maxPerStr, vocColdFactor, pumpKW) {
+function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, baseInv, maxPerStr, vocColdFactor, pumpKW) {
     const cardsHtml = currentSolarPlans.map((pl, idx) => {
         const voc25 = (pl.perStr * voc).toFixed(1);
         const vocCold = (pl.perStr * voc * vocColdFactor).toFixed(1);
         const vmpStr = (pl.perStr * vmp).toFixed(1);
         const kwpStr = ((pl.total * pMax) / 1000).toFixed(2);
-        const panelHeadText = pl.strings === 1
-            ? `${pl.perStr} tấm / chuỗi`
-            : `${pl.strings} chuỗi × ${pl.perStr} tấm = ${pl.total} tấm`;
-        const bestCls = idx === 1 ? 'best-plan active-plan' : '';
+        const headTxt = pl.strings === 1 ? `${pl.perStr} tấm / chuỗi` : `${pl.strings} chuỗi × ${pl.perStr} tấm = ${pl.total} tấm`;
         return `
-            <div class="plan-card ${bestCls}" id="planCard_${idx}" onclick="selectSingleOrRecPlan(${idx})">
+            <div class="plan-card ${idx === 1 ? 'active-plan' : ''}" id="planCard_${idx}" onclick="selectSingleOrRecPlan(${idx})">
                 <div class="plan-title">${pl.label}</div>
-                <div class="plan-panels">${panelHeadText}</div>
+                <div class="plan-panels">${headTxt}</div>
                 <div class="plan-sub">
-                    Voc (25°C): <b>${voc25}V</b> | Sáng sớm trời lạnh (10°C): <b>${vocCold}V</b><br>
-                    Vmp: <b>${vmpStr}V</b> | Tổng công suất: <b>${kwpStr} kWp</b>
+                    Voc (25°C): <b>${voc25}V</b> | Lạnh (10°C): <b>${vocCold}V</b><br>
+                    Vmp: <b>${vmpStr}V</b> | Công suất: <b>${kwpStr} kWp</b>
                 </div>
             </div>
         `;
@@ -1099,108 +884,64 @@ function renderCombatResultBlocks(pMax, vmp, voc, imp, vdcMax, idcMax, invKw, ba
 
     const optPlan = currentSolarPlans[0];
     const idealPlan = currentSolarPlans[1];
-    const idealTotalKWp = ((idealPlan.total * pMax) / 1000).toFixed(2);
-    const idealTotalImp = (idealPlan.strings * imp).toFixed(2);
-    const optTotalKWp = ((optPlan.total * pMax) / 1000).toFixed(2);
+    const idealKWp = ((idealPlan.total * pMax) / 1000).toFixed(2);
+    const idealImp = (idealPlan.strings * imp).toFixed(2);
 
-    // Mẹo tư vấn chốt đơn thực tế: Khi phải nhảy lên 2 chuỗi nhưng 1 chuỗi maxPerStr đã đạt 1.15x - 1.30x tải bơm
     const singleMaxKWp = (maxPerStr * pMax) / 1000;
     const singleRatio = pumpKW > 0 ? (singleMaxKWp / pumpKW) : 0;
     let salesTipHtml = "";
     if (optPlan.strings >= 2 && singleRatio >= 1.15 && singleRatio < 1.3) {
-        const minWattForSingle = Math.ceil((pumpKW * 1.3 * 1000) / maxPerStr);
+        const minWatt = Math.ceil((pumpKW * 1.3 * 1000) / maxPerStr);
         salesTipHtml = `
-            <div style="margin-top:10px; padding:12px; background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #0284c7; border-radius:6px; font-size:13px; color:#1e3a8a; line-height:1.55;">
-                <div style="font-weight:700; margin-bottom:4px;">🤝 Mẹo tư vấn chốt đơn thực tế (Gói tiết kiệm tối đa 1 chuỗi):</div>
-                • Với bơm <b>${pumpKW}kW</b>, nếu khách dùng pin <b>${pMax}W</b> mà muốn tiết kiệm chi phí tối đa, có thể đi <b>1 chuỗi × ${maxPerStr} tấm = ${singleMaxKWp.toFixed(2)} kWp</b> (đạt <b>${singleRatio.toFixed(2)}x</b> tải bơm — giảm được <b>${optPlan.total - maxPerStr} tấm pin</b> + 1 bộ dây/CB DC, chạy tốt giờ nắng đỉnh).<br>
-                • Hoặc tư vấn khách đổi sang dòng pin công suất từ <b>${minWattForSingle}W trở lên</b> (ví dụ 610W/625W) để vừa giữ được <b>1 chuỗi × ${maxPerStr} tấm</b> gọn nhẹ, vừa đạt chuẩn <b>≥ 1.3x</b> của hãng!
-                <div style="margin-top:6px;">
-                    <button type="button" class="btn" style="padding:5px 10px; font-size:12px; background:#0284c7; width:auto;" onclick="applySingleStringSalesTip(${maxPerStr}, ${pMax})">⚡ Áp dụng gói tiết kiệm 1 chuỗi (${maxPerStr} tấm) để báo giá</button>
-                </div>
+            <div style="margin-top:10px; padding:10px; background:#eff6ff; border-left:4px solid #0284c7; border-radius:6px; font-size:12.5px; color:#1e3a8a; line-height:1.5;">
+                <b>🤝 Mẹo tư vấn chốt đơn (Gói tiết kiệm 1 chuỗi):</b><br>
+                • Với bơm <b>${pumpKW}kW</b>, khách muốn tiết kiệm tối đa có thể đi <b>1 chuỗi × ${maxPerStr} tấm = ${singleMaxKWp.toFixed(2)} kWp</b> (${singleRatio.toFixed(2)}x tải bơm — giảm <b>${optPlan.total - maxPerStr} tấm</b>). Hoặc đổi sang pin <b>≥ ${minWatt}W</b> để giữ 1 chuỗi gọn nhẹ mà vẫn đạt chuẩn ≥ 1.3x!<br>
+                <button type="button" class="btn" style="margin-top:6px; padding:5px 10px; font-size:12px; background:#0284c7; width:auto;" onclick="applySingleStringSalesTip(${maxPerStr}, ${pMax})">⚡ Áp dụng gói 1 chuỗi (${maxPerStr} tấm) báo giá</button>
             </div>
         `;
     }
 
-    const forbiddenPanels = maxPerStr + 1;
-    const forbiddenVocCold = (forbiddenPanels * voc * vocColdFactor).toFixed(1);
-    let warnLines = [
-        `<b>Bảo vệ quá áp sáng sớm trời lạnh (10°C):</b> Tuyệt đối không đấu đến <b>${forbiddenPanels} tấm/chuỗi</b> vì điện áp hở mạch lúc sáng sớm trời lạnh có thể vọt lên <b>${forbiddenVocCold}V</b>, vượt ngưỡng chịu đựng <b>${vdcMax}V</b> của biến tần.`
-    ];
-    if (parseFloat(idealTotalImp) > 25) {
-        warnLines.push(`<b>Cảnh báo dòng điện cao (${idealTotalImp}A):</b> Tổng dòng DC vượt 25A, bắt buộc dùng dây cáp DC trục chính tiết diện từ <b>6mm² - 10mm²</b> và CB DC tối thiểu <b>40A</b>.`);
-    }
-
-    const idealText = idealPlan.strings === 1
-        ? `Đấu nối tiếp <b>1 chuỗi duy nhất</b> gồm <b>${idealPlan.perStr} tấm</b>`
-        : `Ghép <b>${idealPlan.strings} chuỗi song song</b>, mỗi chuỗi <b>${idealPlan.perStr} tấm</b>`;
-
-    const resBox = document.getElementById('toolModalResult');
-    resBox.innerHTML = `
-        <div class="solar-3cards" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">${cardsHtml}</div>
-        <div style="margin-top:12px; padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:6px; font-size:13.5px; color:#14532d; line-height:1.55;">
-            <div style="font-weight:700; margin-bottom:4px;">⭐ Khuyến nghị chọn cấu hình lý tưởng cho biến tần ${invKw}kW:</div>
-            • <b>Cấu hình lý tưởng:</b> ${idealText} = <b>${idealPlan.total} tấm (${idealTotalKWp} kWp)</b> | Dòng làm việc: <b>${idealTotalImp}A</b> (Bơm chạy cực khỏe từ sáng sớm đến chiều muộn).<br>
-            <span style="font-size:12.5px; color:#166534;">• <i>Ghi chú:</i> Nếu muốn tiết kiệm dây dẫn DC, có thể chọn phương án tối ưu <b>${optPlan.strings} chuỗi × ${optPlan.perStr} tấm = ${optPlan.total} tấm (${optTotalKWp} kWp)</b> (bấm vào thẻ bên trái để lập báo giá theo phương án này).</span>
+    const forbPanels = maxPerStr + 1;
+    const forbVoc = (forbPanels * voc * vocColdFactor).toFixed(1);
+    document.getElementById('toolModalResult').innerHTML = `
+        <div class="solar-2cards">${cardsHtml}</div>
+        <div style="margin-top:10px; padding:10px; background:#f0fdf4; border-left:4px solid #16a34a; border-radius:6px; font-size:13px; color:#14532d; line-height:1.5;">
+            <b>⭐ Khuyến nghị lý tưởng (${invKw}kW):</b> <b>${idealPlan.strings} chuỗi × ${idealPlan.perStr} tấm = ${idealPlan.total} tấm (${idealKWp} kWp)</b> | Dòng: <b>${idealImp}A</b>.
         </div>
         ${salesTipHtml}
-        <div style="margin-top:10px; padding:12px; background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#92400e; line-height:1.55;">
-            • ${warnLines.join('<br>• ')}
+        <div style="margin-top:8px; padding:10px; background:#fffbeb; border-left:4px solid #f59e0b; border-radius:6px; font-size:12.5px; color:#92400e;">
+            ⚠️ <b>Cảnh báo quá áp (10°C):</b> Không đấu đến <b>${forbPanels} tấm/chuỗi</b> vì Voc trời lạnh đạt <b>${forbVoc}V > ${vdcMax}V</b>.
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px;">
-            <button class="btn" style="width:100%; background:#0068ff; font-size:14.5px;" onclick="copySolarConfigForZalo()">💬 Sao chép cấu hình</button>
-            <button class="btn btn-success" style="width:100%; font-size:14.5px;" onclick="openEditableQuoteModal()">📄 Lập Bảng Báo Giá</button>
+        <div class="grid-2" style="gap:8px; margin-top:10px;">
+            <button class="btn" style="background:#0068ff;" onclick="copySolarConfigForZalo()">💬 Sao chép cấu hình</button>
+            <button class="btn btn-success" onclick="openEditableQuoteModal()">📄 Lập Bảng Báo Giá</button>
         </div>
     `;
-    window.lastCombatConfigSummary = {
-        invKw, pMax,
-        recStrings: idealPlan.strings,
-        recPerStr: idealPlan.perStr,
-        selectedCardIdx: 1,
-        isSalesTipSingle: false
-    };
+    window.lastCombatConfigSummary = { invKw, pMax, recStrings: idealPlan.strings, recPerStr: idealPlan.perStr, selectedCardIdx: 1 };
     setQuoteDataFromCombat(idealPlan.strings, idealPlan.perStr);
 }
 
 function selectSingleOrRecPlan(idx) {
-    const plan = currentSolarPlans[idx];
-    if (!plan) return;
+    const pl = currentSolarPlans[idx];
+    if (!pl) return;
     document.querySelectorAll('.plan-card').forEach((el, i) => el.classList.toggle('active-plan', i === idx));
-    if (window.lastCombatConfigSummary) {
-        window.lastCombatConfigSummary.selectedCardIdx = idx;
-        window.lastCombatConfigSummary.recStrings = plan.strings;
-        window.lastCombatConfigSummary.recPerStr = plan.perStr;
-    }
-    setQuoteDataFromCombat(plan.strings, plan.perStr);
+    if (window.lastCombatConfigSummary) window.lastCombatConfigSummary.selectedCardIdx = idx;
+    setQuoteDataFromCombat(pl.strings, pl.perStr);
 }
 
 function copySolarConfigForZalo() {
     const cfg = window.lastCombatConfigSummary;
     if (!cfg || !currentSolarPlans.length) return;
-    const loadVal = document.getElementById('scLoadType')?.value || "1";
-    const loadNames = { "0": "máy bơm đặt cạn", "1": "máy bơm hỏa tiễn", "2": "máy bơm tải nặng" };
     const pumpKW = parseSafePumpPowerKW();
-    const line1 = pumpKW > 0
-        ? `Cấu hình dành cho ${loadNames[loadVal]} ${pumpKW}kW`
-        : `Cấu hình dành cho hệ biến tần ${cfg.invKw}kW`;
-
-    const selPlan = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[1];
-    const cleanPlanName = selPlan.label.replace('💡 ', '').replace('⭐ ', '').toLowerCase();
-    const formattedPlanTitle = cleanPlanName.charAt(0).toUpperCase() + cleanPlanName.slice(1);
-    const totalKwp = ((selPlan.total * cfg.pMax) / 1000).toFixed(2);
-    const line2 = `${formattedPlanTitle}: Biến tần ${cfg.invKw}kW + ${selPlan.strings} chuỗi x ${selPlan.perStr} tấm (${cfg.pMax}W) = ${selPlan.total} tấm (${totalKwp} kWp)`;
-
-    const text = `${line1}\n${line2}`;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép cấu hình vào bộ nhớ tạm để gửi Zalo!"))
-        .catch(() => prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text));
-    } else {
-        prompt("Sao chép nội dung cấu hình dưới đây để gửi Zalo:", text);
-    }
+    const sel = currentSolarPlans[cfg.selectedCardIdx] || currentSolarPlans[1];
+    const kwp = ((sel.total * cfg.pMax) / 1000).toFixed(2);
+    const txt = `Cấu hình hệ bơm NLMT${pumpKW > 0 ? ' ' + pumpKW + 'kW' : ''}: Biến tần ${cfg.invKw}kW + ${sel.strings} chuỗi x ${sel.perStr} tấm (${cfg.pMax}W) = ${sel.total} tấm (${kwp} kWp)`;
+    navigator.clipboard?.writeText(txt).then(() => showToast("✅ Đã sao chép cấu hình gửi Zalo!", "success"));
 }
-
+/* === BẢNG BÁO GIÁ HỆ BƠM NLMT === */
 function setQuoteDataFromCombat(strings, perStr) {
-    const pMax = parseFloat(document.getElementById('panPmaxInput').value) || 625;
-    const invKw = parseFloat(document.getElementById('invKwInput').value) || 15;
+    const pMax = parseFloat(document.getElementById('panPmaxInput')?.value) || 580;
+    const invKw = parseFloat(document.getElementById('invKwInput')?.value) || 7.5;
     const dcLen = parseFloat(document.getElementById('spDcLen')?.value) || 25;
     const invVal = document.getElementById('spInvIdx')?.value;
     const invObj = invVal !== 'custom' ? SOLAR_INVERTERS_DB[parseInt(invVal)] : { name: `Biến tần bơm ${invKw}kW`, price: invKw * 950000 };
@@ -1210,7 +951,7 @@ function setQuoteDataFromCombat(strings, perStr) {
     const totalKWp = (totalPanels * pMax) / 1000;
     const pumpKW = parseSafePumpPowerKW();
     const pumpSummary = pumpKW > 0 ? `${pumpKW} kW` : `Hệ biến tần ${invKw} kW`;
-    lastSolarQuoteData = { pumpKW: pumpKW || invKw, pumpSummary, panel: panObj, inv: invObj, totalPanels, totalKWp, strings, panelsPerString: perStr, dcLen };
+    lastSolarQuoteData = { pumpSummary, panel: panObj, inv: invObj, totalPanels, totalKWp, strings, panelsPerString: perStr, dcLen };
 }
 
 function openEditableQuoteModal() {
@@ -1219,204 +960,79 @@ function openEditableQuoteModal() {
     const rows = [
         { name: `Tấm pin NLMT ${d.panel.name}`, unit: "Tấm", qty: d.totalPanels, price: d.panel.power * d.panel.priceWp },
         { name: `Biến tần bơm ${d.inv.name}`, unit: "Bộ", qty: 1, price: d.inv.price },
-        { name: `Bát Z`, unit: "Cái", qty: (d.totalPanels + d.strings) * 2, price: 15000 },
-        { name: `Tủ điện`, unit: "Tủ", qty: 1, price: 2500000 },
-        { name: `Cab Solar DC`, unit: "Mét", qty: d.dcLen * 2 * d.strings, price: 22000 },
-        { name: `Kẹp biên`, unit: "Cái", qty: d.strings * 4, price: 12000 },
-        { name: `Kẹp giữa`, unit: "Cái", qty: Math.max(0, (d.totalPanels - d.strings) * 2), price: 12000 },
-        { name: `Kẹp U`, unit: "Cái", qty: (d.totalPanels + d.strings) * 2, price: 10000 },
-        { name: `Jack MC4`, unit: "Cái", qty: d.strings * 4, price: 25000 },
-        { name: `Nhân công lắp đặt & cài đặt vận hành`, unit: "NC", qty: 1, price: Math.round(d.totalKWp * 800000) },
-        { name: `Khác`, unit: "", qty: 0, price: 0 }
+        { name: "Bát Z", unit: "Cái", qty: (d.totalPanels + d.strings) * 2, price: 15000 },
+        { name: "Tủ điện AC/DC", unit: "Tủ", qty: 1, price: 2500000 },
+        { name: "Cab Solar DC", unit: "Mét", qty: d.dcLen * 2 * d.strings, price: 22000 },
+        { name: "Kẹp biên", unit: "Cái", qty: d.strings * 4, price: 12000 },
+        { name: "Kẹp giữa", unit: "Cái", qty: Math.max(0, (d.totalPanels - d.strings) * 2), price: 12000 },
+        { name: "Kẹp U", unit: "Cái", qty: (d.totalPanels + d.strings) * 2, price: 10000 },
+        { name: "Jack MC4", unit: "Cái", qty: d.strings * 4, price: 25000 },
+        { name: "Nhân công lắp đặt & cài đặt", unit: "NC", qty: 1, price: Math.round(d.totalKWp * 800000) }
     ];
+    window._quoteRowCount = rows.length;
 
     const trHtml = rows.map((r, i) => `
         <tr>
-            <td style="text-align:center;">${i + 1}</td>
-            <td><input type="text" id="qName_${i}" value="${r.name}" style="min-width:140px; padding:5px; font-size:13px; font-weight:600;"></td>
-            <td><input type="text" id="qUnit_${i}" value="${r.unit}" style="width:55px; text-align:center; padding:5px; font-size:13px;"></td>
-            <td><input type="number" class="quote-qty" id="qQty_${i}" value="${r.qty}" oninput="recalcQuoteTotal()"></td>
-            <td><input type="number" class="quote-input" id="qPrice_${i}" value="${r.price}" oninput="recalcQuoteTotal()"></td>
-            <td style="text-align:right; font-weight:600; white-space:nowrap;" id="qSub_${i}">${(r.qty * r.price).toLocaleString('vi-VN')}</td>
+            <td>${i + 1}</td>
+            <td><input type="text" id="qName_${i}" value="${r.name}" style="min-width:130px; padding:4px; font-size:12.5px;"></td>
+            <td><input type="text" id="qUnit_${i}" value="${r.unit}" style="width:48px; text-align:center; padding:4px; font-size:12.5px;"></td>
+            <td><input type="number" id="qQty_${i}" value="${r.qty}" style="width:55px; padding:4px;" oninput="recalcQuoteTotal()"></td>
+            <td><input type="number" id="qPrice_${i}" value="${r.price}" style="width:95px; padding:4px;" oninput="recalcQuoteTotal()"></td>
+            <td style="text-align:right; font-weight:700;" id="qSub_${i}">${(r.qty * r.price).toLocaleString('vi-VN')}</td>
         </tr>
     `).join('');
 
     openGlobalModal(`
-        <h3 style="margin:0 0 6px; color:var(--primary); font-size:16px;">📄 BẢNG BÁO GIÁ BƠM NĂNG LƯỢNG MẶT TRỜI</h3>
-        <p style="font-size:12px; color:#64748b; margin-top:0;">Cấu hình: Bơm <b>${d.pumpSummary}</b> | Giàn pin <b>${d.totalKWp.toFixed(2)} kWp</b> (${d.strings} chuỗi × ${d.panelsPerString} tấm). <i>Chạm vào ô bất kỳ để sửa tên, ĐVT, SL hoặc Đơn giá:</i></p>
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead><tr><th>STT</th><th>Hạng mục thiết bị</th><th>ĐVT</th><th>SL</th><th>Đơn giá (đ)</th><th style="text-align:right;">Thành tiền</th></tr></thead>
-                <tbody>${trHtml}</tbody>
-            </table>
-        </div>
-        <div style="margin-top:12px; text-align:right; font-size:13.5px;">
+        <h3 style="margin:0 0 6px; color:var(--primary); font-size:16px;">📄 BẢNG BÁO GIÁ HỆ BƠM NLMT</h3>
+        <p style="font-size:12px; color:#64748b; margin-top:0;">Bơm <b>${d.pumpSummary}</b> | Giàn pin <b>${d.totalKWp.toFixed(2)} kWp</b> (${d.strings} chuỗi × ${d.panelsPerString} tấm)</p>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th>STT</th><th>Hạng mục</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody>${trHtml}</tbody></table></div>
+        <div style="margin-top:10px; text-align:right; font-size:13px;">
             <div>Tổng cộng: <b id="qTotalRaw">0</b> đ</div>
-            <div style="margin:6px 0;">Giảm giá (đ): <input type="number" class="quote-input" id="qDiscount" value="0" oninput="recalcQuoteTotal()"></div>
-            <div style="font-size:16px; color:var(--danger); margin-top:6px;">TỔNG THANH TOÁN: <b id="qFinalTotal">0</b> VNĐ</div>
+            <div style="margin:5px 0;">Giảm giá: <input type="number" id="qDiscount" value="0" style="width:110px; padding:4px;" oninput="recalcQuoteTotal()"> đ</div>
+            <div style="font-size:15.5px; color:var(--danger);">TỔNG THANH TOÁN: <b id="qFinalTotal">0</b> VNĐ</div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:14px;">
-            <button class="btn" style="background:#0068ff; padding:10px; font-size:14px;" onclick="copyQuoteForZalo()">💬 Sao chép gửi Zalo</button>
-            <button class="btn btn-primary" style="padding:10px; font-size:14px;" onclick="printFinalQuote()">🖨️ In / Lưu PDF</button>
+        <div class="grid-2" style="gap:8px; margin-top:12px;">
+            <button class="btn" style="background:#0068ff;" onclick="copyQuoteForZalo()">💬 Sao chép gửi Zalo</button>
+            <button class="btn btn-primary" onclick="printFinalQuote()">🖨️ In / Lưu PDF</button>
         </div>
     `);
     recalcQuoteTotal();
 }
 
 function recalcQuoteTotal() {
-    let rawTotal = 0;
-    for (let i = 0; i < 11; i++) {
+    let raw = 0;
+    const count = window._quoteRowCount || 10;
+    for (let i = 0; i < count; i++) {
         const q = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
         const p = parseFloat(document.getElementById(`qPrice_${i}`)?.value) || 0;
         const sub = Math.round(q * p);
-        rawTotal += sub;
-        const subEl = document.getElementById(`qSub_${i}`);
-        if (subEl) subEl.innerText = sub.toLocaleString('vi-VN');
+        raw += sub;
+        const el = document.getElementById(`qSub_${i}`);
+        if (el) el.innerText = sub.toLocaleString('vi-VN');
     }
-    const discount = parseFloat(document.getElementById('qDiscount')?.value) || 0;
-    document.getElementById('qTotalRaw').innerText = rawTotal.toLocaleString('vi-VN');
-    document.getElementById('qFinalTotal').innerText = Math.max(0, rawTotal - discount).toLocaleString('vi-VN');
-}
-function buildFinalQuotePrintHtml() {
-    const d = lastSolarQuoteData;
-    let rowsHtml = '';
-    let stt = 1;
-    for (let i = 0; i < 11; i++) {
-        const name = document.getElementById(`qName_${i}`)?.value || "";
-        const unit = document.getElementById(`qUnit_${i}`)?.value || "";
-        const qty = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
-        const price = parseFloat(document.getElementById(`qPrice_${i}`)?.value) || 0;
-        const sub = Math.round(qty * price);
-        if (qty > 0) {
-            rowsHtml += `<tr>
-                <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${stt++}</td>
-                <td style="border:1px solid #cbd5e1; padding:6px;">${name}</td>
-                <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${unit}</td>
-                <td style="text-align:center; border:1px solid #cbd5e1; padding:6px;">${qty}</td>
-                <td style="text-align:right; border:1px solid #cbd5e1; padding:6px;">${price.toLocaleString('vi-VN')}</td>
-                <td style="text-align:right; border:1px solid #cbd5e1; padding:6px; font-weight:bold;">${sub.toLocaleString('vi-VN')}</td>
-            </tr>`;
-        }
-    }
-    const rawTotal = document.getElementById('qTotalRaw').innerText;
-    const discount = parseFloat(document.getElementById('qDiscount')?.value) || 0;
-    const finalTotal = document.getElementById('qFinalTotal').innerText;
-
-    return `<div style="font-family: Arial, sans-serif; color: #1e293b; padding: 15px;">
-        <h2 style="text-align:center; color:#0066cc; margin:0 0 6px;">BẢNG BÁO GIÁ HỆ THỐNG BƠM NĂNG LƯỢNG MẶT TRỜI</h2>
-        <p style="text-align:center; font-size:13px; margin:0 0 14px;">Cấu hình: Bơm <b>${d.pumpSummary}</b> | Giàn pin <b>${d.totalKWp.toFixed(2)} kWp</b> (${d.strings} chuỗi × ${d.panelsPerString} tấm)</p>
-        <table style="width:100%; border-collapse:collapse; font-size:13px;">
-            <thead><tr style="background:#f1f5f9;"><th style="border:1px solid #cbd5e1; padding:7px;">STT</th><th style="border:1px solid #cbd5e1; padding:7px; text-align:left;">Hạng mục thiết bị</th><th style="border:1px solid #cbd5e1; padding:7px;">ĐVT</th><th style="border:1px solid #cbd5e1; padding:7px;">SL</th><th style="border:1px solid #cbd5e1; padding:7px; text-align:right;">Đơn giá (đ)</th><th style="border:1px solid #cbd5e1; padding:7px; text-align:right;">Thành tiền (đ)</th></tr></thead>
-            <tbody>${rowsHtml}</tbody>
-        </table>
-        <div style="margin-top:14px; text-align:right; font-size:14px; line-height:1.7;">
-            <div>Tổng cộng: <b>${rawTotal} VNĐ</b></div>
-            <div>Giảm giá / Chiết khấu: <b>${discount.toLocaleString('vi-VN')} VNĐ</b></div>
-            <div style="font-size:17px; color:#dc2626;">TỔNG THANH TOÁN: <b>${finalTotal} VNĐ</b></div>
-        </div>
-    </div>`;
+    const disc = parseFloat(document.getElementById('qDiscount')?.value) || 0;
+    document.getElementById('qTotalRaw').innerText = raw.toLocaleString('vi-VN');
+    document.getElementById('qFinalTotal').innerText = Math.max(0, raw - disc).toLocaleString('vi-VN');
 }
 
 function copyQuoteForZalo() {
     const d = lastSolarQuoteData;
     if (!d) return;
-    let text = `☀️ BÁO GIÁ HỆ THỐNG BƠM NĂNG LƯỢNG MẶT TRỜI\n• Cấu hình: Bơm ${d.pumpSummary} | Giàn pin ${d.totalKWp.toFixed(2)} kWp (${d.strings} chuỗi x ${d.panelsPerString} tấm)\n--------------------------------\n`;
-    let stt = 1;
-    for (let i = 0; i < 11; i++) {
-        const name = document.getElementById(`qName_${i}`)?.value || "";
-        const unit = document.getElementById(`qUnit_${i}`)?.value || "";
-        const qty = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
-        const price = parseFloat(document.getElementById(`qPrice_${i}`)?.value) || 0;
-        const sub = document.getElementById(`qSub_${i}`)?.innerText || "0";
-        if (qty > 0) text += `${stt++}. ${name} (SL: ${qty} ${unit} × ${price.toLocaleString('vi-VN')}đ): ${sub}đ\n`;
+    let txt = `☀️ BÁO GIÁ HỆ BƠM NLMT (${d.pumpSummary} - Giàn pin ${d.totalKWp.toFixed(2)} kWp)\n`;
+    const count = window._quoteRowCount || 10;
+    for (let i = 0; i < count; i++) {
+        const n = document.getElementById(`qName_${i}`)?.value || "";
+        const u = document.getElementById(`qUnit_${i}`)?.value || "";
+        const q = parseFloat(document.getElementById(`qQty_${i}`)?.value) || 0;
+        const s = document.getElementById(`qSub_${i}`)?.innerText || "0";
+        if (q > 0) txt += `- ${n} (${q} ${u}): ${s}đ\n`;
     }
-    const discount = parseFloat(document.getElementById('qDiscount')?.value) || 0;
-    const finalTotal = document.getElementById('qFinalTotal').innerText;
-    text += `--------------------------------\n`;
-    if (discount > 0) text += `🎁 Giảm giá: -${discount.toLocaleString('vi-VN')} VNĐ\n`;
-    text += `💰 TỔNG THANH TOÁN: ${finalTotal} VNĐ`;
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => alert("✅ Đã sao chép toàn bộ nội dung Báo Giá vào bộ nhớ tạm!"))
-        .catch(() => prompt("Sao chép nội dung báo giá dưới đây để dán vào Zalo:", text));
-    } else {
-        prompt("Sao chép nội dung báo giá dưới đây để dán vào Zalo:", text);
-    }
+    txt += `💰 TỔNG THANH TOÁN: ${document.getElementById('qFinalTotal').innerText} VNĐ`;
+    navigator.clipboard?.writeText(txt).then(() => showToast("✅ Đã sao chép bảng báo giá gửi Zalo!", "success"));
 }
 
-function printFinalQuote() {
-    const d = lastSolarQuoteData;
-    const cleanPump = d ? d.pumpSummary.replace(/\(.*?\)/g, '').trim() : '';
-    const docTitle = d ? `Báo Giá Hệ Bơm ${cleanPump} - Giàn Pin ${d.totalKWp.toFixed(2)} kWp` : 'Báo Giá Hệ Bơm NLMT';
-    const printWin = window.open('', '_blank', 'width=850,height=650');
-    printWin.document.write(`<html><head><title>${docTitle}</title></head><body>${buildFinalQuotePrintHtml()}</body></html>`);
-    printWin.document.close();
-    printWin.document.title = docTitle;
-    printWin.focus();
-    setTimeout(() => { printWin.print(); printWin.close(); }, 300);
-}
-
-function execPumpCalc() {
-    const source = document.getElementById('calcSource').value;
-    const pipeDiaMm = parseFloat(document.getElementById('calcPipeDia').value) || 63;
-    const height = parseFloat(document.getElementById('calcHeight').value) || 0;
-    const length = parseFloat(document.getElementById('calcLength').value) || 0;
-    const flowM3h = parseFloat(document.getElementById('calcFlow').value) || 0;
-    const outletHead = parseFloat(document.getElementById('calcOutletHead').value) || 0;
-    if (flowM3h <= 0) return alert("Vui lòng nhập lưu lượng nước!");
-
-    const innerDiaMap = { 40: 0.036, 50: 0.044, 63: 0.055, 75: 0.066, 90: 0.080, 110: 0.098 };
-    const dMeter = innerDiaMap[pipeDiaMm] || 0.055;
-    const qM3s = flowM3h / 3600;
-    const frictionLoss = (10.67 * Math.pow(qM3s, 1.852) / (Math.pow(140, 1.852) * Math.pow(dMeter, 4.87))) * length * 1.1;
-    const totalHead = height + frictionLoss + outletHead;
-    const eff = source === 'gieng' ? 0.52 : 0.58;
-    const estHP = Math.max(0.5, ((qM3s * totalHead * 9.81) / eff) / 0.7457);
-    const stdHPs = [0.5, 1, 1.5, 2, 3, 4, 5.5, 7.5, 10, 12.5, 15, 20, 25, 30];
-    const finalHP = stdHPs.find(h => h >= estHP) || Math.ceil(estHP);
-
-    const resBox = document.getElementById('toolModalResult');
-    resBox.style.display = 'block';
-    resBox.innerHTML = `<p>- Tổng cột áp thực tế: <span class="highlight">${totalHead.toFixed(1)} m</span></p><p>- 🔋 <b>Công suất bơm chọn lựa:</b> <span class="highlight">${finalHP} HP</span> (~<b>${(finalHP * 0.7457).toFixed(2)} kW</b>)</p>`;
-}
-
-function execAccCalc() {
-    const panels = parseFloat(document.getElementById('accTotalPanels').value) || 0;
-    const rows = parseFloat(document.getElementById('accRows').value) || 0;
-    const legType = parseInt(document.getElementById('accLegType').value) || 2;
-    if (panels <= 0 || rows <= 0 || rows > panels) return alert("Thông số không hợp lệ!");
-
-    const resBox = document.getElementById('toolModalResult');
-    resBox.style.display = 'block';
-    resBox.innerHTML = `<p>- 📐 <b>Số tấm/dãy:</b> <span class="highlight">${(panels / rows).toFixed(1)}</span> tấm | 🔩 <b>Chân đế:</b> <span class="highlight">${(panels + rows) * legType}</span> cái | 📎 <b>Kẹp biên:</b> <span class="highlight">${rows * 2 * legType}</span> cái | 🔗 <b>Kẹp giữa:</b> <span class="highlight">${(panels - rows) * legType}</span> cái</p>`;
-}
-
-function execVdropCalc() {
-    const volt = parseFloat(document.getElementById('vdSystem').value) || 380;
-    const rho = parseFloat(document.getElementById('vdMaterial').value) || 0.0175;
-    const current = parseFloat(document.getElementById('vdCurrent').value) || 0;
-    const len = parseFloat(document.getElementById('vdLength').value) || 0;
-    const area = parseFloat(document.getElementById('vdSize').value) || 6;
-
-    const vDrop = (((volt === 380) ? Math.sqrt(3) : 2) * rho * len * current) / area;
-    const pct = (vDrop / volt) * 100;
-    const status = pct <= 3 ? `<span style="color:green; font-weight:bold;">✅ Đạt chuẩn (&le; 3%)</span>` : `<span style="color:red; font-weight:bold;">⚠️ Sụt áp cao (&gt; 3%)!</span>`;
-
-    const resBox = document.getElementById('toolModalResult');
-    resBox.style.display = 'block';
-    resBox.innerHTML = `<p>- ⚡ <b>Độ sụt áp:</b> <span class="highlight">${vDrop.toFixed(2)} V</span> (<b>${pct.toFixed(2)}%</b>) — ${status}</p>`;
-}
-
-function execDividerCalc() {
-    const vin = parseFloat(document.getElementById('divVin').value) || 0;
-    const r1 = parseFloat(document.getElementById('divR1').value) || 0;
-    const r2 = parseFloat(document.getElementById('divR2').value) || 0;
-    if (r1 + r2 <= 0) return alert("Giá trị điện trở phải lớn hơn 0!");
-
-    const resBox = document.getElementById('toolModalResult');
-    resBox.style.display = 'block';
-    resBox.innerHTML = `<p>- 🔌 <b>Điện áp ra Vout:</b> <span class="highlight">${(vin * (r2 / (r1 + r2))).toFixed(2)} V</span> | 🔋 <b>Dòng tiêu thụ:</b> <b>${(vin / (r1 + r2)).toFixed(2)} mA</b></p>`;
-}
+function printFinalQuote() { window.print(); }
+/* === TÍNH TOÁN CHO 5 CÔNG CỤ CÒN LẠI === */
 function fillHealthInv() {
     const val = document.getElementById('hlInvSel')?.value;
     if (val === 'custom') return;
@@ -1426,8 +1042,7 @@ function fillHealthInv() {
     document.getElementById('hlInvVdcMax').value = inv.vdcMax;
     document.getElementById('hlInvIdcMax').value = inv.idcMax;
     document.getElementById('hlInvMpptMin').value = inv.mpptMin;
-    const mMaxEl = document.getElementById('hlInvMpptMax');
-    if (mMaxEl) mMaxEl.value = inv.mpptMax;
+    document.getElementById('hlInvMpptMax').value = inv.mpptMax;
 }
 
 function fillHealthPan() {
@@ -1442,25 +1057,19 @@ function fillHealthPan() {
 }
 
 function execSolarHealthCheck() {
-    const stepUp = parseInt(document.getElementById('hlLoadType').value || "1");
-    const rawPump = parseFloat(document.getElementById('hlPumpVal').value) || 0;
-    const unit = document.getElementById('hlPumpUnit').value;
-    const pumpKW = unit === 'HP' ? rawPump * 0.75 : rawPump;
-
-    const invKw = parseFloat(document.getElementById('hlInvKw').value) || 0;
-    const vdcMax = parseFloat(document.getElementById('hlInvVdcMax').value) || 900;
-    const idcMax = parseFloat(document.getElementById('hlInvIdcMax').value) || 40;
-    const mpptMin = parseFloat(document.getElementById('hlInvMpptMin').value) || 486;
-    const mpptMax = parseFloat(document.getElementById('hlInvMpptMax')?.value) || 750;
-    const midMppt = (mpptMin + mpptMax) / 2;
-
-    const pMax = parseFloat(document.getElementById('hlPanPmax').value) || 0;
-    const imp = parseFloat(document.getElementById('hlPanImp').value) || 0;
-    const vmp = parseFloat(document.getElementById('hlPanVmp').value) || 0;
-    const voc = parseFloat(document.getElementById('hlPanVoc').value) || 0;
-    const strings = parseInt(document.getElementById('hlStrings').value) || 1;
-    const perStr = parseInt(document.getElementById('hlPerStr').value) || 1;
-    if (pumpKW <= 0 || invKw <= 0 || pMax <= 0) return alert("Vui lòng nhập đầy đủ thông số hệ thống!");
+    const stepUp = parseInt(document.getElementById('hlLoadType')?.value || "1");
+    const rawPump = parseFloat(document.getElementById('hlPumpVal')?.value) || 0;
+    const pumpKW = document.getElementById('hlPumpUnit')?.value === 'HP' ? rawPump * 0.75 : rawPump;
+    const invKw = parseFloat(document.getElementById('hlInvKw')?.value) || 0;
+    const vdcMax = parseFloat(document.getElementById('hlInvVdcMax')?.value) || 900;
+    const idcMax = parseFloat(document.getElementById('hlInvIdcMax')?.value) || 40;
+    const pMax = parseFloat(document.getElementById('hlPanPmax')?.value) || 0;
+    const imp = parseFloat(document.getElementById('hlPanImp')?.value) || 0;
+    const vmp = parseFloat(document.getElementById('hlPanVmp')?.value) || 0;
+    const voc = parseFloat(document.getElementById('hlPanVoc')?.value) || 0;
+    const strings = parseInt(document.getElementById('hlStrings')?.value) || 1;
+    const perStr = parseInt(document.getElementById('hlPerStr')?.value) || 1;
+    if (pumpKW <= 0 || invKw <= 0 || pMax <= 0) return showToast("Nhập đầy đủ thông số hệ thống!", "warn");
 
     const totalPanels = strings * perStr;
     const totalKWp = (totalPanels * pMax) / 1000;
@@ -1469,548 +1078,315 @@ function execSolarHealthCheck() {
     const impTotal = strings * imp;
     const reqInvKw = stepUp === 0 ? pumpKW : (stepUp === 1 ? pumpKW * 1.3 : pumpKW * 1.6);
     const minReqKwp = pumpKW * 1.3;
-    const idealReqKwp = pumpKW * 1.55;
 
-    let score = 100;
-    let issues = [];
-    let upgrades = [];
-
+    let score = 100, issues = [], upgrades = [];
     if (vocCold > vdcMax) {
         score -= 35;
         const safeMax = Math.floor((vdcMax - 0.1) / (voc * 1.05));
-        issues.push(`🔴 <b>Nguy hiểm quá áp sáng sớm trời lạnh (10°C):</b> Voc đạt <b>${vocCold.toFixed(1)}V</b> vượt ngưỡng <b>${vdcMax}V</b> của biến tần.`);
-        upgrades.push(`Giảm ngay số tấm mỗi chuỗi từ ${perStr} tấm xuống tối đa <b>${safeMax} tấm/chuỗi</b> để tránh nổ tụ/báo lỗi quá áp.`);
+        issues.push(`🔴 <b>Quá áp trời lạnh (10°C):</b> Voc đạt <b>${vocCold.toFixed(1)}V > ${vdcMax}V</b>.`);
+        upgrades.push(`Giảm còn tối đa <b>${safeMax} tấm/chuỗi</b> để bảo vệ biến tần.`);
     }
-    if (vmpTotal < midMppt - 15) {
+    if (vmpTotal < 540) {
         score -= 20;
-        const needPerStr = Math.round(midMppt / vmp);
-        issues.push(`🟡 <b>Áp làm việc thấp hơn vùng trung bình MPPT (${midMppt.toFixed(0)}V):</b> Vmp hiện tại <b>${vmpTotal.toFixed(1)}V</b> dễ bị tụt áp trưa nắng nóng khiến bơm chạy yếu.`);
-        upgrades.push(`Đấu nối tiếp thêm <b>${Math.max(1, needPerStr - perStr)} tấm/chuỗi</b> (nâng lên <b>${needPerStr} tấm/chuỗi</b>) để đưa áp vào vùng ngọt MPPT.`);
+        const needPerStr = Math.ceil(540 / vmp);
+        issues.push(`🟡 <b>Điện áp Vmp (${vmpTotal.toFixed(1)}V) thấp hơn chuẩn 540VDC (SG600).</b>`);
+        upgrades.push(`Tăng lên tối thiểu <b>${needPerStr} tấm/chuỗi</b> để bơm đạt đủ 50Hz.`);
     }
-    if (impTotal > idcMax) {
-        score -= 25;
-        issues.push(`🔴 <b>Quá dòng DC đầu vào:</b> Tổng dòng <b>${impTotal.toFixed(1)}A</b> vượt mức chịu đựng <b>${idcMax}A</b> của biến tần.`);
-        upgrades.push(`Tách bớt chuỗi song song hoặc nâng cấp biến tần dòng DC lớn hơn.`);
-    }
-    if (invKw < reqInvKw - 0.5) {
-        score -= 20;
-        issues.push(`🟡 <b>Biến tần yếu so với tải bơm:</b> Bơm ${pumpKW.toFixed(1)}kW đang kéo biến tần ${invKw}kW dễ báo lỗi quá dòng (OC) khi khởi động.`);
-        upgrades.push(`Nâng cấp biến tần lên cấp <b>${Math.ceil(reqInvKw)}kW</b> (1–2 cấp trên tải bơm) để khởi động khỏe và bền máy.`);
-    }
+    if (impTotal > idcMax) { score -= 25; issues.push(`🔴 <b>Quá dòng DC (${impTotal.toFixed(1)}A > ${idcMax}A).</b>`); }
+    if (invKw < reqInvKw - 0.5) { score -= 20; issues.push(`🟡 <b>Biến tần (${invKw}kW) yếu so với tải bơm ${pumpKW.toFixed(1)}kW.</b>`); upgrades.push(`Nâng biến tần lên cấp <b>${Math.ceil(reqInvKw)}kW</b>.`); }
     if (totalKWp < minReqKwp) {
         score -= 20;
-        const missMin = Math.ceil(((minReqKwp - totalKWp) * 1000) / pMax);
-        const missIdeal = Math.ceil(((idealReqKwp - totalKWp) * 1000) / pMax);
-        issues.push(`🟡 <b>Thiếu công suất giàn pin (Chưa đạt chuẩn ≥ 1.3x tải bơm):</b> Giàn pin hiện có <b>${totalKWp.toFixed(2)} kWp</b>, mức tối thiểu cần đạt <b>${minReqKwp.toFixed(2)} kWp</b>.`);
-        upgrades.push(`Lắp bổ sung tối thiểu <b>${missMin} tấm pin (${pMax}W)</b> (hoặc <b>${missIdeal} tấm</b> để đạt mức lý tưởng <b>${idealReqKwp.toFixed(2)} kWp</b>) giúp bơm chạy khỏe cả ngày.`);
+        const miss = Math.ceil(((minReqKwp - totalKWp) * 1000) / pMax);
+        issues.push(`🟡 <b>Thiếu công suất pin (${totalKWp.toFixed(2)} kWp < chuẩn ${minReqKwp.toFixed(2)} kWp).</b>`);
+        upgrades.push(`Bổ sung thêm tối thiểu <b>${miss} tấm (${pMax}W)</b>.`);
     }
-
     score = Math.max(10, score);
-    const badgeColor = score >= 85 ? '#16a34a' : (score >= 60 ? '#ea580c' : '#dc2626');
-    const statusLabel = score >= 85 ? 'HỆ THỐNG HOẠT ĐỘNG TỐT' : (score >= 60 ? 'CẦN TỐI ƯU ĐỂ ĐẠT HIỆU SUẤT CAO' : 'CẢNH BÁO LỖI KỸ THUẬT - CẦN XỬ LÝ');
-    if (issues.length === 0) issues.push(`🟢 <b>Cấu hình phối ghép chuẩn xác:</b> Điện áp (≥ trung bình MPPT), dòng điện và công suất pin (≥ 1.3x tải bơm) đều nằm trong vùng tối ưu của biến tần.`);
-    if (upgrades.length === 0) upgrades.push(`Giữ nguyên cấu hình hiện tại. Chỉ cần vệ sinh bề mặt tấm pin định kỳ và kiểm tra siết chặt các đầu cốt tủ điện.`);
-
-    window.lastHealthZaloText = `🩺 KẾT QUẢ KHÁM SỨC KHỎE HỆ BƠM NLMT\n• Hệ hiện tại: Bơm ${pumpKW.toFixed(1)}kW | Biến tần ${invKw}kW | ${strings} chuỗi x ${perStr} tấm ${pMax}W (${totalKWp.toFixed(2)} kWp)\n• Đánh giá: ${score}/100 điểm (${statusLabel})\n--------------------------------\n📋 Chẩn đoán:\n${issues.map(x => x.replace(/<[^>]+>/g, '')).join('\n')}\n--------------------------------\n💡 Phương án nâng cấp:\n${upgrades.map(x => '- ' + x.replace(/<[^>]+>/g, '')).join('\n')}`;
+    if (!issues.length) issues.push("🟢 Cấu hình phối ghép đạt chuẩn kỹ thuật SG600!");
+    if (!upgrades.length) upgrades.push("Giữ nguyên cấu hình hiện tại.");
 
     document.getElementById('toolModalResult').innerHTML = `
-        <div style="padding:12px; border-radius:8px; background:#f8fafc; border:1px solid #cbd5e1; border-left:5px solid ${badgeColor}; margin-bottom:10px;">
-            <div style="font-size:15px; font-weight:800; color:${badgeColor};">📊 SỨC KHỎE HỆ THỐNG: ${score}/100 ĐIỂM — ${statusLabel}</div>
-            <div style="font-size:12.5px; color:#475569; margin-top:4px;">Tổng giàn pin: <b>${totalPanels} tấm (${totalKWp.toFixed(2)} kWp)</b> | Vmp: <b>${vmpTotal.toFixed(1)}V</b> | Voc (10°C): <b>${vocCold.toFixed(1)}V</b> | Dòng Imp: <b>${impTotal.toFixed(1)}A</b></div>
+        <div class="card-panel" style="border-left:4px solid ${score >= 85 ? '#16a34a' : '#dc2626'};">
+            <b>📊 SỨC KHỎE HỆ THỐNG: ${score}/100 ĐIỂM</b> (${totalPanels} tấm = ${totalKWp.toFixed(2)} kWp | Vmp: ${vmpTotal.toFixed(1)}V)<br>
+            <div style="margin-top:6px; font-size:13px;">${issues.join('<br>')}</div>
+            <div style="margin-top:6px; font-size:13px; color:#15803d;">💡 <b>Đề xuất:</b> ${upgrades.join(' ')}</div>
         </div>
-        <div style="padding:12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; line-height:1.6; margin-bottom:10px;">
-            <div style="font-weight:700; color:var(--dark); margin-bottom:4px;">📋 Chi tiết chẩn đoán kỹ thuật:</div>
-            ${issues.join('<br>')}
-        </div>
-        <div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:8px; font-size:13px; color:#14532d; line-height:1.6;">
-            <div style="font-weight:700; margin-bottom:4px;">💡 Phương án nâng cấp & tối ưu:</div>
-            • ${upgrades.join('<br>• ')}
-        </div>
-        <button class="btn" style="width:100%; background:#0068ff; margin-top:12px; font-size:14.5px;" onclick="navigator.clipboard.writeText(window.lastHealthZaloText).then(()=>alert('✅ Đã sao chép kết quả khám bệnh gửi Zalo!'))">💬 Sao chép kết quả gửi Zalo khách hàng</button>
     `;
 }
 
-/* === ĐIỀU KHIỂN TRỢ LÝ KỸ THUẬT SOLAR AI === */
-let aiTypingTimer = null;
-
-function toggleSolarAiBox() {
-    const box = document.getElementById('solarAiBox');
-    if (!box) return;
-    const isOpening = !box.classList.contains('open');
-    box.classList.toggle('open');
-    if (isOpening) {
-        playSolarAiIntro();
-    } else if (aiTypingTimer) {
-        clearInterval(aiTypingTimer);
-    }
+function execPumpCalc() {
+    const h = parseFloat(document.getElementById('calcHeight')?.value) || 0;
+    const len = parseFloat(document.getElementById('calcLength')?.value) || 0;
+    const q = parseFloat(document.getElementById('calcFlow')?.value) || 0;
+    const out = parseFloat(document.getElementById('calcOutletHead')?.value) || 0;
+    const dMap = { 40: 0.036, 50: 0.044, 63: 0.055, 75: 0.066, 90: 0.080, 110: 0.098 };
+    const d = dMap[parseFloat(document.getElementById('calcPipeDia')?.value)] || 0.055;
+    if (q <= 0) return showToast("Nhập lưu lượng nước!", "warn");
+    const qS = q / 3600;
+    const loss = (10.67 * Math.pow(qS, 1.852) / (Math.pow(140, 1.852) * Math.pow(d, 4.87))) * len * 1.1;
+    const totH = h + loss + out;
+    const eff = document.getElementById('calcSource')?.value === 'gieng' ? 0.52 : 0.58;
+    const estHP = Math.max(0.5, ((qS * totH * 9.81) / eff) / 0.7457);
+    const hp = [0.5, 1, 1.5, 2, 3, 4, 5.5, 7.5, 10, 12.5, 15, 20, 25, 30].find(x => x >= estHP) || Math.ceil(estHP);
+    document.getElementById('toolModalResult').innerHTML = `<div class="card-panel" style="background:#f0fdf4;">• Cột áp tổng: <b>${totH.toFixed(1)} m</b> | • Chọn bơm: <b>${hp} HP (~${(hp * 0.7457).toFixed(2)} kW)</b></div>`;
 }
 
-function playSolarAiIntro() {
-    const greetEl = document.getElementById('solarAiGreeting');
-    const btns = document.querySelectorAll('#solarAiMenu .seq-item');
-    if (!greetEl) return;
-
-    if (aiTypingTimer) clearInterval(aiTypingTimer);
-    btns.forEach(b => b.classList.remove('show'));
-    greetEl.innerHTML = "";
-
-    const userName = currentUser ? currentUser.username : "bạn";
-    const fullText = `Chào ${userName} mình là Nắng - Trợ lý Solar AI, chúc bạn một ngày bứt phá, chốt được nhiều đơn. Bạn cần hỗ trợ gì không?`;
-    let idx = 0;
-
-    aiTypingTimer = setInterval(() => {
-        idx++;
-        const currentSlice = fullText.slice(0, idx);
-        greetEl.innerHTML = currentUser
-            ? currentSlice.replace(`Chào ${userName}`, `Chào <b>${userName}</b>`)
-            : currentSlice;
-
-        if (idx >= fullText.length) {
-            clearInterval(aiTypingTimer);
-            btns.forEach((btn, bIdx) => {
-                setTimeout(() => {
-                    btn.classList.add('show');
-                }, bIdx * 160);
-            });
-        }
-    }, 24);
+function execVdropCalc() {
+    const v = parseFloat(document.getElementById('vdSystem')?.value) || 380;
+    const rho = parseFloat(document.getElementById('vdMaterial')?.value) || 0.0175;
+    const i = parseFloat(document.getElementById('vdCurrent')?.value) || 0;
+    const l = parseFloat(document.getElementById('vdLength')?.value) || 0;
+    const s = parseFloat(document.getElementById('vdSize')?.value) || 6;
+    const drop = (((v === 380) ? Math.sqrt(3) : 2) * rho * l * i) / s;
+    const pct = (drop / v) * 100;
+    document.getElementById('toolModalResult').innerHTML = `<div class="card-panel">⚡ Độ sụt áp: <b>${drop.toFixed(2)} V (${pct.toFixed(2)}%)</b> ${pct <= 3 ? '✅ Đạt chuẩn' : '⚠️ Sụt áp cao!'}</div>`;
 }
 
-function aiQuickAction(type) {
-    toggleSolarAiBox();
-    if (type === 'solar' || type === 'health') {
-        const navItems = document.querySelectorAll('.nav-item');
-        const toolTab = navItems.length > 2 ? navItems[2] : null;
-        const lblEl = document.getElementById('mobileCurrentPageLabel');
-        if (lblEl) lblEl.innerText = 'Công cụ';
-        activeCalcToolId = type;
-        loadSubPage('page-tinh-toan.html', toolTab);
-    } else if (type === 'error') {
-        const navItems = document.querySelectorAll('.nav-item');
-        const errTab = navItems.length > 1 ? navItems[1] : null;
-        const lblEl = document.getElementById('mobileCurrentPageLabel');
-        if (lblEl) lblEl.innerText = 'Xử lý lỗi';
-        loadSubPage('page-xu-ly-loi.html', errTab);
-    }
+function execAccCalc() {
+    const p = parseFloat(document.getElementById('accTotalPanels')?.value) || 0;
+    const r = parseFloat(document.getElementById('accRows')?.value) || 0;
+    const leg = parseInt(document.getElementById('accLegType')?.value) || 2;
+    document.getElementById('toolModalResult').innerHTML = `<div class="card-panel">🔩 Chân đế: <b>${(p + r) * leg}</b> | Kẹp biên: <b>${r * 2 * leg}</b> | Kẹp giữa: <b>${Math.max(0, p - r) * leg}</b></div>`;
 }
 
-/* === TRANG DỊCH VỤ VIDEO CALL 1:1 - BƯỚC 1: CHỌN NGÀY & GIỜ === */
+function execDividerCalc() {
+    const vin = parseFloat(document.getElementById('divVin')?.value) || 0;
+    const r1 = parseFloat(document.getElementById('divR1')?.value) || 0;
+    const r2 = parseFloat(document.getElementById('divR2')?.value) || 0;
+    if (r1 + r2 <= 0) return;
+    document.getElementById('toolModalResult').innerHTML = `<div class="card-panel">🔌 Vout: <b>${(vin * (r2 / (r1 + r2))).toFixed(2)} V</b> | Dòng: <b>${(vin / (r1 + r2)).toFixed(2)} mA</b></div>`;
+}
+/* === TRANG ĐẶT LỊCH HỖ TRỢ (4 BƯỚC & KHÓA CHỦ NHẬT + NGÀY LỄ VN) === */
 const VN_PUBLIC_HOLIDAYS = [
     "01-01", "30-04", "01-05", "02-09", "03-09",
-    // Một số ngày lễ Âm lịch quy đổi (Tết Nguyên Đán & Giỗ Tổ Hùng Vương 2026-2027)
     "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-04-26",
     "2027-02-05", "2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09", "2027-04-16"
 ];
 
 function isVnHolidayOrSunday(y, m, d) {
-    const dt = new Date(y, m, d);
-    if (dt.getDay() === 0) return "Chủ Nhật (Nghỉ)";
-    const mm = String(m + 1).padStart(2, '0');
-    const dd = String(d).padStart(2, '0');
-    const fullStr = `${y}-${mm}-${dd}`;
-    const shortStr = `${dd}-${mm}`;
-    if (VN_PUBLIC_HOLIDAYS.includes(fullStr) || VN_PUBLIC_HOLIDAYS.includes(shortStr)) {
-        return "Ngày Lễ Việt Nam (Nghỉ)";
-    }
+    if (new Date(y, m, d).getDay() === 0) return "Chủ Nhật (Nghỉ)";
+    const mm = String(m + 1).padStart(2, '0'), dd = String(d).padStart(2, '0');
+    if (VN_PUBLIC_HOLIDAYS.includes(`${y}-${mm}-${dd}`) || VN_PUBLIC_HOLIDAYS.includes(`${dd}-${mm}`)) return "Ngày Lễ VN (Nghỉ)";
     return "";
 }
 
-function initServiceBookingPage() {
+function renderServiceFullPage() {
+    const main = document.getElementById('mainPageContent');
+    if (!main) return;
+    main.innerHTML = `
+        <div class="srv-layout">
+            <div class="card-panel">
+                <h3 style="margin:0 0 8px; color:var(--primary); font-size:17px;">📹 Đặt Lịch Hỗ Trợ</h3>
+                <p style="margin:0 0 12px; font-size:13px; color:#475569;">Hỗ trợ kỹ thuật từ xa 1:1 qua Video Call chuyên sâu cho từng công trình.</p>
+                <div class="srv-benefit-item"><div class="srv-benefit-num">1</div><div>Ưu tiên tiếp nhận hỗ trợ</div></div>
+                <div class="srv-benefit-item"><div class="srv-benefit-num">2</div><div>Kỹ thuật hỗ trợ 1:1</div></div>
+                <div class="srv-benefit-item"><div class="srv-benefit-num">3</div><div>Khách hàng chủ động từng dự án</div></div>
+                <div class="srv-benefit-item"><div class="srv-benefit-num">4</div><div>Kỹ thuật nắm bắt lịch trình làm việc ít bị động và áp lực</div></div>
+                <div style="margin-top:10px; padding:10px; background:#f8fafc; border-radius:8px; font-size:12.5px; line-height:1.6;">
+                    <b>🔄 Quy trình 6 bước:</b> Khách gửi yêu cầu ➔ Tele sale gọi lại xác nhận ➔ Chờ khách thanh toán phí ➔ Xác nhận đã thanh toán ➔ Kỹ thuật viên gọi lại hỗ trợ ➔ Kết thúc.<br>
+                    <span style="color:#dc2626; font-weight:700;">⏰ Giờ làm việc: Sáng 08:00–11:00 | Chiều 13:30–15:00 (Thứ 2 – Thứ 7).</span>
+                </div>
+            </div>
+
+            <div class="card-panel" style="padding:0; overflow:hidden;">
+                <div style="background:var(--primary); color:#fff; padding:12px; text-align:center; font-weight:800;">Đặt lịch hỗ trợ</div>
+                <div class="stepper-4">
+                    <div class="step-node active" id="srvStepNode_1" onclick="goSrvStep(1)"><div class="step-dot">1</div><div class="step-label">Chọn<br>thời gian</div></div>
+                    <div class="step-node" id="srvStepNode_2" onclick="goSrvStep(2)"><div class="step-dot">2</div><div class="step-label">Chọn<br>dịch vụ</div></div>
+                    <div class="step-node" id="srvStepNode_3" onclick="goSrvStep(3)"><div class="step-dot">3</div><div class="step-label">Xem lại</div></div>
+                    <div class="step-node" id="srvStepNode_4" onclick="goSrvStep(4)"><div class="step-dot">4</div><div class="step-label">Trạng thái</div></div>
+                </div>
+                <div id="phoneScreenBody" style="padding:14px;"></div>
+            </div>
+        </div>
+    `;
     const now = new Date();
     srvState.year = now.getFullYear();
     srvState.month = now.getMonth();
     const myActive = (appData.bookings || []).filter(b => currentUser && b.username === currentUser.username && b.status !== 'Kết thúc' && b.status !== 'Đã hủy');
-    if (myActive.length > 0 && !srvState.forceNew) {
-        goSrvStep(4);
-    } else {
-        srvState.forceNew = false;
-        goSrvStep(1);
-    }
+    if (myActive.length > 0 && !srvState.forceNew) goSrvStep(4);
+    else { srvState.forceNew = false; goSrvStep(1); }
 }
 
-function goSrvStep(stepNum) {
-    if (stepNum === 2 && (!srvState.date || !srvState.time)) {
-        return alert("⚠️ Vui lòng chọn Ngày và Khung giờ hỗ trợ trước khi sang Bước 2!");
-    }
-    if (stepNum === 3 && (!srvState.form || !srvState.form.field)) {
-        return alert("⚠️ Vui lòng điền thông tin yêu cầu ở Bước 2 trước khi xem lại!");
-    }
-    srvState.step = stepNum;
+function goSrvStep(step) {
+    if (step === 2 && (!srvState.date || !srvState.time)) return showToast("⚠️ Chọn Ngày và Khung giờ hỗ trợ trước!", "warn");
+    if (step === 3 && (!srvState.form || !srvState.form.field)) return showToast("⚠️ Điền thông tin yêu cầu trước!", "warn");
+    srvState.step = step;
     for (let i = 1; i <= 4; i++) {
-        const node = document.getElementById(`srvStepNode_${i}`);
-        if (!node) continue;
-        node.classList.remove('active', 'done');
-        if (i < stepNum) node.classList.add('done');
-        else if (i === stepNum) node.classList.add('active');
+        const n = document.getElementById(`srvStepNode_${i}`);
+        if (!n) continue;
+        n.classList.remove('active', 'done');
+        if (i < step) n.classList.add('done');
+        else if (i === step) n.classList.add('active');
     }
-    if (stepNum === 1) renderSrvStep1();
-    else if (stepNum === 2) renderSrvStep2();
-    else if (stepNum === 3) renderSrvStep3();
-    else if (stepNum === 4) renderSrvStep4();
-}
-
-function changeSrvMonth(delta) {
-    srvState.month += delta;
-    if (srvState.month > 11) { srvState.month = 0; srvState.year++; }
-    if (srvState.month < 0) { srvState.month = 11; srvState.year--; }
-    renderSrvStep1();
-}
-
-function selectSrvDate(dateStr) {
-    srvState.date = dateStr;
-    srvState.time = "";
-    renderSrvStep1();
-}
-
-function selectSrvTime(timeStr) {
-    srvState.time = timeStr;
-    renderSrvStep1();
+    if (step === 1) renderSrvStep1();
+    else if (step === 2) renderSrvStep2();
+    else if (step === 3) renderSrvStep3();
+    else if (step === 4) renderSrvStep4();
 }
 
 function renderSrvStep1() {
     const body = document.getElementById('phoneScreenBody');
     if (!body) return;
-
-    const y = srvState.year;
-    const m = srvState.month;
+    const y = srvState.year, m = srvState.month;
     const firstDow = new Date(y, m, 1).getDay();
-    const startOffset = firstDow === 0 ? 6 : firstDow - 1;
-    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const offset = firstDow === 0 ? 6 : firstDow - 1;
+    const days = new Date(y, m + 1, 0).getDate();
+    const today = new Date(); today.setHours(0, 0, 0, 0);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let cellsHtml = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
-        .map(d => `<div class="cal-dow">${d}</div>`).join('');
-
-    for (let e = 0; e < startOffset; e++) {
-        cellsHtml += `<div class="cal-day empty"></div>`;
+    let cells = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+    for (let e = 0; e < offset; e++) cells += `<div></div>`;
+    for (let d = 1; d <= days; d++) {
+        const dt = new Date(y, m, d);
+        const dStr = `${String(d).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}/${y}`;
+        const hol = isVnHolidayOrSunday(y, m, d);
+        if (dt < today || hol) cells += `<div class="cal-day disabled" title="${hol || 'Đã qua'}">${d}</div>`;
+        else cells += `<div class="cal-day ${srvState.date === dStr ? 'selected' : ''}" onclick="srvState.date='${dStr}'; srvState.time=''; renderSrvStep1()">${d}</div>`;
     }
 
-    for (let d = 1; d <= daysInMonth; d++) {
-        const cellDate = new Date(y, m, d);
-        const dateStr = `${String(d).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}/${y}`;
-        const holidayReason = isVnHolidayOrSunday(y, m, d);
-        const isPast = cellDate < today;
-        const isSel = srvState.date === dateStr;
-
-        if (isPast || holidayReason) {
-            const titleTip = holidayReason || "Ngày đã qua";
-            cellsHtml += `<div class="cal-day disabled" title="${titleTip}">${d}</div>`;
-        } else {
-            cellsHtml += `<div class="cal-day ${isSel ? 'selected' : ''}" onclick="selectSrvDate('${dateStr}')">${d}</div>`;
-        }
-    }
-
-    const morningSlots = ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"];
-    const afternoonSlots = ["13:30", "14:00", "14:30", "15:00"];
-
-    const bookedTimes = (appData.bookings || [])
-        .filter(b => b.date === srvState.date && b.status !== 'Kết thúc' && b.status !== 'Đã hủy')
-        .map(b => b.time);
-
-    const renderSlotGroup = (title, list) => `
-        <div class="slot-group-title">${title}</div>
-        <div class="slot-grid">
-            ${list.map(t => {
-                const isBooked = bookedTimes.includes(t);
-                const isSel = srvState.time === t;
-                if (isBooked) return `<div class="slot-btn booked" title="Khung giờ đã có người đặt">${t}</div>`;
-                return `<div class="slot-btn ${isSel ? 'selected' : ''}" onclick="selectSrvTime('${t}')">${t}</div>`;
-            }).join('')}
-        </div>
-    `;
-
-    const timeSectionHtml = srvState.date
-        ? `
-            <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:7px 10px; border-radius:6px; font-size:12px; color:#0369a1; font-weight:700; margin-bottom:6px;">
-                📅 Ngày đã chọn: ${srvState.date} ${srvState.time ? `— ⏰ Lúc ${srvState.time}` : '(Chọn khung giờ bên dưới)'}
-            </div>
-            ${renderSlotGroup("☀️ Buổi Sáng (08:00 - 11:00):", morningSlots)}
-            ${renderSlotGroup("🌤️ Buổi Chiều (13:30 - 15:00):", afternoonSlots)}
-        `
-        : `<div style="text-align:center; padding:14px; background:#f8fafc; border-radius:8px; color:#64748b; font-size:12.5px;">Vui lòng chạm vào một ngày còn trống trên lịch để chọn khung giờ</div>`;
+    const booked = (appData.bookings || []).filter(b => b.date === srvState.date && b.status !== 'Kết thúc' && b.status !== 'Đã hủy').map(b => b.time);
+    const slotBox = (lbl, arr) => `<div style="font-size:12px; font-weight:700;">${lbl}</div><div class="slot-grid">${arr.map(t => booked.includes(t) ? `<div class="slot-btn booked">${t}</div>` : `<div class="slot-btn ${srvState.time === t ? 'selected' : ''}" onclick="srvState.time='${t}'; renderSrvStep1()">${t}</div>`).join('')}</div>`;
 
     body.innerHTML = `
         <div class="cal-nav">
-            <button type="button" onclick="changeSrvMonth(-1)">&#10094;</button>
+            <button onclick="srvState.month--; if(srvState.month<0){srvState.month=11;srvState.year--;} renderSrvStep1()">&#10094;</button>
             <span>Tháng ${m + 1} / ${y}</span>
-            <button type="button" onclick="changeSrvMonth(1)">&#10095;</button>
+            <button onclick="srvState.month++; if(srvState.month>11){srvState.month=0;srvState.year++;} renderSrvStep1()">&#10095;</button>
         </div>
-        <div class="cal-grid">${cellsHtml}</div>
-        <div style="font-size:11px; color:#64748b; margin-bottom:8px; text-align:center;">
-            <i>(Tự động khóa Chủ Nhật & Các ngày Lễ Việt Nam)</i>
-        </div>
-        ${timeSectionHtml}
-        <button type="button" class="btn btn-primary" style="margin-top:12px; font-size:14px;" onclick="goSrvStep(2)">Tiếp ➔</button>
+        <div class="cal-grid">${cells}</div>
+        ${srvState.date ? `${slotBox('☀️ Sáng (08:00 - 11:00):', ['08:00','08:30','09:00','09:30','10:00','10:30','11:00'])}${slotBox('🌤️ Chiều (13:30 - 15:00):', ['13:30','14:00','14:30','15:00'])}` : '<div style="text-align:center; padding:12px; color:#64748b; font-size:12.5px;">👆 Chọn ngày trên lịch để chọn khung giờ</div>'}
+        <button class="btn btn-primary" style="margin-top:8px;" onclick="goSrvStep(2)">Tiếp ➔</button>
     `;
 }
-/* === TRANG DỊCH VỤ VIDEO CALL 1:1 - BƯỚC 2, 3, 4 === */
-function getNowVnFormatted() {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mi = String(now.getMinutes()).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const yyyy = now.getFullYear();
-    return `${hh}:${mi} - ${dd}/${mm}/${yyyy}`;
+/* === ĐẶT LỊCH HỖ TRỢ: BƯỚC 2 & BƯỚC 3 === */
+function getNowVnStr() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} - ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
 function renderSrvStep2() {
     const body = document.getElementById('phoneScreenBody');
     if (!body) return;
     if (!currentUser) {
-        body.innerHTML = `
-            <div style="text-align:center; padding:24px 10px;">
-                <div style="font-size:32px; margin-bottom:8px;">🔒</div>
-                <div style="font-weight:700; color:#0f172a; margin-bottom:6px;">Vui lòng đăng nhập tài khoản Zalo</div>
-                <p style="font-size:12.5px; color:#64748b; margin-bottom:14px;">Hệ thống cần lấy Tên tài khoản Zalo của bạn để lập phiếu hỗ trợ và theo dõi tiến độ xử lý.</p>
-                <button type="button" class="btn btn-primary" onclick="openUserModal()">Đăng Nhập / Đăng Ký Ngay</button>
-            </div>
-        `;
+        body.innerHTML = `<div style="text-align:center; padding:20px;"><p>Vui lòng đăng nhập Zalo để tạo phiếu đặt lịch hỗ trợ.</p><button class="btn btn-primary" onclick="openAuthModal('login')">Đăng nhập ngay</button></div>`;
         return;
     }
-
     const f = srvState.form || {};
-    const nowStr = getNowVnFormatted();
-
     body.innerHTML = `
-        <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:6px 10px; border-radius:6px; font-size:12px; color:#0369a1; font-weight:700; margin-bottom:10px;">
-            📅 Lịch hẹn: ${srvState.date} | ⏰ Lúc ${srvState.time}
+        <div style="background:#f0f9ff; padding:6px 10px; border-radius:6px; font-size:12px; color:#0369a1; font-weight:700; margin-bottom:8px;">📅 ${srvState.date} | ⏰ ${srvState.time}</div>
+        <div class="form-group"><label>Tên khách hàng (Tài khoản):</label><input type="text" value="${currentUser.username}" readonly style="background:#f1f5f9; font-weight:700;"></div>
+        <div class="grid-2">
+            <div class="form-group"><label>Lĩnh vực:</label><select id="srvField"><option value="Biến tần bơm NLMT" ${f.field==='Biến tần bơm NLMT'?'selected':''}>Biến tần bơm NLMT</option><option value="Điện NLMT" ${f.field==='Điện NLMT'?'selected':''}>Điện NLMT</option></select></div>
+            <div class="form-group"><label>Yêu cầu:</label><select id="srvReqType"><option value="Xử lý sự cố" ${f.reqType==='Xử lý sự cố'?'selected':''}>Xử lý sự cố</option><option value="Tư vấn lắp mới" ${f.reqType==='Tư vấn lắp mới'?'selected':''}>Tư vấn lắp mới</option></select></div>
         </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Tên khách hàng (Tài khoản đăng nhập):</label>
-            <input type="text" id="srvCustName" value="${currentUser.username}" readonly style="background:#f1f5f9; font-weight:700; color:#0f172a; padding:7px;">
-        </div>
-        <div class="grid-2" style="gap:8px;">
-            <div class="form-group" style="margin-bottom:8px;">
-                <label style="font-size:12px;">Lĩnh vực:</label>
-                <select id="srvField" style="padding:7px; font-size:12.5px;">
-                    <option value="Biến tần bơm NLMT" ${f.field === 'Biến tần bơm NLMT' ? 'selected' : ''}>Biến tần bơm NLMT</option>
-                    <option value="Điện NLMT" ${f.field === 'Điện NLMT' ? 'selected' : ''}>Điện NLMT</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin-bottom:8px;">
-                <label style="font-size:12px;">Yêu cầu:</label>
-                <select id="srvReqType" style="padding:7px; font-size:12.5px;">
-                    <option value="Xử lý sự cố" ${f.reqType === 'Xử lý sự cố' ? 'selected' : ''}>Xử lý sự cố</option>
-                    <option value="Tư vấn lắp mới" ${f.reqType === 'Tư vấn lắp mới' ? 'selected' : ''}>Tư vấn lắp mới</option>
-                </select>
-            </div>
-        </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Số tiền điện mỗi tháng (nếu có):</label>
-            <input type="text" id="srvBill" value="${f.bill || ''}" placeholder="Ví dụ: 3.500.000đ hoặc không dùng điện lưới..." style="padding:7px;">
-        </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Công suất máy bơm:</label>
-            <div style="display:flex; gap:6px; align-items:center;">
-                <input type="text" id="srvPumpVal" value="${f.pumpVal || ''}" placeholder="Nhập công suất..." style="padding:7px; flex:1;">
-                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="radio" name="srvPumpUnit" value="kW" ${(f.pumpUnit || 'kW') === 'kW' ? 'checked' : ''} style="width:auto;"> kW
-                </label>
-                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="radio" name="srvPumpUnit" value="HP" ${f.pumpUnit === 'HP' ? 'checked' : ''} style="width:auto;"> HP
-                </label>
-            </div>
-        </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Công suất biến tần:</label>
-            <div style="display:flex; gap:6px; align-items:center;">
-                <input type="text" id="srvInvVal" value="${f.invVal || ''}" placeholder="Nhập công suất..." style="padding:7px; flex:1;">
-                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="radio" name="srvInvUnit" value="kW" ${(f.invUnit || 'kW') === 'kW' ? 'checked' : ''} style="width:auto;"> kW
-                </label>
-                <label style="margin:0; font-size:12px; display:flex; align-items:center; gap:3px; cursor:pointer;">
-                    <input type="radio" name="srvInvUnit" value="HP" ${f.invUnit === 'HP' ? 'checked' : ''} style="width:auto;"> HP
-                </label>
-            </div>
-        </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Công suất giàn PIN:</label>
-            <input type="text" id="srvPvKw" value="${f.pvKw || ''}" placeholder="Ví dụ: 14 tấm 580W (8.12 kWp)..." style="padding:7px;">
-        </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Tình trạng lỗi / Nhu cầu chi tiết:</label>
-            <textarea id="srvIssue" rows="2" placeholder="Mô tả tình trạng hoạt động thực tế..." style="padding:7px; font-size:12.5px;">${f.issue || ''}</textarea>
-        </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Màn hình hiển thị lỗi:</label>
-            <input type="text" id="srvScreenErr" value="${f.screenErr || ''}" placeholder="Ví dụ: Báo lỗi E.OC1, E.LU, nhấp nháy đèn..." style="padding:7px;">
-        </div>
-        <div class="form-group" style="margin-bottom:8px;">
-            <label style="font-size:12px;">Yêu cầu khác:</label>
-            <input type="text" id="srvNote" value="${f.note || ''}" placeholder="Ghi chú thêm cho kỹ thuật viên..." style="padding:7px;">
-        </div>
-        <div class="form-group" style="margin-bottom:10px;">
-            <label style="font-size:12px;">Thời gian tạo phiếu:</label>
-            <input type="text" id="srvCreatedAt" value="${nowStr}" readonly style="background:#f1f5f9; color:#475569; font-size:12px; padding:6px;">
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1.6fr; gap:8px;">
-            <button type="button" class="btn btn-outline" onclick="goSrvStep(1)">⬅ Quay lại</button>
-            <button type="button" class="btn btn-primary" onclick="saveSrvStep2AndReview()">Xem lại phiếu ➔</button>
-        </div>
+        <div class="form-group"><label>Số tiền điện mỗi tháng:</label><input type="text" id="srvBill" value="${f.bill || ''}" placeholder="VD: 3.500.000đ..."></div>
+        <div class="form-group"><label>Công suất máy bơm:</label><div style="display:flex; gap:6px; align-items:center;"><input type="text" id="srvPumpVal" value="${f.pumpVal || ''}" placeholder="Nhập công suất..."><label style="margin:0; display:flex; gap:3px;"><input type="radio" name="srvPumpUnit" value="kW" ${(f.pumpUnit||'kW')==='kW'?'checked':''} style="width:auto;">kW</label><label style="margin:0; display:flex; gap:3px;"><input type="radio" name="srvPumpUnit" value="HP" ${f.pumpUnit==='HP'?'checked':''} style="width:auto;">HP</label></div></div>
+        <div class="form-group"><label>Công suất biến tần:</label><div style="display:flex; gap:6px; align-items:center;"><input type="text" id="srvInvVal" value="${f.invVal || ''}" placeholder="Nhập công suất..."><label style="margin:0; display:flex; gap:3px;"><input type="radio" name="srvInvUnit" value="kW" ${(f.invUnit||'kW')==='kW'?'checked':''} style="width:auto;">kW</label><label style="margin:0; display:flex; gap:3px;"><input type="radio" name="srvInvUnit" value="HP" ${f.invUnit==='HP'?'checked':''} style="width:auto;">HP</label></div></div>
+        <div class="form-group"><label>Công suất giàn PIN:</label><input type="text" id="srvPvKw" value="${f.pvKw || ''}" placeholder="VD: 14 tấm 580W..."></div>
+        <div class="form-group"><label>Tình trạng lỗi:</label><textarea id="srvIssue" rows="2" placeholder="Mô tả chi tiết tình trạng..." oninput="clearInputError('srvIssue')">${f.issue || ''}</textarea></div>
+        <div class="form-group"><label>Màn hình hiển thị lỗi:</label><input type="text" id="srvScreenErr" value="${f.screenErr || ''}" placeholder="VD: E.OC1, E.LU..."></div>
+        <div class="form-group"><label>Yêu cầu khác:</label><input type="text" id="srvNote" value="${f.note || ''}" placeholder="Ghi chú thêm..."></div>
+        <div class="form-group"><label>Thời gian tạo:</label><input type="text" id="srvCreatedAt" value="${getNowVnStr()}" readonly style="background:#f1f5f9;"></div>
+        <div class="grid-2"><button class="btn btn-outline" onclick="goSrvStep(1)">⬅ Quay lại</button><button class="btn btn-primary" onclick="saveSrvStep2AndReview()">Xem lại ➔</button></div>
     `;
 }
+
 function saveSrvStep2AndReview() {
-    const field = document.getElementById('srvField')?.value || "";
-    const reqType = document.getElementById('srvReqType')?.value || "";
-    const bill = document.getElementById('srvBill')?.value.trim() || "Không ghi";
-    const pumpVal = document.getElementById('srvPumpVal')?.value.trim() || "";
-    const pumpUnit = document.querySelector('input[name="srvPumpUnit"]:checked')?.value || "kW";
-    const invVal = document.getElementById('srvInvVal')?.value.trim() || "";
-    const invUnit = document.querySelector('input[name="srvInvUnit"]:checked')?.value || "kW";
-    const pvKw = document.getElementById('srvPvKw')?.value.trim() || "Chưa có";
-    const issue = document.getElementById('srvIssue')?.value.trim() || "";
-    const screenErr = document.getElementById('srvScreenErr')?.value.trim() || "Không báo mã lỗi";
-    const note = document.getElementById('srvNote')?.value.trim() || "Không";
-    const createdAt = document.getElementById('srvCreatedAt')?.value || getNowVnFormatted();
-
-    if (!issue && !screenErr) {
-        return alert("⚠️ Vui lòng nhập Tình trạng lỗi hoặc nhu cầu tư vấn trước khi tiếp tục!");
-    }
-
+    const issue = (document.getElementById('srvIssue')?.value || '').trim();
+    const screenErr = (document.getElementById('srvScreenErr')?.value || '').trim();
+    if (!issue && !screenErr) return markInputError('srvIssue', "Vui lòng nhập Tình trạng lỗi hoặc nhu cầu tư vấn!");
+    const pVal = (document.getElementById('srvPumpVal')?.value || '').trim();
+    const pUnit = document.querySelector('input[name="srvPumpUnit"]:checked')?.value || 'kW';
+    const iVal = (document.getElementById('srvInvVal')?.value || '').trim();
+    const iUnit = document.querySelector('input[name="srvInvUnit"]:checked')?.value || 'kW';
     srvState.form = {
         username: currentUser.username,
-        field, reqType, bill,
-        pumpVal, pumpUnit,
-        pumpKw: pumpVal ? `${pumpVal} ${pumpUnit}` : "Chưa nhập",
-        invVal, invUnit,
-        invKw: invVal ? `${invVal} ${invUnit}` : "Chưa nhập",
-        pvKw, issue, screenErr, note, createdAt
+        field: document.getElementById('srvField')?.value || '',
+        reqType: document.getElementById('srvReqType')?.value || '',
+        bill: (document.getElementById('srvBill')?.value || '').trim() || 'Không ghi',
+        pumpVal: pVal, pumpUnit: pUnit, pumpKw: pVal ? `${pVal} ${pUnit}` : 'Chưa nhập',
+        invVal: iVal, invUnit: iUnit, invKw: iVal ? `${iVal} ${iUnit}` : 'Chưa nhập',
+        pvKw: (document.getElementById('srvPvKw')?.value || '').trim() || 'Chưa có',
+        issue, screenErr: screenErr || 'Không báo mã lỗi',
+        note: (document.getElementById('srvNote')?.value || '').trim() || 'Không',
+        createdAt: document.getElementById('srvCreatedAt')?.value || getNowVnStr()
     };
     goSrvStep(3);
 }
 
 function renderSrvStep3() {
-    const body = document.getElementById('phoneScreenBody');
-    if (!body) return;
     const f = srvState.form;
-    body.innerHTML = `
-        <div style="font-weight:800; color:var(--primary); font-size:13.5px; margin-bottom:8px;">📋 Xác nhận thông tin đặt lịch Video Call:</div>
-        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-size:12.5px; line-height:1.65; margin-bottom:12px;">
-            <div>• <b>Khách hàng:</b> ${f.username}</div>
-            <div>• <b>Thời gian hẹn:</b> <span style="color:#b91c1c; font-weight:700;">${srvState.time} — Ngày ${srvState.date}</span></div>
+    document.getElementById('phoneScreenBody').innerHTML = `
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-size:12.5px; line-height:1.6; margin-bottom:10px;">
+            <div>• <b>Khách hàng:</b> ${f.username} | <b>Hẹn:</b> ${srvState.time} (${srvState.date})</div>
             <div>• <b>Lĩnh vực:</b> ${f.field} (${f.reqType})</div>
-            <div>• <b>Tiền điện/tháng:</b> ${f.bill}</div>
-            <div>• <b>Công suất bơm:</b> ${f.pumpKw} | <b>Biến tần:</b> ${f.invKw}</div>
-            <div>• <b>Công suất giàn PIN:</b> ${f.pvKw}</div>
-            <div>• <b>Tình trạng lỗi:</b> ${f.issue}</div>
-            <div>• <b>Màn hình hiển thị lỗi:</b> ${f.screenErr}</div>
-            <div>• <b>Yêu cầu khác:</b> ${f.note}</div>
-            <div>• <b>Thời gian tạo:</b> ${f.createdAt}</div>
+            <div>• <b>Tiền điện/tháng:</b> ${f.bill} | <b>Giàn PIN:</b> ${f.pvKw}</div>
+            <div>• <b>Bơm:</b> ${f.pumpKw} | <b>Biến tần:</b> ${f.invKw}</div>
+            <div>• <b>Tình trạng lỗi:</b> ${f.issue} (${f.screenErr})</div>
+            <div>• <b>Yêu cầu khác:</b> ${f.note} | <b>Tạo lúc:</b> ${f.createdAt}</div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1.6fr; gap:8px;">
-            <button type="button" class="btn btn-outline" onclick="goSrvStep(2)">⬅ Sửa lại</button>
-            <button type="button" class="btn btn-success" id="btnSubmitBooking" onclick="submitServiceBooking()">🚀 GỬI YÊU CẦU</button>
-        </div>
+        <div class="grid-2"><button class="btn btn-outline" onclick="goSrvStep(2)">⬅ Sửa lại</button><button class="btn btn-success" id="btnSubmitBooking" onclick="submitServiceBooking()">🚀 GỬI YÊU CẦU</button></div>
     `;
 }
+/* === ĐẶT LỊCH HỖ TRỢ: GỬI PHIẾU, BƯỚC 4 TRẠNG THÁI & NẮNG AI === */
 async function submitServiceBooking() {
-    if (!currentUser) return alert("Vui lòng đăng nhập trước!");
-    const myActive = (appData.bookings || []).filter(b => b.username === currentUser.username && b.status !== 'Kết thúc' && b.status !== 'Đã hủy');
-    if (myActive.length >= 3) {
-        alert("⚠️ Bạn đang có 3 yêu cầu chờ xử lý (đạt giới hạn tối đa 3 yêu cầu/tài khoản). Vui lòng đợi hoàn tất trước khi tạo thêm!");
-        return goSrvStep(4);
-    }
-
     const btn = document.getElementById('btnSubmitBooking');
     if (btn) { btn.disabled = true; btn.innerText = "⏳ Đang gửi..."; }
-
     const f = srvState.form;
-    const payload = {
-        action: 'create_booking',
-        username: currentUser.username,
-        date: srvState.date,
-        time: srvState.time,
-        field: f.field,
-        reqType: f.reqType,
-        bill: f.bill,
-        pumpKw: f.pumpKw,
-        invKw: f.invKw,
-        pvKw: f.pvKw,
-        issue: f.issue,
-        screenErr: f.screenErr,
-        note: f.note,
-        createdAt: f.createdAt
-    };
-
-    try {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const result = await res.json();
-        if (result.status === 'limit_exceeded') {
-            alert("⚠️ Tài khoản của bạn đã đạt tối đa 3 yêu cầu đang xử lý!");
-        } else if (result.status === 'success') {
-            srvState.date = "";
-            srvState.time = "";
-            srvState.form = {};
-            await syncDataFromGoogleSheet();
-        }
-    } catch (e) {}
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'create_booking', username: currentUser.username, date: srvState.date, time: srvState.time, ...f }) });
+    const data = await res.json();
+    if (data.status === 'limit_exceeded') showToast("⚠️ Bạn đã đạt tối đa 3 yêu cầu đang xử lý!", "warn");
+    else showToast("✅ Đã gửi yêu cầu đặt lịch hỗ trợ!", "success");
+    srvState.date = ""; srvState.time = ""; srvState.form = {};
+    await syncDataFromGoogleSheet();
     goSrvStep(4);
 }
 
-function startNewServiceBooking() {
-    srvState.forceNew = true;
-    srvState.date = "";
-    srvState.time = "";
-    srvState.form = {};
-    goSrvStep(1);
-}
 function renderSrvStep4() {
     const body = document.getElementById('phoneScreenBody');
     if (!body) return;
-    if (!currentUser) {
-        body.innerHTML = `<div style="text-align:center; padding:24px; color:#64748b;">Vui lòng đăng nhập để xem trạng thái yêu cầu của bạn.</div>`;
-        return;
-    }
-
-    const flowSteps = [
-        "Khách gửi yêu cầu",
-        "Tele sale gọi lại xác nhận",
-        "Kỹ thuật viên gọi lại hỗ trợ",
-        "Kết thúc"
-    ];
-
-    const myTickets = (appData.bookings || []).filter(b => b.username === currentUser.username).reverse();
-    const activeCount = myTickets.filter(b => b.status !== 'Kết thúc' && b.status !== 'Đã hủy').length;
-
-    const listHtml = myTickets.length === 0
-        ? `<div style="text-align:center; padding:20px; color:#64748b; font-size:12.5px;">Bạn chưa có yêu cầu đặt lịch nào.</div>`
-        : myTickets.map(tk => {
-            const curIdx = flowSteps.indexOf(tk.status);
-            const stepsPillHtml = flowSteps.map((st, idx) => {
-                let cls = "";
-                if (idx < curIdx || tk.status === "Kết thúc") cls = "done";
-                else if (idx === curIdx) cls = "curr";
-                return `<span class="dv-flow-pill ${cls}">${idx + 1}. ${st}</span>`;
-            }).join('');
-
-            return `
-                <div class="booking-status-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                        <b style="color:var(--primary);">#${tk.id} — ${tk.date} (${tk.time})</b>
-                        <span class="bk-pill">${tk.status}</span>
-                    </div>
-                    <div style="font-size:12px; color:#334155;">• <b>${tk.field}</b> (${tk.reqType}) — Bơm: ${tk.pumpKw} | Biến tần: ${tk.invKw}</div>
-                    <div style="font-size:12px; color:#475569;">• Lỗi: ${tk.issue} (${tk.screenErr})</div>
-                    <div class="dv-flow-steps">${stepsPillHtml}</div>
-                </div>
-            `;
-        }).join('');
-
-    const addBtnHtml = activeCount < 3
-        ? `<button type="button" class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="startNewServiceBooking()">+ Tạo thêm yêu cầu mới (${activeCount}/3)</button>`
-        : `<div style="text-align:center; padding:8px; background:#fef3c7; color:#92400e; border-radius:6px; font-size:12px; font-weight:700; margin-top:8px;">⚠️ Đã đạt tối đa 3 yêu cầu đang xử lý.</div>`;
+    if (!currentUser) { body.innerHTML = `<div style="text-align:center; padding:20px;">Đăng nhập để xem trạng thái phiếu của bạn.</div>`; return; }
+    const tickets = (appData.bookings || []).filter(b => b.username === currentUser.username).reverse();
+    const activeCnt = tickets.filter(b => b.status !== 'Kết thúc' && b.status !== 'Đã hủy').length;
+    const listHtml = tickets.map(t => `
+        <div style="border:1px solid #cbd5e1; border-left:4px solid var(--primary); border-radius:8px; padding:9px; margin-bottom:8px; font-size:12px;">
+            <div style="display:flex; justify-content:space-between;"><b>#${t.id} — ${t.date} (${t.time})</b><span style="background:#fef3c7; color:#92400e; padding:1px 6px; border-radius:10px; font-weight:700;">${t.status}</span></div>
+            <div style="margin-top:4px;">• ${t.field} (${t.reqType}) — Bơm: ${t.pumpKw} | Biến tần: ${t.invKw}</div>
+            <div>• Lỗi: ${t.issue} (${t.screenErr})</div>
+        </div>
+    `).join('') || '<div style="text-align:center; padding:16px; color:#64748b;">Chưa có yêu cầu nào.</div>';
 
     body.innerHTML = `
-        <div style="padding:8px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; font-size:12.5px; color:#166534; font-weight:700; margin-bottom:10px;">
-            ⏳ Trạng thái: Đang chờ tiếp nhận & xử lý (${activeCount}/3 phiếu đang mở)
-        </div>
+        <div style="background:#f0fdf4; padding:8px; border-radius:6px; font-size:12.5px; color:#166534; font-weight:700; margin-bottom:8px;">⏳ Đang chờ tiếp nhận yêu cầu (${activeCnt}/3 phiếu đang mở)</div>
         ${listHtml}
-        ${addBtnHtml}
+        ${activeCnt < 3 ? `<button class="btn btn-primary" onclick="srvState.forceNew=true; srvState.date=''; srvState.time=''; goSrvStep(1)">+ Tạo thêm yêu cầu mới (${activeCnt}/3)</button>` : '<div style="text-align:center; font-size:12px; color:#b45309; font-weight:700;">Đã đạt giới hạn tối đa 3 yêu cầu/tài khoản.</div>'}
     `;
 }
 
+let aiTimer = null;
+function toggleSolarAiBox() {
+    const box = document.getElementById('solarAiBox');
+    if (!box) return;
+    const open = !box.classList.contains('open');
+    box.classList.toggle('open', open);
+    if (open) {
+        if (aiTimer) clearInterval(aiTimer);
+        const greet = document.getElementById('solarAiGreeting');
+        const btns = document.querySelectorAll('#solarAiMenu .seq-item');
+        btns.forEach(b => b.classList.remove('show'));
+        const u = currentUser ? currentUser.username : "bạn";
+        const txt = `Chào ${u}, mình là Nắng - Trợ lý Solar AI. Bạn cần hỗ trợ gì hôm nay?`;
+        let i = 0; greet.innerText = "";
+        aiTimer = setInterval(() => {
+            i++; greet.innerText = txt.slice(0, i);
+            if (i >= txt.length) { clearInterval(aiTimer); btns.forEach((b, k) => setTimeout(() => b.classList.add('show'), k * 140)); }
+        }, 22);
+    }
+}
 
-
+function aiQuickAction(t) {
+    toggleSolarAiBox();
+    if (t === 'solar') navigateApp('tool-solar');
+    else if (t === 'health') navigateApp('tool-health');
+    else if (t === 'error') navigateApp('errors');
+    else if (t === 'service') navigateApp('service');
+}
